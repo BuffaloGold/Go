@@ -3,188 +3,238 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Buffalo Gold</title>
+<title>Buffalo Gold - Verified Login & Sign Up</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-  body { background: radial-gradient(circle at top, #4a0d66, #12021a); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
-  .auth-card { width: 100%; max-width: 400px; background: rgba(34, 6, 48, 0.95); border: 2px solid #f5b915; border-radius: 20px; padding: 25px; box-shadow: 0 0 30px rgba(245, 185, 21, 0.3); }
-  .logo { text-align: center; margin-bottom: 18px; }
-  .logo h1 { font-size: 28px; color: #ffd700; text-shadow: 0 2px 10px #ff6600; }
-  .tabs { display: flex; background: #160321; border-radius: 10px; padding: 4px; margin-bottom: 18px; }
-  .tab { flex: 1; text-align: center; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #aaa; font-size: 13px; }
-  .tab.active { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; }
-  .input-group { margin-bottom: 13px; }
-  label { display: block; font-size: 12px; color: #e0c2f0; margin-bottom: 5px; }
-  input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #6b1d91; background: #14021f; color: #fff; font-size: 14px; outline: none; }
-  .ref-applied { border-color: #28e04d !important; background: #0d2614 !important; color: #28e04d !important; font-weight: bold; }
-  .btn-submit { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(180deg, #32eb4a, #0e8a1e); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; }
-  .btn-submit:disabled { opacity: 0.6; }
-  .forgot-link { text-align: right; margin-top: -6px; margin-bottom: 10px; }
-  .forgot-link span { font-size: 12px; color: #ffd700; cursor: pointer; text-decoration: underline; }
-  .hidden { display: none; }
-  #errBox { background: #5c0000; border: 1px solid #ff4d4d; color: #ffcccc; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; display: none; }
+  body {
+    background: radial-gradient(circle at top, #4a0d66, #12021a);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 410px;
+    background: #1d042b;
+    border: 2px solid #ffd700;
+    border-radius: 22px;
+    padding: 26px 20px;
+    box-shadow: 0 0 35px rgba(255, 215, 0, 0.3);
+    text-align: center;
+  }
+  h1 { color: #ffd700; font-size: 26px; text-shadow: 0 2px 8px #ff6600; margin-top: 6px; }
+  .sub { font-size: 12px; color: #d8b4e8; margin: 4px 0 20px; }
+
+  .google-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+    background: #ffffff;
+    color: #111;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  }
+  .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .verified-box {
+    background: rgba(40, 224, 77, 0.14);
+    border: 1px solid #28e04d;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    color: #86efac;
+    margin-bottom: 14px;
+    text-align: left;
+  }
+  .form-group { text-align: left; margin-bottom: 13px; }
+  label { display: block; font-size: 12px; color: #e2c6f2; margin-bottom: 5px; font-weight: 600; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #6b1d91;
+    background: #12021a;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+  }
+  input:focus { border-color: #ffd700; }
+
+  .btn-green {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #32eb4a, #0e8a1e);
+    color: #fff;
+    font-weight: 900;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #075211;
+  }
+  .info-strip {
+    margin-top: 16px;
+    background: #12021a;
+    border: 1px dashed #ffd700;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    color: #fde047;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
 
 <div class="auth-card">
-  <div class="logo">
-    <h1>🐃 BUFFALO GOLD</h1>
-    <p style="font-size:12px; color:#d8b4e8;">ONLINE CLOUD GAMING ARENA</p>
+  <div style="font-size:46px;">🐃💰</div>
+  <h1>BUFFALO GOLD</h1>
+  <p class="sub">100% Verified Accounts • Instant UPI Withdrawal</p>
+
+  <!-- STEP 1: GOOGLE SIGN IN -->
+  <div id="stepGoogle">
+    <button type="button" class="google-btn" id="googleSignInBtn" onclick="loginWithGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="G">
+      <span>Continue with Google (Gmail)</span>
+    </button>
+
+    <div class="info-strip">
+      🔒 <strong>Fake Account Protection:</strong><br>
+      Apne Gmail se 1-click verify karein aur payein <strong>₹100 Welcome Bonus</strong> + Referral par <strong>₹50 Extra</strong>!
+    </div>
   </div>
 
-  <div id="errBox"></div>
+  <!-- STEP 2: COMPLETE PROFILE (ONLY FOR NEW USERS) -->
+  <div id="stepMobile" style="display:none;">
+    <div class="verified-box" id="gmailBadge">✅ Gmail Verified</div>
 
-  <div class="tabs">
-    <div class="tab active" id="loginTab" onclick="switchMode('login')">LOGIN</div>
-    <div class="tab" id="signupTab" onclick="switchMode('signup')">SIGN UP</div>
-    <div class="tab" id="forgotTab" onclick="switchMode('forgot')">RESET PASS</div>
-  </div>
+    <div class="form-group">
+      <label>10-Digit Mobile Number (UPI / WhatsApp)</label>
+      <input type="tel" id="userMobile" maxlength="10" placeholder="Apna 10-digit number dalein">
+    </div>
 
-  <!-- LOGIN FORM -->
-  <div id="loginForm">
-    <div class="input-group">
-      <label>Mobile Number</label>
-      <input type="tel" inputmode="numeric" maxlength="10" id="loginMobile" placeholder="10-digit mobile number">
+    <div class="form-group">
+      <label id="refLabel" style="color:#ffd700;">Referral Code (Optional)</label>
+      <input type="text" id="userRef" placeholder="Jaise: BUF8205">
     </div>
-    <div class="input-group">
-      <label>Password</label>
-      <input type="password" id="loginPass" placeholder="Apna password dalein">
-    </div>
-    <div class="forgot-link"><span onclick="switchMode('forgot')">🔑 Forgot Password?</span></div>
-    <button type="button" class="btn-submit" id="loginBtn">PLAY NOW ▶</button>
-  </div>
 
-  <!-- SIGNUP FORM -->
-  <div id="signupForm" class="hidden">
-    <div class="input-group">
-      <label>Player Name</label>
-      <input type="text" id="regName" placeholder="e.g. Deepak_99">
-    </div>
-    <div class="input-group">
-      <label>Mobile Number</label>
-      <input type="tel" inputmode="numeric" maxlength="10" id="regMobile" placeholder="10-digit mobile number">
-    </div>
-    <div class="input-group">
-      <label>Create Password</label>
-      <input type="password" id="regPass" placeholder="Strong password banayein">
-    </div>
-    <div class="input-group">
-      <label id="refLabel">Referral Code (Optional - ₹50 Bonus)</label>
-      <input type="text" id="regRef" placeholder="e.g. BUF1234">
-    </div>
-    <button type="button" class="btn-submit" id="signupBtn">CREATE ACCOUNT & GET ₹100</button>
-  </div>
-
-  <!-- FORGOT PASSWORD FORM -->
-  <div id="forgotForm" class="hidden">
-    <p style="font-size:12px; color:#ccc; margin-bottom:12px;">Apna registered Mobile Number aur Player Name verify karke naya password set karein:</p>
-    <div class="input-group">
-      <label>Registered Mobile Number</label>
-      <input type="tel" inputmode="numeric" maxlength="10" id="fpMobile" placeholder="10-digit mobile number">
-    </div>
-    <div class="input-group">
-      <label>Registered Player Name (Security Check)</label>
-      <input type="text" id="fpName" placeholder="Account banate waqt dala gaya naam">
-    </div>
-    <div class="input-group">
-      <label>New Password</label>
-      <input type="password" id="fpNewPass" placeholder="Naya password dalein">
-    </div>
-    <button type="button" class="btn-submit" id="resetPassBtn" style="background:linear-gradient(180deg, #ff9900, #cc5200);">🔄 UPDATE NEW PASSWORD</button>
+    <button type="button" class="btn-green" id="completeSignupBtn" onclick="finishRegistration()">
+      🎁 VERIFY & CLAIM BONUS
+    </button>
   </div>
 </div>
 
-<script>
-  const ADMIN_MOBILE = "9794408205";
-
-  function showError(msg) {
-    const box = document.getElementById("errBox");
-    box.style.display = "block";
-    box.innerText = "⚠️ " + msg;
-  }
-
-  const savedUser = localStorage.getItem("activeUser");
-  if (savedUser) {
-    window.location.replace(savedUser === ADMIN_MOBILE ? "admin.html" : "game.html");
-  }
-
-  window.switchMode = function(mode) {
-    document.getElementById("errBox").style.display = "none";
-    document.getElementById("loginTab").classList.toggle("active", mode === 'login');
-    document.getElementById("signupTab").classList.toggle("active", mode === 'signup');
-    document.getElementById("forgotTab").classList.toggle("active", mode === 'forgot');
-    document.getElementById("loginForm").classList.toggle("hidden", mode !== 'login');
-    document.getElementById("signupForm").classList.toggle("hidden", mode !== 'signup');
-    document.getElementById("forgotForm").classList.toggle("hidden", mode !== 'forgot');
-  };
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const incomingRef = (urlParams.get("ref") || "").trim().toUpperCase();
-  if (incomingRef) {
-    switchMode('signup');
-    const refInputEl = document.getElementById("regRef");
-    refInputEl.value = incomingRef;
-    refInputEl.classList.add("ref-applied");
-    document.getElementById("refLabel").innerText = "✅ Referral Code Applied (+₹50 Extra Bonus!)";
-    document.getElementById("regName").focus();
-  }
-</script>
-
 <script type="module">
   import { db, ref, set, get, update } from "./firebase-config.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  const ADMIN_MOBILE = "9794408205";
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
 
-  function redirectAfterAuth(mobile) {
-    localStorage.setItem("activeUser", mobile);
-    window.location.replace(String(mobile) === ADMIN_MOBILE ? "admin.html" : "game.html");
+  if (localStorage.getItem("activeUser")) {
+    window.location.replace("game.html");
   }
 
-  // SIGN UP
-  document.getElementById("signupBtn").addEventListener("click", async () => {
-    const name = document.getElementById("regName").value.trim();
-    const mobile = document.getElementById("regMobile").value.trim();
-    const pass = document.getElementById("regPass").value.trim();
-    const refInput = document.getElementById("regRef").value.trim().toUpperCase();
+  let verifiedGoogleUser = null;
+  let autoRefCode = "";
 
-    if (!name || !/^\d{10}$/.test(mobile) || pass.length < 4) {
-      return alert("Sahi naam, 10-digit mobile aur kam se kam 4 akshar ka password bharein!");
+  window.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    autoRefCode = (params.get("ref") || "").trim().toUpperCase();
+    if (autoRefCode) {
+      const refBox = document.getElementById("userRef");
+      refBox.value = autoRefCode;
+      refBox.style.borderColor = "#28e04d";
+      refBox.style.color = "#28e04d";
+      document.getElementById("refLabel").innerText = "✅ Referral Code Applied (+₹50 Extra Bonus!)";
     }
+  });
 
-    const btn = document.getElementById("signupBtn");
+  // 1-Click Google Gmail Verification
+  window.loginWithGoogle = async function() {
+    const btn = document.getElementById("googleSignInBtn");
     btn.disabled = true;
-    btn.innerText = "Creating Account...";
+    btn.innerHTML = "<span>Connecting to Google...</span>";
 
     try {
-      const userRef = ref(db, "users/" + mobile);
-      const snapshot = await get(userRef);
+      const result = await signInWithPopup(auth, provider);
+      const gUser = result.user;
+      const emailKey = gUser.email.replace(/\./g, "_"); // Firebase path safe key
 
-      if (snapshot.exists() && snapshot.val().name) {
-        btn.disabled = false;
-        btn.innerText = "CREATE ACCOUNT & GET ₹100";
-        alert("Yeh number pehle se registered hai! Ab Login karein.");
-        switchMode('login');
-        document.getElementById("loginMobile").value = mobile;
-        return;
+      // Check agar is Gmail se pehle hi account bana hua hai -> Seedha Login!
+      const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
+      if (emailSnap.exists()) {
+        const linkedMobile = emailSnap.val().mobile;
+        const userSnap = await get(ref(db, "users/" + linkedMobile));
+        if (userSnap.exists()) {
+          localStorage.setItem("activeUser", linkedMobile);
+          localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
+          window.location.replace("game.html");
+          return;
+        }
       }
 
-      let startBonus = 100;
-      let validRefApplied = false;
+      // Naya Gmail user -> Step 2 (Mobile Number link karein)
+      verifiedGoogleUser = gUser;
+      document.getElementById("stepGoogle").style.display = "none";
+      document.getElementById("stepMobile").style.display = "block";
+      document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
+      alert("Google Sign-In Error: " + err.message);
+    }
+  };
+
+  // Finish Account Creation
+  window.finishRegistration = async function() {
+    if (!verifiedGoogleUser) return;
+    const mobile = document.getElementById("userMobile").value.trim();
+    const refInput = document.getElementById("userRef").value.trim().toUpperCase();
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      return alert("❌ Sahi 10-digit Indian mobile number dalein!");
+    }
+
+    const btn = document.getElementById("completeSignupBtn");
+    btn.disabled = true;
+    btn.innerText = "CREATING ACCOUNT...";
+
+    try {
+      // Check agar yeh mobile number kisi aur Gmail se already linked hai
+      const mobSnap = await get(ref(db, "users/" + mobile));
+      if (mobSnap.exists()) {
+        btn.disabled = false;
+        btn.innerText = "🎁 VERIFY & CLAIM BONUS";
+        return alert("❌ Yeh mobile number pehle se kisi aur account mein registered hai!");
+      }
+
+      let welcomeBonus = 100;
+      let referredByMobile = "";
 
       if (refInput) {
-        const allUsersSnap = await get(ref(db, "users"));
-        if (allUsersSnap.exists()) {
-          const allUsers = allUsersSnap.val();
-          for (let key in allUsers) {
-            if (allUsers[key].refCode === refInput) {
-              validRefApplied = true;
-              startBonus = 150;
-              const inviterTxns = Array.isArray(allUsers[key].txns) ? [...allUsers[key].txns] : [];
-              inviterTxns.unshift({ type: "Referral Bonus (" + name + ")", amt: "+₹50", date: new Date().toLocaleString() });
+        const allSnap = await get(ref(db, "users"));
+        if (allSnap.exists()) {
+          const allUsers = allSnap.val();
+          for (const key in allUsers) {
+            if ((allUsers[key].refCode || "").toUpperCase() === refInput) {
+              referredByMobile = key;
+              welcomeBonus = 150;
+              const curBal = Number(allUsers[key].depositBalance || allUsers[key].balance || 0);
+              const curRef = Number(allUsers[key].totalRefers || 0);
               await update(ref(db, "users/" + key), {
-                depositBal: Number(allUsers[key].depositBal || 0) + 50,
-                txns: inviterTxns.slice(0, 30)
+                depositBalance: curBal + 50,
+                totalRefers: curRef + 1
               });
               break;
             }
@@ -192,98 +242,38 @@
         }
       }
 
-      const newUserObj = {
-        name, mobile, pass,
-        depositBal: startBonus,
-        winningBal: 0,
-        refCode: "BUF" + mobile.slice(-4),
-        totalSpins: 0,
-        totalWon: 0,
-        txns: [{ type: validRefApplied ? "Signup + Referral Bonus" : "Signup Bonus", amt: "+₹" + startBonus, date: new Date().toLocaleString() }]
+      const emailKey = verifiedGoogleUser.email.replace(/\./g, "_");
+      const newRefCode = "BUF" + mobile.slice(-4);
+      const userObj = {
+        name: verifiedGoogleUser.displayName || "Player",
+        email: verifiedGoogleUser.email,
+        uid: verifiedGoogleUser.uid,
+        mobile: mobile,
+        depositBalance: welcomeBonus,
+        winningBalance: 0,
+        refCode: newRefCode,
+        referredBy: referredByMobile,
+        totalRefers: 0,
+        createdAt: Date.now()
       };
 
-      await set(userRef, newUserObj);
-      localStorage.setItem("cachedUser", JSON.stringify(newUserObj));
-      redirectAfterAuth(mobile);
-    } catch (err) {
-      showError(err.message);
+      await set(ref(db, "users/" + mobile), userObj);
+      await set(ref(db, "verifiedEmails/" + emailKey), {
+        mobile: mobile,
+        email: verifiedGoogleUser.email,
+        uid: verifiedGoogleUser.uid
+      });
+
+      localStorage.setItem("activeUser", mobile);
+      localStorage.setItem("cachedUser", JSON.stringify(userObj));
+      alert("🎉 Gmail Verified! Aapke wallet mein ₹" + welcomeBonus + " Welcome Bonus credit ho gaya hai.");
+      window.location.replace("game.html");
+    } catch (e) {
       btn.disabled = false;
-      btn.innerText = "CREATE ACCOUNT & GET ₹100";
+      btn.innerText = "🎁 VERIFY & CLAIM BONUS";
+      alert("Error: " + e.message);
     }
-  });
-
-  // LOGIN
-  document.getElementById("loginBtn").addEventListener("click", async () => {
-    const mobile = document.getElementById("loginMobile").value.trim();
-    const pass = document.getElementById("loginPass").value.trim();
-
-    if (!mobile || !pass) return alert("Mobile aur Password dalein!");
-
-    const btn = document.getElementById("loginBtn");
-    btn.disabled = true;
-    btn.innerText = "Checking...";
-
-    try {
-      const snapshot = await get(ref(db, "users/" + mobile));
-      if (!snapshot.exists() || !snapshot.val().name || String(snapshot.val().pass) !== String(pass)) {
-        btn.disabled = false;
-        btn.innerText = "PLAY NOW ▶";
-        return alert("Galat Mobile Number ya Password!");
-      }
-
-      localStorage.setItem("cachedUser", JSON.stringify(snapshot.val()));
-      redirectAfterAuth(mobile);
-    } catch (err) {
-      showError(err.message);
-      btn.disabled = false;
-      btn.innerText = "PLAY NOW ▶";
-    }
-  });
-
-  // FORGOT PASSWORD RESET
-  document.getElementById("resetPassBtn").addEventListener("click", async () => {
-    const mobile = document.getElementById("fpMobile").value.trim();
-    const nameCheck = document.getElementById("fpName").value.trim().toLowerCase();
-    const newPass = document.getElementById("fpNewPass").value.trim();
-
-    if (!/^\d{10}$/.test(mobile) || !nameCheck || newPass.length < 4) {
-      return alert("Sahi 10-digit mobile, Player Name aur kam se kam 4 akshar ka naya password dalein!");
-    }
-
-    const btn = document.getElementById("resetPassBtn");
-    btn.disabled = true;
-    btn.innerText = "Verifying...";
-
-    try {
-      const userRef = ref(db, "users/" + mobile);
-      const snap = await get(userRef);
-      if (!snap.exists() || !snap.val().name) {
-        btn.disabled = false;
-        btn.innerText = "🔄 UPDATE NEW PASSWORD";
-        return alert("❌ Yeh mobile number registered nahi hai!");
-      }
-
-      const u = snap.val();
-      if ((u.name || "").trim().toLowerCase() !== nameCheck) {
-        btn.disabled = false;
-        btn.innerText = "🔄 UPDATE NEW PASSWORD";
-        return alert("❌ Player Name match nahi hua! Sahi naam dalein.");
-      }
-
-      await update(userRef, { pass: newPass });
-      alert("✅ Password successfully update ho gaya! Ab naye password se Login karein.");
-      switchMode('login');
-      document.getElementById("loginMobile").value = mobile;
-      document.getElementById("fpMobile").value = "";
-      document.getElementById("fpName").value = "";
-      document.getElementById("fpNewPass").value = "";
-    } catch (err) {
-      showError(err.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "🔄 UPDATE NEW PASSWORD";
-    }
-  });
+  };
 </script>
 </body>
 </html>
