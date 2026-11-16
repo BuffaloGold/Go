@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile & Support - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
+  .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 15px; }
+
+  .p-card { background: linear-gradient(135deg, #4b0d69, #240436); border: 2px solid #ffd700; border-radius: 18px; padding: 20px; text-align: center; margin-bottom: 14px; }
+  .p-avatar { width: 68px; height: 68px; border-radius: 50%; background: #ffd700; color: #000; font-size: 34px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .s-box { background: #260636; padding: 14px; border-radius: 12px; border: 1px solid #5c197d; text-align: center; }
+  .s-box span { font-size: 11px; color: #bbb; }
+  .s-box h3 { font-size: 20px; color: #28e04d; margin-top: 4px; }
+
+  .btn { width: 100%; padding: 13px; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
+  .btn-support { background: linear-gradient(180deg, #2AABEE, #1a7bb9); color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-admin { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; display: none; }
+  .btn-logout { background: #b30000; color: #fff; }
+
+  .chat-modal { position: fixed; inset: 0; background: rgba(10, 1, 18, 0.92); z-index: 999; display: none; justify-content: center; align-items: flex-end; }
+  .chat-modal.show { display: flex; }
+  .chat-box { width: 100%; max-width: 430px; height: 85vh; background: #1a0326; border-top: 2px solid #ffd700; border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-head { background: #2d0842; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #6b1d91; }
+  .chat-body { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+  .msg { max-width: 82%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
+  .bot-msg { background: #2e0942; border: 1px solid #75229e; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .user-msg { background: #158f2b; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .admin-reply { background: #4a3500; border: 1px solid #ffd700; color: #ffe885; align-self: flex-start; }
+
+  .quick-opts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .opt-chip { background: #3d0c57; border: 1px solid #ffd700; color: #ffd700; padding: 7px 11px; border-radius: 18px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .opt-chip:active { background: #ffd700; color: #000; }
+
+  .chat-foot { padding: 10px; background: #14021f; border-top: 1px solid #5c197d; display: flex; gap: 8px; }
+  .chat-foot input { flex: 1; padding: 11px; border-radius: 10px; border: 1px solid #75229e; background: #260636; color: #fff; font-size: 14px; outline: none; }
+  .chat-foot button { background: #28e04d; color: #000; border: none; padding: 0 16px; border-radius: 10px; font-weight: 900; cursor: pointer; }
+
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 99; }
+  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  .nav-item.active { color: #ffd700; font-weight: bold; }
+  .nav-icon { font-size: 20px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="p-card">
+    <div class="p-avatar">👤</div>
+    <h2 id="uName" style="color:#ffd700;">Player</h2>
+    <p id="uMobile" style="font-size:13px; color:#ccc; margin-top:4px;">📱 ...</p>
+    <p style="font-size:12px; color:#28e04d; margin-top:4px;">Referral Code: <strong id="uRef">...</strong></p>
+  </div>
+
+  <div class="stats">
+    <div class="s-box"><span>TOTAL SPINS</span><h3 id="uSpins">0</h3></div>
+    <div class="s-box"><span>TOTAL WINNINGS</span><h3>₹<span id="uWon">0</span></h3></div>
+  </div>
+
+  <button type="button" class="btn btn-support" id="openChatBtn">💬 24×7 LIVE CHAT SUPPORT</button>
+  <button type="button" class="btn btn-admin" id="adminBtn" onclick="location.href='admin.html'">👑 OPEN MASTER ADMIN PANEL</button>
+  <button type="button" class="btn btn-logout" id="logoutBtn">🚪 LOGOUT ACCOUNT</button>
+</div>
+
+<div class="chat-modal" id="chatModal">
+  <div class="chat-box">
+    <div class="chat-head">
+      <div>
+        <strong style="color:#ffd700; font-size:15px;">🤖 24×7 Smart Support</strong>
+        <div style="font-size:11px; color:#28e04d;">● Instant Ticket & Admin Sync</div>
+      </div>
+      <button type="button" id="closeChatBtn" style="background:#b30000; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">✕ Close</button>
+    </div>
+
+    <div class="chat-body" id="chatBody"></div>
+
+    <div class="chat-foot">
+      <input type="text" id="chatInput" placeholder="Apna jawab yahan likhein...">
+      <button type="button" id="sendChatBtn">SEND</button>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item active" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+</div>
+
+<script>
+  try {
+    const mob = localStorage.getItem("activeUser") || "";
+    const cached = JSON.parse(localStorage.getItem("cachedUser") || "null");
+    if (mob === "9794408205") document.getElementById("adminBtn").style.display = "block";
+    if (cached && cached.name) {
+      document.getElementById("uName").innerText = cached.name;
+      document.getElementById("uMobile").innerText = "📱 +91 " + mob;
+      document.getElementById("uRef").innerText = cached.refCode || ("BUF" + mob.slice(-4));
+      document.getElementById("uSpins").innerText = cached.totalSpins || 0;
+      document.getElementById("uWon").innerText = cached.totalWon || 0;
+    }
+  } catch (e) {}
+</script>
+
+<script type="module">
+  import { db, ref, set, onValue } from "./firebase-config.js";
+
+  const mobile = localStorage.getItem("activeUser");
+  if (!mobile) window.location.replace("index.html");
+  if (mobile === "9794408205") document.getElementById("adminBtn").style.display = "block";
+
+  let userData = JSON.parse(localStorage.getItem("cachedUser") || "null");
+
+  onValue(ref(db, "users/" + mobile), (snap) => {
+    if (!snap.exists() || !snap.val().name) {
+      localStorage.removeItem("activeUser");
+      localStorage.removeItem("cachedUser");
+      window.location.replace("index.html");
+      return;
+    }
+    userData = snap.val();
+    localStorage.setItem("cachedUser", JSON.stringify(userData));
+    document.getElementById("uName").innerText = userData.name;
+    document.getElementById("uMobile").innerText = "📱 +91 " + userData.mobile;
+    document.getElementById("uRef").innerText = userData.refCode;
+    document.getElementById("uSpins").innerText = userData.totalSpins || 0;
+    document.getElementById("uWon").innerText = userData.totalWon || 0;
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("activeUser");
+    localStorage.removeItem("cachedUser");
+    window.location.replace("index.html");
+  });
+
+  const chatBody = document.getElementById("chatBody");
+  const chatInput = document.getElementById("chatInput");
+  let chatStep = 0;
+  let ticketData = { category: "", detail: "", note: "" };
+
+  function appendMsg(text, cls, optionsHtml = "") {
+    const div = document.createElement("div");
+    div.className = "msg " + cls;
+    div.innerHTML = text + optionsHtml;
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function startAutoChat() {
+    chatBody.innerHTML = "";
+    chatStep = 1;
+    ticketData = { category: "", detail: "", note: "" };
+
+    const opts = `
+      <div class="quick-opts">
+        <button class="opt-chip" onclick="selectCategory('💰 Deposit Not Added')">💰 Deposit Issue</button>
+        <button class="opt-chip" onclick="selectCategory('💸 Withdrawal Pending')">💸 Withdrawal Issue</button>
+        <button class="opt-chip" onclick="selectCategory('🎁 Referral / Bonus')">🎁 Bonus / Refer</button>
+        <button class="opt-chip" onclick="selectCategory('🎰 Game / Other Bug')">🎰 Game / Other</button>
+      </div>
+    `;
+    appendMsg(`Namaste <strong>${userData?.name || 'Player'}</strong>! 👋 Main 24×7 Support Assistant hoon.<br><br>Aapko kis cheez mein madad chahiye? Neeche se select karein:`, "bot-msg", opts);
+  }
+
+  window.selectCategory = (cat) => {
+    if (chatStep !== 1) return;
+    ticketData.category = cat;
+    appendMsg(cat, "user-msg");
+    chatStep = 2;
+
+    if (cat.includes("Deposit")) {
+      appendMsg("Kripya apna <strong>Deposit Amount aur 12-digit UTR Number</strong> likh kar bhejein (e.g. ₹300 - 432198765432):", "bot-msg");
+    } else if (cat.includes("Withdrawal")) {
+      appendMsg("Kripya apna <strong>Withdrawal Amount aur UPI ID</strong> likh kar bhejein (e.g. ₹500 - name@okicici):", "bot-msg");
+    } else {
+      appendMsg("Kripya apni problem ka <strong>Amount ya Specific Detail</strong> likhein:", "bot-msg");
+    }
+  };
+
+  async function handleUserText() {
+    const val = chatInput.value.trim();
+    if (!val) return;
+    chatInput.value = "";
+
+    if (chatStep === 1) {
+      window.selectCategory(val);
+      return;
+    }
+
+    appendMsg(val, "user-msg");
+
+    if (chatStep === 2) {
+      ticketData.detail = val;
+      chatStep = 3;
+      appendMsg("Samajh gaya! Ab ek line mein batayein ki <strong>main problem kya aa rahi hai</strong> (jaise: 'Payment kat gaya par balance nahi aaya'):", "bot-msg");
+    } else if (chatStep === 3) {
+      ticketData.note = val;
+      chatStep = 4;
+
+      const ticketId = "TKT_" + Date.now();
+      const summaryReason = `[${ticketData.category}] ${ticketData.detail} — ${ticketData.note}`;
+
+      await set(ref(db, "supportTickets/" + ticketId), {
+        ticketId,
+        mobile,
+        name: userData?.name || "Player",
+        category: ticketData.category,
+        detail: ticketData.detail,
+        note: ticketData.note,
+        mainReason: summaryReason,
+        status: "OPEN",
+        adminReply: "",
+        date: new Date().toLocaleString()
+      });
+
+      appendMsg(`✅ Aapki complaint Admin Team ko bhej di gayi hai!<br><br><strong>Ticket ID:</strong> #${ticketId.slice(-6)}<br><strong>Main Reason:</strong> ${summaryReason}<br><br>Admin reply aate hi aapko neeche dikh jayega.`, "bot-msg");
+    } else {
+      appendMsg("Nayi complaint darj karne ke liye chat band karke dobara kholein.", "bot-msg");
+    }
+  }
+
+  document.getElementById("sendChatBtn").addEventListener("click", handleUserText);
+  chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleUserText(); });
+
+  document.getElementById("openChatBtn").addEventListener("click", () => {
+    document.getElementById("chatModal").classList.add("show");
+    startAutoChat();
+  });
+
+  document.getElementById("closeChatBtn").addEventListener("click", () => {
+    document.getElementById("chatModal").classList.remove("show");
+  });
+
+  onValue(ref(db, "supportTickets"), (snap) => {
+    if (!snap.exists()) return;
+    const all = snap.val();
+    Object.values(all).forEach(t => {
+      if (t.mobile === mobile && t.adminReply && !document.getElementById("rep_" + t.ticketId)) {
+        const div = document.createElement("div");
+        div.id = "rep_" + t.ticketId;
+        div.className = "msg admin-reply";
+        div.innerHTML = `👑 <strong>Admin Reply (#${t.ticketId.slice(-6)}):</strong><br>${t.adminReply}`;
+        chatBody.appendChild(div);
+      }
+    });
+  });
+</script>
+</body>
+</html>

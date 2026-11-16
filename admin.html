@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #0d0214; color: #fff; padding: 14px; display: flex; justify-content: center; }
+  .wrap { width: 100%; max-width: 500px; }
+
+  input, select { width: 100%; padding: 11px; margin: 8px 0; border-radius: 8px; border: 1px solid #75229e; background: #14021f; color: #fff; font-size: 14px; }
+  .btn { padding: 8px 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
+  .btn-gold { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; width: 100%; padding: 13px; font-size: 15px; }
+  .btn-green { background: #1db954; color: #fff; }
+  .btn-red { background: #e63946; color: #fff; }
+  .btn-blue { background: #3a86ff; color: #fff; }
+  .btn-del { background: #9b0000; border: 1px solid #ff4d4d; color: #fff; }
+  .btn-upi { background: linear-gradient(180deg, #ffbe0b, #fb5607); color: #000; width: 100%; padding: 10px; font-size: 13px; margin-bottom: 6px; }
+  .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 5px 8px; font-size: 10px; }
+
+  .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
+  .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .stat { background: #1e042b; border: 1px solid #5c197d; padding: 8px 4px; border-radius: 10px; text-align: center; }
+  .stat span { font-size: 9px; color: #bbb; display: block; }
+  .stat strong { font-size: 15px; color: #ffd700; }
+
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 14px; }
+  .tab { padding: 9px 2px; background: #260636; border: 1px solid #6b1d91; color: #ccc; border-radius: 8px; text-align: center; font-size: 10px; font-weight: bold; cursor: pointer; }
+  .tab.active { background: #ffd700; color: #000; }
+
+  .card { background: #1e042b; border: 1px solid #5c197d; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .reason-box { background: #2d0842; border-left: 3px solid #ffd700; padding: 8px; border-radius: 6px; font-size: 13px; margin: 8px 0; color: #ffe885; }
+  .upi-row { display: flex; justify-content: space-between; align-items: center; background: #14021f; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a1566; margin: 6px 0; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; }
+  .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+  .PENDING, .OPEN { background: #ff9f1c; color: #000; }
+  .APPROVED, .AUTO_APPROVED, .RESOLVED { background: #2ec4b6; color: #000; }
+  .REJECTED { background: #e71d36; color: #fff; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<script>
+  const activeMob = localStorage.getItem("activeUser");
+  if (activeMob !== "9794408205") {
+    window.location.replace(activeMob ? "game.html" : "index.html");
+  }
+</script>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h3 style="color:#ffd700; font-size:16px;">👑 ADMIN PANEL</h3>
+      <span style="font-size:11px; color:#28e04d;">● 9794408205 (Master)</span>
+    </div>
+    <div style="display:flex; gap:5px;">
+      <button type="button" class="btn btn-green" onclick="location.href='game.html'">🎰 Game</button>
+      <button type="button" class="btn btn-blue" onclick="forceLoadAll()">🔄 Sync</button>
+      <button type="button" class="btn btn-red" onclick="logoutAdmin()">Logout</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="connStatus">⏳ Firebase se data load ho raha hai...</div>
+
+  <div class="stats-grid">
+    <div class="stat"><span>USERS</span><strong id="stUsers">0</strong></div>
+    <div class="stat"><span>DEPOSITS</span><strong id="stDep">0</strong></div>
+    <div class="stat"><span>WITHDRAW</span><strong id="stWd">0</strong></div>
+    <div class="stat"><span>TICKETS</span><strong id="stTkt">0</strong></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('wdTab', this)">💸 Withdraw</div>
+    <div class="tab" onclick="showTab('depTab', this)">📥 Deposits</div>
+    <div class="tab" onclick="showTab('tktTab', this)">💬 Support</div>
+    <div class="tab" onclick="showTab('usersTab', this)">👥 Users</div>
+    <div class="tab" onclick="showTab('settingsTab', this)">⚙️ Rate</div>
+  </div>
+
+  <!-- WITHDRAWALS TAB (1-CLICK UPI PAY + COPY + APPROVE/REJECT) -->
+  <div id="wdTab"><div id="wdList">Loading requests...</div></div>
+
+  <!-- DEPOSITS TAB -->
+  <div id="depTab" class="hidden"><div id="depList">Loading deposits...</div></div>
+
+  <!-- SUPPORT TICKETS TAB -->
+  <div id="tktTab" class="hidden"><div id="tktList">Loading support tickets...</div></div>
+
+  <!-- USERS TAB -->
+  <div id="usersTab" class="hidden">
+    <input type="text" id="searchUser" placeholder="🔍 Mobile ya Naam se search karein..." onkeyup="renderUsers()">
+    <div id="usersList"></div>
+  </div>
+
+  <!-- WIN RATE SETTINGS -->
+  <div id="settingsTab" class="hidden">
+    <div class="card">
+      <h4 style="color:#ffd700; margin-bottom:6px;">🎰 Slot Game Win Probability</h4>
+      <select id="winRateSelect">
+        <option value="20">20% Win Chance (High Admin Profit)</option>
+        <option value="35" selected>35% Win Chance (Balanced - Recommended)</option>
+        <option value="50">50% Win Chance (Medium)</option>
+        <option value="75">75% Win Chance (Promo Mode)</option>
+      </select>
+      <button type="button" class="btn btn-gold" style="margin-top:10px;" onclick="saveSettings()">SAVE GAME SETTINGS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function logoutAdmin() {
+    localStorage.removeItem("activeUser");
+    localStorage.removeItem("cachedUser");
+    window.location.replace("index.html");
+  }
+
+  function showTab(tabId, el) {
+    ["wdTab", "depTab", "tktTab", "usersTab", "settingsTab"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById(tabId).classList.remove("hidden");
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    el.classList.add("active");
+  }
+
+  function payViaUpiApp(upiId, name, amount) {
+    const cleanUpi = encodeURIComponent(upiId.trim());
+    const cleanName = encodeURIComponent(name || "Player");
+    const note = encodeURIComponent("Buffalo Gold Withdrawal");
+    const upiUrl = `upi://pay?pa=${cleanUpi}&pn=${cleanName}&am=${amount}&cu=INR&tn=${note}`;
+    window.location.href = upiUrl;
+  }
+
+  function copyUpiText(upiId) {
+    navigator.clipboard.writeText(upiId);
+    alert("✅ UPI ID (" + upiId + ") copy ho gayi!");
+  }
+</script>
+
+<script type="module">
+  import { db, ref, set, get, update, onValue } from "./firebase-config.js";
+
+  let allUsers = {};
+  let allDeposits = {};
+  let allWithdrawals = {};
+  let allTickets = {};
+
+  function updateUsersUI(data) {
+    allUsers = data || {};
+    const count = Object.keys(allUsers).length;
+    document.getElementById("stUsers").innerText = count;
+    document.getElementById("connStatus").innerText = "✅ Live Connected! Total " + count + " users.";
+    window.renderUsers();
+  }
+
+  function updateWithdrawalsUI(data) {
+    allWithdrawals = data || {};
+    let pendingCount = 0;
+    const list = document.getElementById("wdList");
+    const keys = Object.keys(allWithdrawals).reverse();
+
+    if (keys.length === 0) {
+      list.innerHTML = "<div class='card'>Abhi koi withdrawal request nahi hai.</div>";
+      document.getElementById("stWd").innerText = 0;
+      return;
+    }
+
+    list.innerHTML = keys.map(k => {
+      const w = allWithdrawals[k];
+      if (w.status === "PENDING") pendingCount++;
+      const userRec = allUsers[w.mobile] || {};
+      const hasDepBadge = userRec.hasDeposited ? `<span style="color:#28e04d; font-size:11px;">✔ ₹300+ Deposited</span>` : `<span style="color:#ff4d6d; font-size:11px;">⚠ No Deposit Record</span>`;
+
+      return `
+        <div class="card">
+          <div class="row-between">
+            <strong>👤 ${w.name || 'User'} (${w.mobile})</strong>
+            <span class="badge ${w.status}">${w.status}</span>
+          </div>
+          <div style="margin-top:4px;">${hasDepBadge}</div>
+          <div class="upi-row">
+            <div>
+              <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:15px;">₹${w.amount}</strong></div>
+              <div style="font-size:13px; color:#28e04d; font-weight:bold;">UPI: ${w.upi}</div>
+            </div>
+            <button type="button" class="btn btn-copy" onclick="copyUpiText('${w.upi}')">📋 Copy UPI</button>
+          </div>
+          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">${w.date}</div>
+          ${w.status === "PENDING" ? `
+            <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${w.upi}', '${w.name}', '${w.amount}')">⚡ PAY ₹${w.amount} VIA UPI APP</button>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-green" style="flex:1;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
+              <button type="button" class="btn btn-red" style="flex:1;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+    document.getElementById("stWd").innerText = pendingCount;
+  }
+
+  function updateDepositsUI(data) {
+    allDeposits = data || {};
+    const list = document.getElementById("depList");
+    const keys = Object.keys(allDeposits).reverse();
+    document.getElementById("stDep").innerText = keys.length;
+
+    if (keys.length === 0) {
+      list.innerHTML = "<div class='card'>Abhi koi deposit record nahi hai.</div>";
+      return;
+    }
+
+    list.innerHTML = keys.map(k => {
+      const d = allDeposits[k];
+      return `
+        <div class="card">
+          <div class="row-between">
+            <strong>${d.name || 'User'} (${d.mobile})</strong>
+            <span class="badge ${d.status}">${d.status}</span>
+          </div>
+          <div style="margin:6px 0; font-size:14px;">
+            Amount: <strong style="color:#28e04d;">₹${d.amount}</strong> | UTR: <strong style="color:#ffd700;">${d.utr}</strong>
+          </div>
+          <div style="font-size:11px; color:#aaa;">${d.date}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function updateTicketsUI(data) {
+    allTickets = data || {};
+    let openCount = 0;
+    const list = document.getElementById("tktList");
+    const keys = Object.keys(allTickets).reverse();
+
+    if (keys.length === 0) {
+      list.innerHTML = "<div class='card'>Abhi koi support ticket nahi hai.</div>";
+      document.getElementById("stTkt").innerText = 0;
+      return;
+    }
+
+    list.innerHTML = keys.map(k => {
+      const t = allTickets[k];
+      if (t.status === "OPEN") openCount++;
+      return `
+        <div class="card">
+          <div class="row-between">
+            <strong>👤 ${t.name} (${t.mobile})</strong>
+            <span class="badge ${t.status}">${t.status}</span>
+          </div>
+          <div class="reason-box">
+            <strong>Main Reason:</strong> ${t.mainReason}
+          </div>
+          <div style="font-size:11px; color:#aaa; margin-bottom:6px;">${t.date}</div>
+          ${t.adminReply ? `<div style="font-size:12px; color:#28e04d; margin-bottom:6px;">✅ Reply: ${t.adminReply}</div>` : ""}
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="repInput_${k}" placeholder="User ko reply likhein..." style="margin:0; padding:8px; font-size:12px;">
+            <button type="button" class="btn btn-green" onclick="replyTicket('${k}')">Send</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+    document.getElementById("stTkt").innerText = openCount;
+  }
+
+  onValue(ref(db, "users"), (snap) => {
+    updateUsersUI(snap.val());
+    updateWithdrawalsUI(allWithdrawals);
+  }, (err) => {
+    document.getElementById("connStatus").innerText = "❌ Error: " + err.message;
+  });
+  onValue(ref(db, "withdrawals"), (snap) => updateWithdrawalsUI(snap.val()));
+  onValue(ref(db, "deposits"), (snap) => updateDepositsUI(snap.val()));
+  onValue(ref(db, "supportTickets"), (snap) => updateTicketsUI(snap.val()));
+
+  window.forceLoadAll = async () => {
+    document.getElementById("connStatus").innerText = "🔄 Syncing...";
+    const [uSnap, wSnap, dSnap, tSnap] = await Promise.all([
+      get(ref(db, "users")),
+      get(ref(db, "withdrawals")),
+      get(ref(db, "deposits")),
+      get(ref(db, "supportTickets"))
+    ]);
+    updateUsersUI(uSnap.val());
+    updateWithdrawalsUI(wSnap.val());
+    updateDepositsUI(dSnap.val());
+    updateTicketsUI(tSnap.val());
+  };
+
+  window.replyTicket = async (tktId) => {
+    const inp = document.getElementById("repInput_" + tktId);
+    const msg = (inp.value || "").trim();
+    if (!msg) return alert("Reply message likhein!");
+    await update(ref(db, "supportTickets/" + tktId), {
+      adminReply: msg,
+      status: "RESOLVED"
+    });
+    inp.value = "";
+    alert("✅ User ko reply bhej diya gaya!");
+  };
+
+  window.processWd = async (reqId, newStatus) => {
+    const w = allWithdrawals[reqId];
+    if (!w || w.status !== "PENDING") return;
+    await update(ref(db, "withdrawals/" + reqId), { status: newStatus });
+
+    if (newStatus === "REJECTED" && allUsers[w.mobile]) {
+      const u = allUsers[w.mobile];
+      const txns = Array.isArray(u.txns) ? [...u.txns] : [];
+      txns.unshift({ type: "Withdraw Refunded", amt: "+₹" + w.amount, date: new Date().toLocaleString() });
+      await update(ref(db, "users/" + w.mobile), {
+        winningBal: Number(u.winningBal || 0) + Number(w.amount),
+        txns: txns.slice(0, 30)
+      });
+    }
+    alert("Withdrawal " + newStatus + "!");
+  };
+
+  get(ref(db, "settings/winRate")).then(snap => {
+    if (snap.exists()) document.getElementById("winRateSelect").value = snap.val();
+  });
+
+  window.saveSettings = async () => {
+    const rate = Number(document.getElementById("winRateSelect").value);
+    await set(ref(db, "settings/winRate"), rate);
+    alert("✅ Game Win-Rate " + rate + "% par set ho gaya!");
+  };
+
+  window.renderUsers = () => {
+    const q = (document.getElementById("searchUser").value || "").toLowerCase();
+    const list = document.getElementById("usersList");
+    const keys = Object.keys(allUsers);
+    if (keys.length === 0) {
+      list.innerHTML = "<div class='card'>Abhi koi user registered nahi hai.</div>";
+      return;
+    }
+    list.innerHTML = keys.filter(k => {
+      const u = allUsers[k] || {};
+      return (u.name || "unidentified").toLowerCase().includes(q) || String(k).includes(q);
+    }).map(k => {
+      const u = allUsers[k] || {};
+      const isMaster = String(k) === "9794408205";
+      const displayName = u.name ? `👤 ${u.name}` : `⚠️ Unidentified / Ghost User`;
+      return `
+        <div class="card">
+          <div class="row-between">
+            <strong>${displayName}</strong>
+            <span style="font-size:12px; color:#ccc;">📱 ${k}</span>
+          </div>
+          <div style="font-size:13px; margin:6px 0;">
+            Deposit: <strong style="color:#ffd700;">₹${u.depositBal || 0}</strong> | 
+            Winning: <strong style="color:#28e04d;">₹${u.winningBal || 0}</strong>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}', 100)">+₹100</button>
+            <button type="button" class="btn btn-blue" style="flex:1;" onclick="editUserBal('${k}', -100)">-₹100</button>
+            ${isMaster ? "" : `<button type="button" class="btn btn-del" style="flex:1;" onclick="deleteUserAccount('${k}')">🗑️ Delete</button>`}
+          </div>
+        </div>
+      `;
+    }).join("");
+  };
+
+  window.editUserBal = async (mob, delta) => {
+    const u = allUsers[mob];
+    if (!u || !u.name) return alert("Valid user nahi hai!");
+    const newBal = Math.max(0, Number(u.depositBal || 0) + delta);
+    const txns = Array.isArray(u.txns) ? [...u.txns] : [];
+    txns.unshift({
+      type: delta > 0 ? "Admin Bonus Added" : "Admin Deduction",
+      amt: (delta > 0 ? "+₹" : "-₹") + Math.abs(delta),
+      date: new Date().toLocaleString()
+    });
+    await update(ref(db, "users/" + mob), { depositBal: newBal, txns: txns.slice(0, 30) });
+    alert("✅ " + u.name + " ka balance update ho gaya!");
+  };
+
+  window.deleteUserAccount = async (mob) => {
+    if (String(mob) === "9794408205") return alert("Master Admin account delete nahi kiya ja sakta!");
+    const u = allUsers[mob] || {};
+    const label = u.name ? `${u.name} (${mob})` : `Unidentified (${mob})`;
+    if (!confirm(`⚠️ Kya aap sach mein ${label} ka data Firebase se permanently DELETE karna chahte hain?`)) {
+      return;
+    }
+    try {
+      await set(ref(db, "users/" + mob), null);
+      alert("🗑️ " + label + " ka record permanently delete ho gaya!");
+    } catch (err) {
+      alert("❌ Delete error: " + err.message);
+    }
+  };
+</script>
+</body>
+</html>
