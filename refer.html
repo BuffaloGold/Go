@@ -6,177 +6,104 @@
 <title>Refer & Earn - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
-  .container { width: 100%; max-width: 430px; background: radial-gradient(circle at top, #3b0854, #1b0429 60%); min-height: 100vh; padding: 15px; }
-
-  .hero { background: linear-gradient(135deg, #5e0f87, #2b0440); border: 2px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; box-shadow: 0 0 25px rgba(255, 215, 0, 0.25); }
-  .hero h2 { color: #ffd700; font-size: 24px; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
-  .hero p { font-size: 13px; color: #e6ccf2; line-height: 1.45; }
-
-  .code-card { background: #160221; border: 2px dashed #ffd700; border-radius: 14px; padding: 14px; margin: 16px 0; text-align: center; }
-  .code-label { font-size: 11px; color: #bbb; letter-spacing: 1px; }
-  .code-text { font-size: 26px; font-weight: 900; color: #28e04d; letter-spacing: 3px; margin: 6px 0; }
-  .copy-mini { background: #3d0c57; color: #ffd700; border: 1px solid #ffd700; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
-
-  .share-section { background: #260636; border: 1px solid #6b1d91; border-radius: 16px; padding: 15px; margin-top: 14px; }
-  .share-title { font-size: 13px; font-weight: bold; color: #ffd700; margin-bottom: 10px; text-align: center; }
-
-  .btn-share { width: 100%; padding: 13px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-  .btn-share:active { transform: scale(0.98); }
-
-  .btn-wa { background: linear-gradient(180deg, #25D366, #128C7E); }
-  .btn-tg { background: linear-gradient(180deg, #2AABEE, #229ED9); }
-  .btn-social { background: linear-gradient(180deg, #ff512f, #dd2476); }
-  .btn-copy-all { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; margin-bottom: 0; }
-
-  .steps-box { background: #1e042b; border: 1px solid #5c197d; border-radius: 16px; padding: 15px; margin-top: 14px; }
-  .step { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 13px; color: #e2c6f0; }
-  .step:last-child { margin-bottom: 0; }
-  .step-num { width: 28px; height: 28px; border-radius: 50%; background: #ffd700; color: #000; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 99; }
-  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
-  .nav-item.active { color: #ffd700; font-weight: bold; }
-  .nav-icon { font-size: 20px; display: block; }
+  body { background: #14031f; color: #fff; min-height: 100vh; display: flex; justify-content: center; padding: 15px; }
+  .app { width: 100%; max-width: 430px; }
+  .header { display: flex; justify-content: space-between; align-items: center; background: #2d0842; padding: 12px 15px; border-radius: 14px; border: 1px solid #ffd700; margin-bottom: 15px; }
+  .back-btn { background: #4a0e6b; color: #ffd700; border: 1px solid #ffd700; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px; }
+  .banner { background: linear-gradient(135deg, #5e0d82, #29033b); border: 2px solid #ffd700; border-radius: 18px; padding: 22px; text-align: center; margin-bottom: 15px; }
+  .banner h2 { color: #ffd700; font-size: 24px; margin: 8px 0; }
+  .code-box { background: #12021a; border: 2px dashed #28e04d; border-radius: 12px; padding: 15px; text-align: center; margin: 15px 0; }
+  .code-text { font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #28e04d; margin: 5px 0; }
+  .btn-copy { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(180deg, #ffd700, #e69500); color: #000; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; }
+  .btn-wa { width: 100%; padding: 13px; border: none; border-radius: 12px; background: #25D366; color: #fff; font-weight: bold; font-size: 15px; cursor: pointer; }
+  .link-preview { background: #1c0429; border: 1px solid #6b1d91; padding: 10px; border-radius: 10px; font-size: 11px; color: #ffd700; word-break: break-all; margin-bottom: 12px; text-align: center; }
+  .steps { background: #220633; border: 1px solid #6b1d91; border-radius: 14px; padding: 15px; font-size: 13px; line-height: 1.8; color: #e2c6f2; margin-top: 15px; }
 </style>
 </head>
 <body>
-
-<div class="container">
-  <div class="hero">
-    <h2>🎁 REFER & EARN ₹50</h2>
-    <p>Apne doston ko <strong>Buffalo Gold 3D</strong> par invite karein. Jab woh aapke link se account banayenge, toh aapko <strong>₹50</strong> aur unhe <strong>₹150 Welcome Bonus</strong> milega!</p>
-
-    <div class="code-card">
-      <div class="code-label">YOUR UNIQUE REFERRAL CODE</div>
-      <div class="code-text" id="myRefCode">BUF0000</div>
-      <button type="button" class="copy-mini" id="copyCodeOnly">📋 COPY CODE</button>
-    </div>
+<div class="app">
+  <div class="header">
+    <a href="game.html" class="back-btn">⬅ Back</a>
+    <strong style="color:#ffd700;">🎁 REFER & EARN</strong>
+    <span style="width:45px;"></span>
   </div>
 
-  <div class="share-section">
-    <div class="share-title">🚀 SHARE INVITE LINK ON SOCIAL MEDIA</div>
-
-    <button type="button" class="btn-share btn-wa" id="waShareBtn">
-      <span style="font-size:20px;">💬</span> SHARE ON WHATSAPP
-    </button>
-
-    <button type="button" class="btn-share btn-tg" id="tgShareBtn">
-      <span style="font-size:20px;">✈️</span> SHARE ON TELEGRAM
-    </button>
-
-    <button type="button" class="btn-share btn-social" id="nativeShareBtn">
-      <span style="font-size:20px;">📲</span> INSTAGRAM / FACEBOOK / MORE
-    </button>
-
-    <button type="button" class="btn-share btn-copy-all" id="copyMsgBtn">
-      <span style="font-size:18px;">🔗</span> COPY INVITE MESSAGE & LINK
-    </button>
+  <div class="banner">
+    <div style="font-size:40px;">🤝💰</div>
+    <h2>INVITE & EARN ₹50</h2>
+    <p style="font-size:13px; color:#e6c2f7;">Har friend ke signup par aapko <strong>₹50</strong> aur aapke friend ko <strong>₹150</strong> total bonus milega!</p>
   </div>
 
-  <div class="steps-box">
-    <h4 style="color:#ffd700; margin-bottom:12px;">✨ KAISE KAAM KARTA HAI?</h4>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div>Upar diye gaye <strong>WhatsApp ya Social Media</strong> button se apna invite link doston ko bhejein.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div>Link kholte hi dost ke Sign Up form mein aapka code (<strong id="stepCode" style="color:#28e04d;">BUF0000</strong>) <strong>auto-fill</strong> ho jayega.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div>Account bante hi aapke wallet mein <strong>₹50</strong> aur dost ke wallet mein <strong>₹150</strong> turant add ho jayenge!</div>
-    </div>
+  <div class="code-box">
+    <div style="font-size:12px; color:#aaa;">AAPKA UNIQUE REFERRAL CODE</div>
+    <div class="code-text" id="myRefCode">LOADING...</div>
+  </div>
+
+  <div class="link-preview" id="refLinkPreview">Link taiyar ho raha hai...</div>
+
+  <button type="button" class="btn-copy" onclick="copyReferralLink()">🔗 COPY REFERRAL LINK</button>
+  <button type="button" class="btn-wa" onclick="shareWhatsApp()">📲 SHARE ON WHATSAPP</button>
+
+  <div class="steps">
+    <strong style="color:#ffd700;">Kaise Kaam Karta Hai?</strong><br>
+    1. Upar diye gaye button se apna Referral Link copy ya WhatsApp par share karein.<br>
+    2. Jab dost us link par click karega toh aapka code apne aap Sign Up form mein bhar jayega.<br>
+    3. Account bante hi aapke wallet mein <strong>+₹50</strong> aur dost ko <strong>+₹150</strong> turant credit ho jayega!
   </div>
 </div>
-
-<div class="bottom-nav">
-  <div class="nav-item" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item active" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
-</div>
-
-<script>
-  try {
-    const cached = JSON.parse(localStorage.getItem("cachedUser") || "null");
-    const mob = localStorage.getItem("activeUser") || "";
-    const fallbackCode = cached?.refCode || (mob ? "BUF" + mob.slice(-4) : "BUF1234");
-    document.getElementById("myRefCode").innerText = fallbackCode;
-    document.getElementById("stepCode").innerText = fallbackCode;
-  } catch (e) {}
-</script>
 
 <script type="module">
   import { db, ref, onValue } from "./firebase-config.js";
 
-  const mobile = localStorage.getItem("activeUser");
-  if (!mobile) window.location.replace("index.html");
+  const activeMobile = localStorage.getItem("activeUser");
+  if (!activeMobile) window.location.replace("index.html");
 
-  let currentCode = "BUF" + mobile.slice(-4);
+  let currentCode = "BUF" + String(activeMobile).slice(-4);
   document.getElementById("myRefCode").innerText = currentCode;
-  document.getElementById("stepCode").innerText = currentCode;
 
-  onValue(ref(db, "users/" + mobile), (snap) => {
-    if (!snap.exists() || !snap.val().name) {
-      localStorage.removeItem("activeUser");
-      localStorage.removeItem("cachedUser");
-      window.location.replace("index.html");
-      return;
-    }
-    const u = snap.val();
-    localStorage.setItem("cachedUser", JSON.stringify(u));
-    if (u.refCode) {
-      currentCode = u.refCode;
-      document.getElementById("myRefCode").innerText = currentCode;
-      document.getElementById("stepCode").innerText = currentCode;
-    }
-  });
-
+  // GitHub Pages folder path (/repo-name/) ko preserve karne wala exact URL builder
   function getAutoRefLink() {
-    return `${window.location.origin}/index.html?ref=${encodeURIComponent(currentCode)}`;
+    const cleanUrl = window.location.href.split('?')[0].split('#')[0];
+    const folderPath = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
+    return `${folderPath}index.html?ref=${encodeURIComponent(currentCode)}`;
   }
 
-  function getInviteText() {
-    return `🐃 *BUFFALO GOLD 3D* — Khelo aur Jeeto 10X Jackpot!\n\n` +
-           `🎁 Sign up karte hi payein *₹150 FREE Bonus*!\n` +
-           `🔑 Referral Code: *${currentCode}* (Link par auto-apply hoga)\n\n` +
-           `👇 Abhi link open karke khelna shuru karein:\n${getAutoRefLink()}`;
-  }
+  document.getElementById("refLinkPreview").innerText = getAutoRefLink();
 
-  document.getElementById("waShareBtn").addEventListener("click", () => {
-    const text = encodeURIComponent(getInviteText());
-    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-  });
-
-  document.getElementById("tgShareBtn").addEventListener("click", () => {
-    const appLink = encodeURIComponent(getAutoRefLink());
-    const text = encodeURIComponent(`🐃 BUFFALO GOLD 3D! Sign up par ₹150 Bonus payein. Referral Code: ${currentCode}`);
-    window.open(`https://t.me/share/url?url=${appLink}&text=${text}`, "_blank");
-  });
-
-  document.getElementById("nativeShareBtn").addEventListener("click", async () => {
-    const msg = getInviteText();
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Buffalo Gold 3D - Earn ₹150 Bonus", text: msg });
-      } catch (e) {}
-    } else {
-      navigator.clipboard.writeText(msg);
-      alert("✅ Invite message copy ho gaya!");
+  onValue(ref(db, "users/" + activeMobile), (snap) => {
+    if (snap.exists() && snap.val().refCode) {
+      currentCode = snap.val().refCode;
+      document.getElementById("myRefCode").innerText = currentCode;
+      document.getElementById("refLinkPreview").innerText = getAutoRefLink();
     }
   });
 
-  document.getElementById("copyCodeOnly").addEventListener("click", () => {
-    navigator.clipboard.writeText(currentCode);
-    alert("✅ Referral Code (" + currentCode + ") copy ho gaya!");
-  });
+  window.copyReferralLink = function() {
+    const link = getAutoRefLink();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        alert("✅ Referral Link Copy Ho Gaya:\n" + link);
+      }).catch(() => fallbackCopy(link));
+    } else {
+      fallbackCopy(link);
+    }
+  };
 
-  document.getElementById("copyMsgBtn").addEventListener("click", () => {
-    navigator.clipboard.writeText(getInviteText());
-    alert("✅ Poora WhatsApp/Social Media invite message aur auto-fill link copy ho gaya!");
-  });
+  function fallbackCopy(text) {
+    const temp = document.createElement("textarea");
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    document.body.removeChild(temp);
+    alert("✅ Referral Link Copy Ho Gaya:\n" + text);
+  }
+
+  window.shareWhatsApp = function() {
+    const link = getAutoRefLink();
+    const msg = `🐃 *Buffalo Gold* khelo aur jeeto real cash!\n\nMere referral link se join karo aur pao *₹150* welcome bonus:\n👉 ${link}\n\nReferral Code: *${currentCode}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 </script>
 </body>
 </html>
