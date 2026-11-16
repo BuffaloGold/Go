@@ -102,7 +102,7 @@
 </script>
 
 <script type="module">
-  import { db, ref, set, get, update, onValue, off } from "./firebase-config.js";
+  import { db, ref, set, get, update, onValue } from "./firebase-config.js";
 
   const MERCHANT_UPI = "paytmqrqmk2f9izxa@paytm";
   const MERCHANT_NAME = "Buffalo Gold";
@@ -112,7 +112,7 @@
   if (!mobile) window.location.replace("index.html");
 
   let userData = null;
-  let activeOrderRef = null;
+  let currentAmtKey = null;
   let isCrediting = false;
   const userRef = ref(db, "users/" + mobile);
 
@@ -142,16 +142,18 @@
         <div style="font-weight:bold; color:${t.amt.startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
       </div>
     `).join("") || "No transactions yet.";
+  }, (error) => {
+    document.getElementById("txnList").innerHTML = "<span style='color:#ff5252;'>Firebase Error: " + error.message + "</span>";
   });
 
   document.getElementById("genQrBtn").addEventListener("click", async () => {
     const baseAmt = parseInt(document.getElementById("depInput").value);
     if (!baseAmt || baseAmt < 1) return alert("Minimum deposit ₹1 hai!");
 
-    // Unique 2-digit paise generate karein (01 se 99 tak)
-    const randPaise = String(Math.floor(Math.random() * 89) + 11); // e.g. "34"
-    const exactAmt = `${baseAmt}.${randPaise}`; // e.g. "1.34"
-    const amtKey = `${baseAmt}_${randPaise}`;   // e.g. "1_34"
+    const randPaise = String(Math.floor(Math.random() * 89) + 11);
+    const exactAmt = `${baseAmt}.${randPaise}`;
+    const amtKey = `${baseAmt}_${randPaise}`;
+    currentAmtKey = amtKey;
 
     document.getElementById("payAmtShow").innerText = exactAmt;
     document.getElementById("waitAmtText").innerText = exactAmt;
@@ -164,61 +166,60 @@
     document.getElementById("qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
     document.getElementById("qrBox").style.display = "block";
 
-    // Purana listener hatayein
-    if (activeOrderRef) off(activeOrderRef);
+    try {
+      const orderRef = ref(db, "pendingOrders/" + amtKey);
+      await set(orderRef, {
+        mobile,
+        name: userData && userData.name ? userData.name : "User",
+        baseAmount: baseAmt,
+        exactAmount: exactAmt,
+        status: "waiting",
+        createdAt: Date.now()
+      });
 
-    // Firebase mein pendingOrders/{amtKey} save karein
-    activeOrderRef = ref(db, "pendingOrders/" + amtKey);
-    await set(activeOrderRef, {
-      mobile,
-      name: userData.name,
-      baseAmount: baseAmt,
-      exactAmount: exactAmt,
-      status: "waiting",
-      createdAt: Date.now()
-    });
+      onValue(orderRef, async (snap) => {
+        if (!snap.exists() || currentAmtKey !== amtKey) return;
+        const order = snap.val();
+        if (order.status === "paid" && !order.credited && !isCrediting) {
+          isCrediting = true;
+          try {
+            await update(orderRef, { credited: true });
 
-    // Live listener: Jaise hi Android/MacroDroid status ko "paid" kare, balance add karein
-    onValue(activeOrderRef, async (snap) => {
-      if (!snap.exists()) return;
-      const order = snap.val();
-      if (order.status === "paid" && !order.credited && !isCrediting) {
-        isCrediting = true;
-        try {
-          await update(activeOrderRef, { credited: true });
+            const depId = "DEP_" + Date.now();
+            await set(ref(db, "deposits/" + depId), {
+              depId,
+              mobile,
+              name: userData ? userData.name : "User",
+              amount: baseAmt,
+              paidExact: exactAmt,
+              status: "AUTO_APPROVED",
+              date: new Date().toLocaleString()
+            });
 
-          const depId = "DEP_" + Date.now();
-          await set(ref(db, "deposits/" + depId), {
-            depId,
-            mobile,
-            name: userData.name,
-            amount: baseAmt,
-            paidExact: exactAmt,
-            status: "AUTO_APPROVED",
-            date: new Date().toLocaleString()
-          });
+            let txns = userData && Array.isArray(userData.txns) ? [...userData.txns] : [];
+            txns.unshift({
+              type: "UPI Instant Auto-Deposit (₹" + exactAmt + ")",
+              amt: "+₹" + baseAmt,
+              date: new Date().toLocaleString()
+            });
 
-          let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-          txns.unshift({
-            type: "UPI Instant Auto-Deposit (₹" + exactAmt + ")",
-            amt: "+₹" + baseAmt,
-            date: new Date().toLocaleString()
-          });
+            await update(userRef, {
+              depositBal: Number((userData && userData.depositBal) || 0) + baseAmt,
+              hasDeposited: true,
+              txns: txns.slice(0, 30)
+            });
 
-          await update(userRef, {
-            depositBal: Number(userData.depositBal || 0) + baseAmt,
-            hasDeposited: true,
-            txns: txns.slice(0, 30)
-          });
-
-          statusPill.className = "status-pill status-paid";
-          statusPill.innerHTML = `✅ Verified & Added! ₹${baseAmt} aapke wallet mein jud gaye hain!`;
-          document.getElementById("depInput").value = "";
-        } finally {
-          isCrediting = false;
+            statusPill.className = "status-pill status-paid";
+            statusPill.innerHTML = `✅ Verified & Added! ₹${baseAmt} aapke wallet mein jud gaye hain!`;
+            document.getElementById("depInput").value = "";
+          } finally {
+            isCrediting = false;
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      alert("Order Error: " + err.message);
+    }
   });
 
   document.getElementById("copyUpiBtn").addEventListener("click", () => {
