@@ -3,13 +3,13 @@ import { getDatabase, ref, set, get, update, remove, onValue } from "https://www
 import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "YAHAN_APNI_PURANI_API_KEY_PASTE_KAREIN",
+  apiKey: "AIzaSyA2XNXfLvE0G0SfU4lxFyh8VO2-kkM_HcA",
   authDomain: "coin-play-7ac49.firebaseapp.com",
   databaseURL: "https://coin-play-7ac49-default-rtdb.firebaseio.com",
   projectId: "coin-play-7ac49",
   storageBucket: "coin-play-7ac49.appspot.com",
-  messagingSenderId: "YAHAN_APNA_SENDER_ID_PASTE_KAREIN",
-  appId: "YAHAN_APNA_APP_ID_PASTE_KAREIN"
+  messagingSenderId: "484130715123",
+  appId: "1:484130715123:android:bf3a48ab1b5b2de2c54e86"
 };
 
 const app = initializeApp(firebaseConfig);
