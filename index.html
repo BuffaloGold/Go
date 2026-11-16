@@ -44,6 +44,7 @@
     gap: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
+  .google-btn:active { transform: scale(0.98); }
   .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .verified-box {
@@ -101,9 +102,8 @@
   <h1>BUFFALO GOLD</h1>
   <p class="sub">100% Verified Accounts • Instant UPI Withdrawal</p>
 
-  <!-- STEP 1: GOOGLE SIGN IN -->
   <div id="stepGoogle">
-    <button type="button" class="google-btn" id="googleSignInBtn" onclick="loginWithGoogle()">
+    <button type="button" class="google-btn" id="googleSignInBtn">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="G">
       <span>Continue with Google (Gmail)</span>
     </button>
@@ -114,7 +114,6 @@
     </div>
   </div>
 
-  <!-- STEP 2: COMPLETE PROFILE (ONLY FOR NEW USERS) -->
   <div id="stepMobile" style="display:none;">
     <div class="verified-box" id="gmailBadge">✅ Gmail Verified</div>
 
@@ -128,50 +127,41 @@
       <input type="text" id="userRef" placeholder="Jaise: BUF8205">
     </div>
 
-    <button type="button" class="btn-green" id="completeSignupBtn" onclick="finishRegistration()">
+    <button type="button" class="btn-green" id="completeSignupBtn">
       🎁 VERIFY & CLAIM BONUS
     </button>
   </div>
 </div>
 
 <script type="module">
-  import { db, ref, set, get, update } from "./firebase-config.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-  const auth = getAuth();
-  const provider = new GoogleAuthProvider();
+  import { db, auth, provider, signInWithPopup, ref, set, get, update } from "./firebase-config.js";
 
   if (localStorage.getItem("activeUser")) {
     window.location.replace("game.html");
   }
 
   let verifiedGoogleUser = null;
-  let autoRefCode = "";
 
-  window.addEventListener("DOMContentLoaded", () => {
-    const params = new URLSearchParams(window.location.search);
-    autoRefCode = (params.get("ref") || "").trim().toUpperCase();
-    if (autoRefCode) {
-      const refBox = document.getElementById("userRef");
-      refBox.value = autoRefCode;
-      refBox.style.borderColor = "#28e04d";
-      refBox.style.color = "#28e04d";
-      document.getElementById("refLabel").innerText = "✅ Referral Code Applied (+₹50 Extra Bonus!)";
-    }
-  });
+  const params = new URLSearchParams(window.location.search);
+  const autoRefCode = (params.get("ref") || "").trim().toUpperCase();
+  if (autoRefCode) {
+    const refBox = document.getElementById("userRef");
+    refBox.value = autoRefCode;
+    refBox.style.borderColor = "#28e04d";
+    refBox.style.color = "#28e04d";
+    document.getElementById("refLabel").innerText = "✅ Referral Code Applied (+₹50 Extra Bonus!)";
+  }
 
-  // 1-Click Google Gmail Verification
-  window.loginWithGoogle = async function() {
-    const btn = document.getElementById("googleSignInBtn");
-    btn.disabled = true;
-    btn.innerHTML = "<span>Connecting to Google...</span>";
+  const gBtn = document.getElementById("googleSignInBtn");
+  gBtn.addEventListener("click", async () => {
+    gBtn.disabled = true;
+    gBtn.innerHTML = "<span>Opening Google...</span>";
 
     try {
       const result = await signInWithPopup(auth, provider);
       const gUser = result.user;
-      const emailKey = gUser.email.replace(/\./g, "_"); // Firebase path safe key
+      const emailKey = gUser.email.replace(/\./g, "_");
 
-      // Check agar is Gmail se pehle hi account bana hua hai -> Seedha Login!
       const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
       if (emailSnap.exists()) {
         const linkedMobile = emailSnap.val().mobile;
@@ -184,20 +174,19 @@
         }
       }
 
-      // Naya Gmail user -> Step 2 (Mobile Number link karein)
       verifiedGoogleUser = gUser;
       document.getElementById("stepGoogle").style.display = "none";
       document.getElementById("stepMobile").style.display = "block";
       document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
     } catch (err) {
-      btn.disabled = false;
-      btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
-      alert("Google Sign-In Error: " + err.message);
+      gBtn.disabled = false;
+      gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
+      alert("Error (" + err.code + "): " + err.message);
     }
-  };
+  });
 
-  // Finish Account Creation
-  window.finishRegistration = async function() {
+  const cBtn = document.getElementById("completeSignupBtn");
+  cBtn.addEventListener("click", async () => {
     if (!verifiedGoogleUser) return;
     const mobile = document.getElementById("userMobile").value.trim();
     const refInput = document.getElementById("userRef").value.trim().toUpperCase();
@@ -206,16 +195,14 @@
       return alert("❌ Sahi 10-digit Indian mobile number dalein!");
     }
 
-    const btn = document.getElementById("completeSignupBtn");
-    btn.disabled = true;
-    btn.innerText = "CREATING ACCOUNT...";
+    cBtn.disabled = true;
+    cBtn.innerText = "CREATING ACCOUNT...";
 
     try {
-      // Check agar yeh mobile number kisi aur Gmail se already linked hai
       const mobSnap = await get(ref(db, "users/" + mobile));
       if (mobSnap.exists()) {
-        btn.disabled = false;
-        btn.innerText = "🎁 VERIFY & CLAIM BONUS";
+        cBtn.disabled = false;
+        cBtn.innerText = "🎁 VERIFY & CLAIM BONUS";
         return alert("❌ Yeh mobile number pehle se kisi aur account mein registered hai!");
       }
 
@@ -269,11 +256,11 @@
       alert("🎉 Gmail Verified! Aapke wallet mein ₹" + welcomeBonus + " Welcome Bonus credit ho gaya hai.");
       window.location.replace("game.html");
     } catch (e) {
-      btn.disabled = false;
-      btn.innerText = "🎁 VERIFY & CLAIM BONUS";
+      cBtn.disabled = false;
+      cBtn.innerText = "🎁 VERIFY & CLAIM BONUS";
       alert("Error: " + e.message);
     }
-  };
+  });
 </script>
 </body>
 </html>
