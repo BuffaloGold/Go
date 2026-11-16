@@ -44,6 +44,7 @@
     gap: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
+  .google-btn:active { transform: scale(0.98); }
   .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .verified-box {
@@ -92,6 +93,12 @@
     color: #fde047;
     line-height: 1.5;
   }
+  #debugBar {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #38bdf8;
+    min-height: 16px;
+  }
 </style>
 </head>
 <body>
@@ -107,36 +114,59 @@
       <span>Continue with Google (Gmail)</span>
     </button>
 
-    <div class="info-strip" id="statusMsg">
+    <div class="info-strip">
       🔒 <strong>Fake Account Protection:</strong><br>
       Apne Gmail se 1-click verify karein aur payein <strong>₹100 Welcome Bonus</strong> + Referral par <strong>₹50 Extra</strong>!
     </div>
+    <div id="debugBar">Loading security...</div>
   </div>
 
   <div id="stepMobile" style="display:none;">
     <div class="verified-box" id="gmailBadge">✅ Gmail Verified</div>
 
     <div class="form-group">
-      <label>10-Digit Mobile Number (UPI / WhatsApp)</label>
+      <label>10-Digit Mobile Number (Purana ya Naya Number)</label>
       <input type="tel" id="userMobile" maxlength="10" placeholder="Apna 10-digit number dalein">
     </div>
 
     <div class="form-group">
-      <label id="refLabel" style="color:#ffd700;">Referral Code (Optional)</label>
+      <label id="refLabel" style="color:#ffd700;">Referral Code (Optional - Naye Users Ke Liye)</label>
       <input type="text" id="userRef" placeholder="Jaise: BUF8205">
     </div>
 
     <button type="button" class="btn-green" id="completeSignupBtn">
-      🎁 VERIFY & CLAIM BONUS
+      🎁 VERIFY & CONTINUE TO GAME
     </button>
   </div>
 </div>
 
 <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import {
-    db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult,
-    onAuthStateChanged, ref, set, get, update
-  } from "./firebase-config.js";
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+    getRedirectResult, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const debugBar = document.getElementById("debugBar");
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA2XNXfLvE0G0SfU4lxFyh8VO2-kkM_HcA",
+    authDomain: "coin-play-7ac49.firebaseapp.com",
+    databaseURL: "https://coin-play-7ac49-default-rtdb.firebaseio.com",
+    projectId: "coin-play-7ac49",
+    storageBucket: "coin-play-7ac49.appspot.com",
+    messagingSenderId: "484130715123",
+    appId: "1:484130715123:android:bf3a48ab1b5b2de2c54e86"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+
+  debugBar.innerText = "● Ready to verify";
 
   if (localStorage.getItem("activeUser")) {
     window.location.replace("game.html");
@@ -165,6 +195,7 @@
     handledUser = true;
     gBtn.disabled = true;
     gBtn.innerHTML = "<span>Checking Account...</span>";
+    debugBar.innerText = "Checking " + gUser.email + "...";
 
     try {
       const emailKey = gUser.email.replace(/\./g, "_");
@@ -182,7 +213,6 @@
         }
       }
 
-      // Naya user -> Mobile number form dikhayein
       verifiedGoogleUser = gUser;
       document.getElementById("stepGoogle").style.display = "none";
       document.getElementById("stepMobile").style.display = "block";
@@ -191,11 +221,11 @@
       handledUser = false;
       gBtn.disabled = false;
       gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
+      debugBar.innerText = "Error: " + e.message;
       alert("Database Error: " + e.message);
     }
   }
 
-  // Redirect result + Auth State listener dono ek saath
   getRedirectResult(auth).then((res) => {
     if (res && res.user) processGoogleUser(res.user);
   }).catch(() => {});
@@ -204,10 +234,10 @@
     if (user) processGoogleUser(user);
   });
 
-  // Pehle Popup try karein (sabse fast), block ho toh Redirect karein
   gBtn.addEventListener("click", async () => {
     gBtn.disabled = true;
     gBtn.innerHTML = "<span>Opening Google...</span>";
+    debugBar.innerText = "Connecting to Google Sign-In...";
 
     try {
       const result = await signInWithPopup(auth, provider);
@@ -215,7 +245,7 @@
         await processGoogleUser(result.user);
       }
     } catch (err) {
-      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request" || err.code === "auth/operation-not-supported-in-this-environment") {
         gBtn.innerHTML = "<span>Redirecting to Google...</span>";
         signInWithRedirect(auth, provider);
       } else {
@@ -226,7 +256,6 @@
     }
   });
 
-  // Mobile Number link karke account complete karein
   const cBtn = document.getElementById("completeSignupBtn");
   cBtn.addEventListener("click", async () => {
     if (!verifiedGoogleUser) return;
@@ -238,16 +267,44 @@
     }
 
     cBtn.disabled = true;
-    cBtn.innerText = "CREATING ACCOUNT...";
+    cBtn.innerText = "VERIFYING ACCOUNT...";
 
     try {
+      const emailKey = verifiedGoogleUser.email.replace(/\./g, "_");
       const mobSnap = await get(ref(db, "users/" + mobile));
+
+      // AGAR PURANA ACCOUNT PEHLE SE HAI
       if (mobSnap.exists()) {
-        cBtn.disabled = false;
-        cBtn.innerText = "🎁 VERIFY & CLAIM BONUS";
-        return alert("❌ Yeh mobile number pehle se kisi aur account mein registered hai!");
+        const existingUser = mobSnap.val();
+
+        // Agar purane account par koi Gmail link nahi hai -> Auto-Link karke Login kara dein!
+        if (!existingUser.email || existingUser.email === verifiedGoogleUser.email) {
+          const updatedData = {
+            email: verifiedGoogleUser.email,
+            uid: verifiedGoogleUser.uid
+          };
+          await update(ref(db, "users/" + mobile), updatedData);
+          await set(ref(db, "verifiedEmails/" + emailKey), {
+            mobile: mobile,
+            email: verifiedGoogleUser.email,
+            uid: verifiedGoogleUser.uid
+          });
+
+          const mergedUser = { ...existingUser, ...updatedData };
+          localStorage.removeItem("pendingRefCode");
+          localStorage.setItem("activeUser", mobile);
+          localStorage.setItem("cachedUser", JSON.stringify(mergedUser));
+          alert("✅ Aapka purana account Gmail se link ho gaya hai! Welcome back.");
+          window.location.replace("game.html");
+          return;
+        } else {
+          cBtn.disabled = false;
+          cBtn.innerText = "🎁 VERIFY & CONTINUE TO GAME";
+          return alert("❌ Yeh mobile number pehle se kisi doosre Gmail (" + existingUser.email.slice(0, 4) + "***) se linked hai!");
+        }
       }
 
+      // NAYA ACCOUNT CREATION
       let welcomeBonus = 100;
       let referredByMobile = "";
 
@@ -271,7 +328,6 @@
         }
       }
 
-      const emailKey = verifiedGoogleUser.email.replace(/\./g, "_");
       const newRefCode = "BUF" + mobile.slice(-4);
       const userObj = {
         name: verifiedGoogleUser.displayName || "Player",
@@ -300,7 +356,7 @@
       window.location.replace("game.html");
     } catch (e) {
       cBtn.disabled = false;
-      cBtn.innerText = "🎁 VERIFY & CLAIM BONUS";
+      cBtn.innerText = "🎁 VERIFY & CONTINUE TO GAME";
       alert("Error: " + e.message);
     }
   });
