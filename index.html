@@ -145,7 +145,7 @@
   import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
-    getRedirectResult, onAuthStateChanged
+    getRedirectResult, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const debugBar = document.getElementById("debugBar");
@@ -166,11 +166,14 @@
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
 
-  debugBar.innerText = "● Ready to verify";
-
-  if (localStorage.getItem("activeUser")) {
+  // Agar user Logout hokar aaya hai (activeUser nahi hai), toh Firebase Auth session bhi signOut karein
+  if (!localStorage.getItem("activeUser")) {
+    await signOut(auth).catch(() => {});
+  } else {
     window.location.replace("game.html");
   }
+
+  debugBar.innerText = "● Ready to verify";
 
   let verifiedGoogleUser = null;
   let handledUser = false;
@@ -193,6 +196,7 @@
   async function processGoogleUser(gUser) {
     if (!gUser || handledUser) return;
     handledUser = true;
+    sessionStorage.removeItem("bg_google_redirect");
     gBtn.disabled = true;
     gBtn.innerHTML = "<span>Checking Account...</span>";
     debugBar.innerText = "Checking " + gUser.email + "...";
@@ -226,13 +230,16 @@
     }
   }
 
+  // Redirect se wapas aane par hi check karein (bina button dabaye auto-login nahi hoga)
   getRedirectResult(auth).then((res) => {
     if (res && res.user) processGoogleUser(res.user);
   }).catch(() => {});
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) processGoogleUser(user);
-  });
+  if (sessionStorage.getItem("bg_google_redirect") === "1") {
+    onAuthStateChanged(auth, (user) => {
+      if (user) processGoogleUser(user);
+    });
+  }
 
   gBtn.addEventListener("click", async () => {
     gBtn.disabled = true;
@@ -246,12 +253,16 @@
       }
     } catch (err) {
       if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request" || err.code === "auth/operation-not-supported-in-this-environment") {
+        sessionStorage.setItem("bg_google_redirect", "1");
         gBtn.innerHTML = "<span>Redirecting to Google...</span>";
         signInWithRedirect(auth, provider);
       } else {
         gBtn.disabled = false;
         gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
-        alert("Google Sign-In Error (" + err.code + "): " + err.message);
+        debugBar.innerText = "● Ready to verify";
+        if (err.code !== "auth/popup-closed-by-user") {
+          alert("Google Sign-In Error (" + err.code + "): " + err.message);
+        }
       }
     }
   });
@@ -273,11 +284,8 @@
       const emailKey = verifiedGoogleUser.email.replace(/\./g, "_");
       const mobSnap = await get(ref(db, "users/" + mobile));
 
-      // AGAR PURANA ACCOUNT PEHLE SE HAI
       if (mobSnap.exists()) {
         const existingUser = mobSnap.val();
-
-        // Agar purane account par koi Gmail link nahi hai -> Auto-Link karke Login kara dein!
         if (!existingUser.email || existingUser.email === verifiedGoogleUser.email) {
           const updatedData = {
             email: verifiedGoogleUser.email,
@@ -304,7 +312,6 @@
         }
       }
 
-      // NAYA ACCOUNT CREATION
       let welcomeBonus = 100;
       let referredByMobile = "";
 
