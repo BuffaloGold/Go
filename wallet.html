@@ -25,7 +25,9 @@
   .btn-copy { background: #3d0c57; color: #ffd700; border: 1px dashed #ffd700; padding: 8px; font-size: 13px; margin-bottom: 8px; }
   .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin: 8px 0; }
   .qr-section { background: #14021f; border: 2px solid #28e04d; border-radius: 12px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
-  .qr-img { width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
+  .qr-img { width: 190px; height: 190px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
+  .status-pill { background: #2b1d02; border: 1px solid #ffae00; color: #ffae00; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-top: 10px; }
+  .status-paid { background: #073312; border: 1px solid #28e04d; color: #28e04d; }
   .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; }
   .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
@@ -44,24 +46,22 @@
   </div>
 
   <div class="box">
-    <h4 style="color:#28e04d;">⚡ INSTANT ADD CASH VIA UPI (MIN ₹300)</h4>
+    <h4 style="color:#28e04d;">⚡ INSTANT AUTO-ADD CASH (MIN ₹1 TEST)</h4>
     <div class="quick-btns">
+      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=1">+₹1</button>
+      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=50">+₹50</button>
       <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=300">+₹300</button>
-      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=500">+₹500</button>
-      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=1000">+₹1000</button>
     </div>
-    <input type="number" id="depInput" placeholder="Enter Amount (Min ₹300)">
-    <button type="button" class="btn btn-add" id="genQrBtn">GENERATE UPI QR CODE</button>
+    <input type="number" id="depInput" placeholder="Enter Amount (Min ₹1)">
+    <button type="button" class="btn btn-add" id="genQrBtn">GENERATE AUTO-PAY QR</button>
 
     <div class="qr-section" id="qrBox">
-      <div style="font-size:13px; color:#28e04d; font-weight:bold;">Scan & Pay ₹<span id="payAmtShow">0</span></div>
+      <div style="font-size:14px; color:#28e04d; font-weight:bold;">Exact Amount Pay Karein: ₹<span id="payAmtShow" style="font-size:18px; color:#ffd700;">0</span></div>
+      <div style="font-size:11px; color:#ffae00; margin-top:4px;">⚠️ Bina UTR dale 3 second mein auto-add hoga! Exact paise ke saath pay karein.</div>
       <img id="qrImage" class="qr-img" src="" alt="UPI QR">
       <div style="font-size:12px; color:#ccc; margin-bottom:6px;">UPI ID: <strong id="merchantUpiText" style="color:#ffd700;"></strong></div>
       <button type="button" class="btn btn-copy" id="copyUpiBtn">📋 COPY UPI ID</button>
-      
-      <div style="text-align:left; font-size:11px; color:#ffae00; margin-top:8px;">Payment ke baad 12-digit UTR / Ref No. dalein (Auto-Add hoga):</div>
-      <input type="text" inputmode="numeric" maxlength="12" id="utrInput" placeholder="Enter exact 12-digit UTR Number">
-      <button type="button" class="btn btn-add" id="submitUtrBtn">⚡ VERIFY & AUTO-ADD CASH</button>
+      <div id="liveOrderStatus" class="status-pill">⏳ Payment ka intezar hai... PhonePe/Paytm se ₹<span id="waitAmtText">0</span> pay karein</div>
     </div>
   </div>
 
@@ -70,12 +70,12 @@
     <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw kiya ja sakta hai (Min ₹100).</p>
     
     <div id="wdLockMsg" class="lock-notice">
-      🔒 <strong>Withdrawal Locked:</strong> Account activate aur withdrawal unlock karne ke liye kam se kam <strong>₹300 ka pehla deposit</strong> zaroori hai.
+      🔒 <strong>Withdrawal Locked:</strong> Account activate aur withdrawal unlock karne ke liye pehla deposit zaroori hai.
     </div>
 
     <input type="number" id="wdInput" placeholder="Withdraw Amount (Min ₹100)" disabled>
     <input type="text" id="upiId" placeholder="Enter Your UPI ID (e.g. name@okicici)" disabled>
-    <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT ₹300 TO UNLOCK</button>
+    <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT TO UNLOCK</button>
   </div>
 
   <div class="box">
@@ -102,7 +102,7 @@
 </script>
 
 <script type="module">
-  import { db, ref, set, get, update, onValue } from "./firebase-config.js";
+  import { db, ref, set, get, update, onValue, off } from "./firebase-config.js";
 
   const MERCHANT_UPI = "paytmqrqmk2f9izxa@paytm";
   const MERCHANT_NAME = "Buffalo Gold";
@@ -112,7 +112,8 @@
   if (!mobile) window.location.replace("index.html");
 
   let userData = null;
-  let pendingDepAmt = 0;
+  let activeOrderRef = null;
+  let isCrediting = false;
   const userRef = ref(db, "users/" + mobile);
 
   onValue(userRef, (snapshot) => {
@@ -132,7 +133,7 @@
     document.getElementById("wdInput").disabled = !isUnlocked;
     document.getElementById("upiId").disabled = !isUnlocked;
     document.getElementById("wdBtn").disabled = !isUnlocked;
-    document.getElementById("wdBtn").innerText = isUnlocked ? "REQUEST WITHDRAWAL" : "🔒 DEPOSIT ₹300 TO UNLOCK";
+    document.getElementById("wdBtn").innerText = isUnlocked ? "REQUEST WITHDRAWAL" : "🔒 DEPOSIT TO UNLOCK";
 
     const txns = Array.isArray(userData.txns) ? userData.txns : [];
     document.getElementById("txnList").innerHTML = txns.map(t => `
@@ -143,18 +144,81 @@
     `).join("") || "No transactions yet.";
   });
 
-  document.getElementById("genQrBtn").addEventListener("click", () => {
-    const amt = parseInt(document.getElementById("depInput").value);
-    if (!amt || amt < 300) return alert("Minimum deposit ₹300 hai!");
+  document.getElementById("genQrBtn").addEventListener("click", async () => {
+    const baseAmt = parseInt(document.getElementById("depInput").value);
+    if (!baseAmt || baseAmt < 1) return alert("Minimum deposit ₹1 hai!");
 
-    pendingDepAmt = amt;
-    document.getElementById("payAmtShow").innerText = amt;
+    // Unique 2-digit paise generate karein (01 se 99 tak)
+    const randPaise = String(Math.floor(Math.random() * 89) + 11); // e.g. "34"
+    const exactAmt = `${baseAmt}.${randPaise}`; // e.g. "1.34"
+    const amtKey = `${baseAmt}_${randPaise}`;   // e.g. "1_34"
 
-    const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amt}&cu=INR`;
-    const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    document.getElementById("payAmtShow").innerText = exactAmt;
+    document.getElementById("waitAmtText").innerText = exactAmt;
 
-    document.getElementById("qrImage").src = qrApi;
+    const statusPill = document.getElementById("liveOrderStatus");
+    statusPill.className = "status-pill";
+    statusPill.innerHTML = `⏳ Payment ka intezar hai... PhonePe/Paytm se <strong>₹${exactAmt}</strong> pay karein`;
+
+    const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_UPI)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${exactAmt}&cu=INR`;
+    document.getElementById("qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
     document.getElementById("qrBox").style.display = "block";
+
+    // Purana listener hatayein
+    if (activeOrderRef) off(activeOrderRef);
+
+    // Firebase mein pendingOrders/{amtKey} save karein
+    activeOrderRef = ref(db, "pendingOrders/" + amtKey);
+    await set(activeOrderRef, {
+      mobile,
+      name: userData.name,
+      baseAmount: baseAmt,
+      exactAmount: exactAmt,
+      status: "waiting",
+      createdAt: Date.now()
+    });
+
+    // Live listener: Jaise hi Android/MacroDroid status ko "paid" kare, balance add karein
+    onValue(activeOrderRef, async (snap) => {
+      if (!snap.exists()) return;
+      const order = snap.val();
+      if (order.status === "paid" && !order.credited && !isCrediting) {
+        isCrediting = true;
+        try {
+          await update(activeOrderRef, { credited: true });
+
+          const depId = "DEP_" + Date.now();
+          await set(ref(db, "deposits/" + depId), {
+            depId,
+            mobile,
+            name: userData.name,
+            amount: baseAmt,
+            paidExact: exactAmt,
+            status: "AUTO_APPROVED",
+            date: new Date().toLocaleString()
+          });
+
+          let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+          txns.unshift({
+            type: "UPI Instant Auto-Deposit (₹" + exactAmt + ")",
+            amt: "+₹" + baseAmt,
+            date: new Date().toLocaleString()
+          });
+
+          await update(userRef, {
+            depositBal: Number(userData.depositBal || 0) + baseAmt,
+            hasDeposited: true,
+            txns: txns.slice(0, 30)
+          });
+
+          statusPill.className = "status-pill status-paid";
+          statusPill.innerHTML = `✅ Verified & Added! ₹${baseAmt} aapke wallet mein jud gaye hain!`;
+          document.getElementById("depInput").value = "";
+        } finally {
+          isCrediting = false;
+        }
+      }
+    });
   });
 
   document.getElementById("copyUpiBtn").addEventListener("click", () => {
@@ -162,76 +226,10 @@
     alert("✅ UPI ID (" + MERCHANT_UPI + ") copy ho gayi!");
   });
 
-  document.getElementById("submitUtrBtn").addEventListener("click", async () => {
-    if (!userData || !userData.name || !pendingDepAmt) return;
-    const utr = document.getElementById("utrInput").value.trim();
-
-    if (!/^\d{12}$/.test(utr)) {
-      return alert("❌ Sahi 12-digit ka UPI UTR Number dalein!");
-    }
-    if (/^(\d)\1{11}$/.test(utr) || utr === "123456789012" || utr === "012345678901") {
-      return alert("❌ Invalid UTR Number! Sahi payment UTR dalein.");
-    }
-
-    const btn = document.getElementById("submitUtrBtn");
-    btn.disabled = true;
-    btn.innerText = "⏳ Verifying UTR...";
-
-    try {
-      const utrLockRef = ref(db, "usedUTRs/" + utr);
-      const utrSnap = await get(utrLockRef);
-      if (utrSnap.exists()) {
-        btn.disabled = false;
-        btn.innerText = "⚡ VERIFY & AUTO-ADD CASH";
-        return alert("❌ Yeh UTR Number pehle hi use ho chuka hai! Dobara use nahi kar sakte.");
-      }
-
-      await set(utrLockRef, {
-        mobile,
-        amount: pendingDepAmt,
-        date: new Date().toLocaleString()
-      });
-
-      const depId = "DEP_" + Date.now();
-      await set(ref(db, "deposits/" + depId), {
-        depId,
-        mobile,
-        name: userData.name,
-        amount: pendingDepAmt,
-        utr,
-        status: "AUTO_APPROVED",
-        date: new Date().toLocaleString()
-      });
-
-      let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-      txns.unshift({
-        type: "UPI Auto-Deposit (UTR: " + utr + ")",
-        amt: "+₹" + pendingDepAmt,
-        date: new Date().toLocaleString()
-      });
-
-      await update(userRef, {
-        depositBal: Number(userData.depositBal || 0) + pendingDepAmt,
-        hasDeposited: true,
-        txns: txns.slice(0, 30)
-      });
-
-      document.getElementById("depInput").value = "";
-      document.getElementById("utrInput").value = "";
-      document.getElementById("qrBox").style.display = "none";
-      alert("✅ ₹" + pendingDepAmt + " aapke wallet mein turant add ho gaye aur withdrawal unlock ho gaya hai!");
-    } catch (err) {
-      alert("⚠️ Error: " + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "⚡ VERIFY & AUTO-ADD CASH";
-    }
-  });
-
   document.getElementById("wdBtn").addEventListener("click", async () => {
     if (!userData || !userData.name) return;
     if (userData.hasDeposited !== true) {
-      return alert("Withdrawal unlock karne ke liye pehle kam se kam ₹300 deposit karein!");
+      return alert("Withdrawal unlock karne ke liye pehle deposit karein!");
     }
 
     let amt = parseInt(document.getElementById("wdInput").value);
