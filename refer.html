@@ -13,10 +13,10 @@
   .banner { background: linear-gradient(135deg, #5e0d82, #29033b); border: 2px solid #ffd700; border-radius: 18px; padding: 22px; text-align: center; margin-bottom: 15px; }
   .banner h2 { color: #ffd700; font-size: 24px; margin: 8px 0; }
   .code-box { background: #12021a; border: 2px dashed #28e04d; border-radius: 12px; padding: 15px; text-align: center; margin: 15px 0; }
-  .code-text { font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #28e04d; margin: 5px 0; }
+  .code-text { font-size: 28px; font-weight: 900; letter-spacing: 3px; color: #28e04d; margin: 5px 0; }
   .btn-copy { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(180deg, #ffd700, #e69500); color: #000; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; }
   .btn-wa { width: 100%; padding: 13px; border: none; border-radius: 12px; background: #25D366; color: #fff; font-weight: bold; font-size: 15px; cursor: pointer; }
-  .link-preview { background: #1c0429; border: 1px solid #6b1d91; padding: 10px; border-radius: 10px; font-size: 11px; color: #ffd700; word-break: break-all; margin-bottom: 12px; text-align: center; }
+  .link-preview { background: #1c0429; border: 1px solid #6b1d91; padding: 12px; border-radius: 10px; font-size: 12px; color: #ffd700; word-break: break-all; margin-bottom: 12px; text-align: center; font-weight: bold; }
   .steps { background: #220633; border: 1px solid #6b1d91; border-radius: 14px; padding: 15px; font-size: 13px; line-height: 1.8; color: #e2c6f2; margin-top: 15px; }
 </style>
 </head>
@@ -36,10 +36,10 @@
 
   <div class="code-box">
     <div style="font-size:12px; color:#aaa;">AAPKA UNIQUE REFERRAL CODE</div>
-    <div class="code-text" id="myRefCode">LOADING...</div>
+    <div class="code-text" id="myRefCode">BUF0000</div>
   </div>
 
-  <div class="link-preview" id="refLinkPreview">Link taiyar ho raha hai...</div>
+  <div class="link-preview" id="refLinkPreview">https://buffalogold.github.io/Go/index.html</div>
 
   <button type="button" class="btn-copy" onclick="copyReferralLink()">🔗 COPY REFERRAL LINK</button>
   <button type="button" class="btn-wa" onclick="shareWhatsApp()">📲 SHARE ON WHATSAPP</button>
@@ -48,5 +48,54 @@
     <strong style="color:#ffd700;">Kaise Kaam Karta Hai?</strong><br>
     1. Upar diye gaye button se apna Referral Link copy ya WhatsApp par share karein.<br>
     2. Jab dost us link par click karega toh aapka code apne aap Sign Up form mein bhar jayega.<br>
-    3. Account bante hi aapke wallet mein 
-   
+    3. Account bante hi aapke wallet mein <strong>+₹50</strong> aur dost ko <strong>+₹150</strong> turant credit ho jayega!
+  </div>
+</div>
+
+<script>
+  // Instant Referral Code & Link Generator (Zero Delay)
+  const activeMobile = localStorage.getItem("activeUser") || "";
+  if (!activeMobile) {
+    window.location.replace("index.html");
+  }
+
+  let cachedData = {};
+  try {
+    cachedData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  } catch (e) {}
+
+  const currentCode = cachedData.refCode || ("BUF" + String(activeMobile).slice(-4));
+  const exactShareLink = "https://buffalogold.github.io/Go/index.html?ref=" + encodeURIComponent(currentCode);
+
+  document.getElementById("myRefCode").innerText = currentCode;
+  document.getElementById("refLinkPreview").innerText = exactShareLink;
+
+  function copyReferralLink() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(exactShareLink).then(function() {
+        alert("✅ Referral Link Copy Ho Gaya:\n" + exactShareLink);
+      }).catch(function() {
+        fallbackCopy(exactShareLink);
+      });
+    } else {
+      fallbackCopy(exactShareLink);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const temp = document.createElement("textarea");
+    temp.value = text;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    document.body.removeChild(temp);
+    alert("✅ Referral Link Copy Ho Gaya:\n" + text);
+  }
+
+  function shareWhatsApp() {
+    const msg = "🐃 *Buffalo Gold* khelo aur jeeto real cash!\n\nMere referral link se join karo aur pao *₹150* welcome bonus:\n👉 " + exactShareLink + "\n\nReferral Code: *" + currentCode + "*";
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+  }
+</script>
+</body>
+</html>
