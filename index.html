@@ -44,7 +44,6 @@
     gap: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
-  .google-btn:active { transform: scale(0.98); }
   .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .verified-box {
@@ -108,7 +107,7 @@
       <span>Continue with Google (Gmail)</span>
     </button>
 
-    <div class="info-strip">
+    <div class="info-strip" id="statusMsg">
       🔒 <strong>Fake Account Protection:</strong><br>
       Apne Gmail se 1-click verify karein aur payein <strong>₹100 Welcome Bonus</strong> + Referral par <strong>₹50 Extra</strong>!
     </div>
@@ -134,7 +133,7 @@
 </div>
 
 <script type="module">
-  import { db, auth, provider, signInWithPopup, ref, set, get, update } from "./firebase-config.js";
+  import { db, auth, provider, signInWithRedirect, getRedirectResult, ref, set, get, update } from "./firebase-config.js";
 
   if (localStorage.getItem("activeUser")) {
     window.location.replace("game.html");
@@ -142,49 +141,67 @@
 
   let verifiedGoogleUser = null;
 
+  // Referral code URL se ya localStorage se uthayein (redirect ke baad bhi safe rahega)
   const params = new URLSearchParams(window.location.search);
-  const autoRefCode = (params.get("ref") || "").trim().toUpperCase();
-  if (autoRefCode) {
+  const urlRef = (params.get("ref") || "").trim().toUpperCase();
+  if (urlRef) localStorage.setItem("pendingRefCode", urlRef);
+
+  const savedRef = localStorage.getItem("pendingRefCode") || "";
+  if (savedRef) {
     const refBox = document.getElementById("userRef");
-    refBox.value = autoRefCode;
+    refBox.value = savedRef;
     refBox.style.borderColor = "#28e04d";
     refBox.style.color = "#28e04d";
     document.getElementById("refLabel").innerText = "✅ Referral Code Applied (+₹50 Extra Bonus!)";
   }
 
   const gBtn = document.getElementById("googleSignInBtn");
-  gBtn.addEventListener("click", async () => {
-    gBtn.disabled = true;
-    gBtn.innerHTML = "<span>Opening Google...</span>";
 
+  // Google se wapas aane par result check karein
+  (async function checkGoogleReturn() {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const gUser = result.user;
-      const emailKey = gUser.email.replace(/\./g, "_");
+      const result = await getRedirectResult(auth);
+      if (result && result.user) {
+        gBtn.disabled = true;
+        gBtn.innerHTML = "<span>Verifying Gmail...</span>";
+        const gUser = result.user;
+        const emailKey = gUser.email.replace(/\./g, "_");
 
-      const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
-      if (emailSnap.exists()) {
-        const linkedMobile = emailSnap.val().mobile;
-        const userSnap = await get(ref(db, "users/" + linkedMobile));
-        if (userSnap.exists()) {
-          localStorage.setItem("activeUser", linkedMobile);
-          localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
-          window.location.replace("game.html");
-          return;
+        const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
+        if (emailSnap.exists()) {
+          const linkedMobile = emailSnap.val().mobile;
+          const userSnap = await get(ref(db, "users/" + linkedMobile));
+          if (userSnap.exists()) {
+            localStorage.removeItem("pendingRefCode");
+            localStorage.setItem("activeUser", linkedMobile);
+            localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
+            window.location.replace("game.html");
+            return;
+          }
         }
-      }
 
-      verifiedGoogleUser = gUser;
-      document.getElementById("stepGoogle").style.display = "none";
-      document.getElementById("stepMobile").style.display = "block";
-      document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
+        verifiedGoogleUser = gUser;
+        document.getElementById("stepGoogle").style.display = "none";
+        document.getElementById("stepMobile").style.display = "block";
+        document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
+      }
     } catch (err) {
+      alert("Google Auth Error (" + err.code + "): " + err.message);
+    }
+  })();
+
+  // Button dabate hi Google Account page par redirect karein
+  gBtn.addEventListener("click", () => {
+    gBtn.disabled = true;
+    gBtn.innerHTML = "<span>Redirecting to Google...</span>";
+    signInWithRedirect(auth, provider).catch((err) => {
       gBtn.disabled = false;
       gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
       alert("Error (" + err.code + "): " + err.message);
-    }
+    });
   });
 
+  // Mobile number link karke account complete karein
   const cBtn = document.getElementById("completeSignupBtn");
   cBtn.addEventListener("click", async () => {
     if (!verifiedGoogleUser) return;
@@ -251,6 +268,7 @@
         uid: verifiedGoogleUser.uid
       });
 
+      localStorage.removeItem("pendingRefCode");
       localStorage.setItem("activeUser", mobile);
       localStorage.setItem("cachedUser", JSON.stringify(userObj));
       alert("🎉 Gmail Verified! Aapke wallet mein ₹" + welcomeBonus + " Welcome Bonus credit ho gaya hai.");
