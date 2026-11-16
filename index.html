@@ -133,15 +133,18 @@
 </div>
 
 <script type="module">
-  import { db, auth, provider, signInWithRedirect, getRedirectResult, ref, set, get, update } from "./firebase-config.js";
+  import {
+    db, auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult,
+    onAuthStateChanged, ref, set, get, update
+  } from "./firebase-config.js";
 
   if (localStorage.getItem("activeUser")) {
     window.location.replace("game.html");
   }
 
   let verifiedGoogleUser = null;
+  let handledUser = false;
 
-  // Referral code URL se ya localStorage se uthayein (redirect ke baad bhi safe rahega)
   const params = new URLSearchParams(window.location.search);
   const urlRef = (params.get("ref") || "").trim().toUpperCase();
   if (urlRef) localStorage.setItem("pendingRefCode", urlRef);
@@ -157,51 +160,73 @@
 
   const gBtn = document.getElementById("googleSignInBtn");
 
-  // Google se wapas aane par result check karein
-  (async function checkGoogleReturn() {
-    try {
-      const result = await getRedirectResult(auth);
-      if (result && result.user) {
-        gBtn.disabled = true;
-        gBtn.innerHTML = "<span>Verifying Gmail...</span>";
-        const gUser = result.user;
-        const emailKey = gUser.email.replace(/\./g, "_");
-
-        const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
-        if (emailSnap.exists()) {
-          const linkedMobile = emailSnap.val().mobile;
-          const userSnap = await get(ref(db, "users/" + linkedMobile));
-          if (userSnap.exists()) {
-            localStorage.removeItem("pendingRefCode");
-            localStorage.setItem("activeUser", linkedMobile);
-            localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
-            window.location.replace("game.html");
-            return;
-          }
-        }
-
-        verifiedGoogleUser = gUser;
-        document.getElementById("stepGoogle").style.display = "none";
-        document.getElementById("stepMobile").style.display = "block";
-        document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
-      }
-    } catch (err) {
-      alert("Google Auth Error (" + err.code + "): " + err.message);
-    }
-  })();
-
-  // Button dabate hi Google Account page par redirect karein
-  gBtn.addEventListener("click", () => {
+  async function processGoogleUser(gUser) {
+    if (!gUser || handledUser) return;
+    handledUser = true;
     gBtn.disabled = true;
-    gBtn.innerHTML = "<span>Redirecting to Google...</span>";
-    signInWithRedirect(auth, provider).catch((err) => {
+    gBtn.innerHTML = "<span>Checking Account...</span>";
+
+    try {
+      const emailKey = gUser.email.replace(/\./g, "_");
+      const emailSnap = await get(ref(db, "verifiedEmails/" + emailKey));
+
+      if (emailSnap.exists()) {
+        const linkedMobile = emailSnap.val().mobile;
+        const userSnap = await get(ref(db, "users/" + linkedMobile));
+        if (userSnap.exists()) {
+          localStorage.removeItem("pendingRefCode");
+          localStorage.setItem("activeUser", linkedMobile);
+          localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
+          window.location.replace("game.html");
+          return;
+        }
+      }
+
+      // Naya user -> Mobile number form dikhayein
+      verifiedGoogleUser = gUser;
+      document.getElementById("stepGoogle").style.display = "none";
+      document.getElementById("stepMobile").style.display = "block";
+      document.getElementById("gmailBadge").innerHTML = `✅ Verified Gmail: <strong>${gUser.email}</strong>`;
+    } catch (e) {
+      handledUser = false;
       gBtn.disabled = false;
       gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
-      alert("Error (" + err.code + "): " + err.message);
-    });
+      alert("Database Error: " + e.message);
+    }
+  }
+
+  // Redirect result + Auth State listener dono ek saath
+  getRedirectResult(auth).then((res) => {
+    if (res && res.user) processGoogleUser(res.user);
+  }).catch(() => {});
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) processGoogleUser(user);
   });
 
-  // Mobile number link karke account complete karein
+  // Pehle Popup try karein (sabse fast), block ho toh Redirect karein
+  gBtn.addEventListener("click", async () => {
+    gBtn.disabled = true;
+    gBtn.innerHTML = "<span>Opening Google...</span>";
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result && result.user) {
+        await processGoogleUser(result.user);
+      }
+    } catch (err) {
+      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+        gBtn.innerHTML = "<span>Redirecting to Google...</span>";
+        signInWithRedirect(auth, provider);
+      } else {
+        gBtn.disabled = false;
+        gBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20"><span>Continue with Google (Gmail)</span>`;
+        alert("Google Sign-In Error (" + err.code + "): " + err.message);
+      }
+    }
+  });
+
+  // Mobile Number link karke account complete karein
   const cBtn = document.getElementById("completeSignupBtn");
   cBtn.addEventListener("click", async () => {
     if (!verifiedGoogleUser) return;
