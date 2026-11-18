@@ -164,7 +164,7 @@
     <canvas id="flightCanvas" width="420" height="210"></canvas>
     <div class="center-overlay">
       <div class="mult-text" id="multText">1.00x</div>
-      <div class="sub-status" id="statusText">CONNECTING LIVE ROOM...</div>
+      <div class="sub-status" id="statusText">PLACE YOUR BETS</div>
       <div class="wait-bar-wrap" id="waitBarWrap"><div class="wait-bar-fill" id="waitBarFill"></div></div>
     </div>
     <div class="live-users-badge"><span class="dot-live"></span> <span id="onlineCount">269</span></div>
@@ -273,13 +273,19 @@
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
-  let userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  let userData = {};
+  try {
+    userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  } catch (e) {}
+
   let winRateSetting = 35;
-  let serverClockOffset = 0;
 
   function getTotalBal() {
-    return Number(userData.depositBal ?? userData.depositBalance ?? 0) + Number(userData.winningBal ?? userData.winningBalance ?? 0);
+    const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    return dep + win;
   }
+
   function updateBalHeader() {
     document.getElementById("totalBalDisplay").innerText = getTotalBal().toFixed(2);
   }
@@ -287,32 +293,21 @@
 
   async function syncUserFromDB() {
     try {
-      const t0 = Date.now();
       const [uRes, rRes] = await Promise.all([
-        fetch(`${DB_URL}/users/${mobile}.json?t=${t0}`),
-        fetch(`${DB_URL}/settings/winRate.json?t=${t0}`)
+        fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
+        fetch(`${DB_URL}/settings/winRate.json?t=${Date.now()}`)
       ]);
-      const serverDate = uRes.headers.get("Date");
-      if (serverDate) {
-        const sTime = new Date(serverDate).getTime();
-        const rtt = Date.now() - t0;
-        serverClockOffset = (sTime + rtt / 2) - Date.now();
-      }
       const u = await uRes.json();
       const r = await rRes.json();
-      if (u && u.name) {
-        userData = u;
-        localStorage.setItem("cachedUser", JSON.stringify(u));
+      if (u && typeof u === "object") {
+        userData = { ...userData, ...u };
+        localStorage.setItem("cachedUser", JSON.stringify(userData));
         updateBalHeader();
       }
       if (typeof r === "number") winRateSetting = r;
     } catch (e) {}
   }
   syncUserFromDB();
-
-  function getSyncedNow() {
-    return Date.now() + serverClockOffset;
-  }
 
   // ==========================================
   // WEB AUDIO AVIATOR SOUND EFFECTS
@@ -392,8 +387,7 @@
       }
     } catch (e) {}
   }
-
-  // ==========================================
+ // ==========================================
   // DUAL BET & AUTO-BET CONTROLS
   // ==========================================
   function switchPanelMode(slot, mode) {
@@ -427,7 +421,7 @@
     }
   }
 
-   function adjBet(slot, delta) {
+  function adjBet(slot, delta) {
     const inp = document.getElementById("betInp" + slot);
     let val = Math.max(10, (parseInt(inp.value) || 10) + delta);
     inp.value = val;
@@ -441,21 +435,30 @@
   document.getElementById("betInp2").addEventListener("input", () => updateSlotBtnUI(2));
 
   // ==========================================
-  // SHARED MULTIPLAYER ROOM STATE
+  // SHARED MULTIPLAYER ROOM STATE (WITH INSTANT START)
   // ==========================================
   const WAIT_MS = 5500;
   const CRASH_HOLD_MS = 3200;
 
-  let roomState = null;
-  let lastHandledRoundId = null;
-  let lastPhase = "";
-  let isTransitioning = false;
-
-  let gameState = "WAITING"; // WAITING | FLYING | CRASHED
-  let currentMult = 1.00;
   let historyList = [1.12, 1.48, 2.02, 2.44, 1.31, 1.18, 1.20, 10.65, 1.85, 3.40];
   let myHistoryBets = [];
   let currentFeedTab = "all";
+
+  // Start immediately with a valid local round so UI & Live Feed NEVER get stuck
+  const bootNow = Date.now();
+  let roomState = {
+    roundId: "R" + bootNow,
+    waitStart: bootNow,
+    flyStart: bootNow + WAIT_MS,
+    crashPoint: 2.35,
+    history: historyList
+  };
+
+  let lastHandledRoundId = null;
+  let lastPhase = "";
+  let isTransitioning = false;
+  let gameState = "WAITING";
+  let currentMult = 1.00;
 
   const slots = {
     1: { status: "IDLE", bet: 0, autoBet: false },
@@ -491,7 +494,6 @@
     }
   }
 
-  // Deterministic formula so EVERY device calculates the EXACT same multiplier at any timestamp!
   function calcMultiplierAtElapsed(elapsedSec) {
     if (elapsedSec <= 0) return 1.00;
     const val = Math.pow(Math.E, 0.072 * elapsedSec);
@@ -500,7 +502,7 @@
 
   function calcDurationForCrash(cp) {
     if (cp <= 1.00) return 0.1;
-    return Math.log(cp) / 0.072; // seconds
+    return Math.log(cp) / 0.072;
   }
 
   function generateNextCrashPoint() {
@@ -514,31 +516,36 @@
   async function createNewSharedRound(prevCrashPoint) {
     if (isTransitioning) return;
     isTransitioning = true;
+
+    const now = Date.now();
+    const newRoundId = "R" + now;
+    const nextCrash = generateNextCrashPoint();
+
+    let updatedHist = Array.isArray(historyList) ? [...historyList] : [1.48, 2.02, 1.31];
+    if (typeof prevCrashPoint === "number" && prevCrashPoint >= 1) {
+      updatedHist.unshift(prevCrashPoint);
+      updatedHist = updatedHist.slice(0, 15);
+    }
+
+    const newRoom = {
+      roundId: newRoundId,
+      waitStart: now,
+      flyStart: now + WAIT_MS,
+      crashPoint: nextCrash,
+      history: updatedHist
+    };
+
+    // Update locally right away so game never pauses even if Firebase is slow
+    roomState = newRoom;
+    historyList = updatedHist;
+    renderHistoryStrip();
+
     try {
-      const now = getSyncedNow();
-      const newRoundId = "R" + now;
-      const nextCrash = generateNextCrashPoint();
-
-      let updatedHist = Array.isArray(historyList) ? [...historyList] : [1.48, 2.02, 1.31];
-      if (typeof prevCrashPoint === "number" && prevCrashPoint >= 1) {
-        updatedHist.unshift(prevCrashPoint);
-        updatedHist = updatedHist.slice(0, 15);
-      }
-
-      const newRoom = {
-        roundId: newRoundId,
-        waitStart: now,
-        flyStart: now + WAIT_MS,
-        crashPoint: nextCrash,
-        history: updatedHist
-      };
-
       await fetch(`${DB_URL}/aviatorRoom.json`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newRoom)
       });
-      roomState = newRoom;
     } catch (e) {
     } finally {
       isTransitioning = false;
@@ -548,8 +555,9 @@
   async function syncRoomFromFirebase() {
     try {
       const res = await fetch(`${DB_URL}/aviatorRoom.json?t=${Date.now()}`);
+      if (!res.ok) return;
       const data = await res.json();
-      const now = getSyncedNow();
+      const now = Date.now();
 
       if (!data || !data.roundId || !data.flyStart || !data.crashPoint) {
         await createNewSharedRound(null);
@@ -559,7 +567,6 @@
       const flyDurMs = calcDurationForCrash(Number(data.crashPoint)) * 1000;
       const roundEndMs = Number(data.flyStart) + flyDurMs + CRASH_HOLD_MS;
 
-      // Agar round khatam ho chuka hai (ya purana stale round hai), toh naya round sabke liye start karein
       if (now >= roundEndMs + 400) {
         await createNewSharedRound(Number(data.crashPoint));
         return;
@@ -602,7 +609,7 @@
     });
     renderFeed();
 
-    const newWin = Number(userData.winningBal ?? userData.winningBalance ?? 0) + Math.floor(winAmt);
+    const newWin = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + Math.floor(winAmt);
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({
       type: `Aviator Cashout (${cashMult.toFixed(2)}x)`,
@@ -631,7 +638,7 @@
         mult: cashMult.toFixed(2) + "x",
         win: winAmt,
         cashed: true,
-        ts: getSyncedNow()
+        ts: Date.now()
       })
     });
   }
@@ -698,8 +705,8 @@
       return;
     }
 
-    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0);
-    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0);
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
     if (dBal >= betAmt) {
       dBal -= betAmt;
     } else {
@@ -750,12 +757,11 @@
         mult: "",
         win: 0,
         cashed: false,
-        ts: getSyncedNow()
+        ts: Date.now()
       })
     });
-  }
-
-  // ==========================================
+ }
+ // ==========================================
   // DETERMINISTIC BOTS + REAL FIREBASE FEED
   // ==========================================
   const BOT_NAMES = ["i***4", "c***9", "p***k", "m***i", "n***j", "s***t", "b***l", "r***8", "v***2", "a***7", "k***n", "h***t", "d***5", "g***1"];
@@ -763,42 +769,14 @@
   const PRESET_AMTS = [12629.68, 7272.10, 5000.00, 3999.88, 3000.00, 2500.00, 1500.00, 1000.00, 500.00, 250.00];
   let liveBets = [];
 
-  // Seeded random from roundId so all users see same bot bets & cashouts!
   function seededRand(seed) {
     const x = Math.sin(seed) * 10000;
     return x - Math.floor(x);
   }
 
-  async function buildSharedRoundFeed(rId) {
+  function buildLocalBotsImmediately(rId) {
     const numSeed = parseInt(String(rId).replace(/\D/g, "").slice(-6)) || 12345;
-    liveBets = [];
-
-    // 1. Fetch real players in this round
-    try {
-      const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
-      const realFeed = await res.json();
-      if (realFeed) {
-        const now = getSyncedNow();
-        Object.keys(realFeed).forEach(k => {
-          const item = realFeed[k];
-          if (item && (now - item.ts) < 35000 && !k.startsWith(mobile)) {
-            liveBets.push({
-              id: "REAL_" + k,
-              name: item.name,
-              color: "#28e04d",
-              bet: Number(item.bet || 100),
-              targetMult: item.cashed ? parseFloat(item.mult) : 999,
-              mult: item.cashed ? item.mult : "",
-              win: item.cashed ? Number(item.win) : 0,
-              cashed: Boolean(item.cashed),
-              isMe: false
-            });
-          }
-        });
-      }
-    } catch (e) {}
-
-    // 2. Deterministic Bots
+    const bots = [];
     const botCount = 16 + Math.floor(seededRand(numSeed) * 6);
     for (let i = 0; i < botCount; i++) {
       const r1 = seededRand(numSeed + i * 11);
@@ -807,7 +785,7 @@
       const bName = BOT_NAMES[Math.floor(r1 * BOT_NAMES.length)];
       const bAmt = PRESET_AMTS[Math.floor(r2 * PRESET_AMTS.length)];
       const target = Number((1.15 + r3 * 3.8).toFixed(2));
-      liveBets.push({
+      bots.push({
         id: "BOT_" + i,
         name: bName,
         color: AVATAR_COLORS[i % AVATAR_COLORS.length],
@@ -819,9 +797,49 @@
         isMe: false
       });
     }
-    liveBets.sort((a, b) => b.bet - a.bet);
+    bots.sort((a, b) => b.bet - a.bet);
+    liveBets = bots;
     document.getElementById("onlineCount").innerText = 240 + Math.floor(seededRand(numSeed + 99) * 60);
     renderFeed();
+  }
+
+  async function mergeRealFeedFromFirebase() {
+    try {
+      const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
+      if (!res.ok) return;
+      const realFeed = await res.json();
+      if (!realFeed) return;
+      const now = Date.now();
+      let added = false;
+      Object.keys(realFeed).forEach(k => {
+        const item = realFeed[k];
+        if (item && (now - item.ts) < 35000 && !k.startsWith(mobile)) {
+          const existing = liveBets.find(b => b.id === "REAL_" + k);
+          if (existing) {
+            if (item.cashed) {
+              existing.cashed = true;
+              existing.mult = item.mult;
+              existing.win = Number(item.win);
+              added = true;
+            }
+          } else {
+            liveBets.unshift({
+              id: "REAL_" + k,
+              name: item.name,
+              color: "#28e04d",
+              bet: Number(item.bet || 100),
+              targetMult: item.cashed ? parseFloat(item.mult) : 999,
+              mult: item.cashed ? item.mult : "",
+              win: item.cashed ? Number(item.win) : 0,
+              cashed: Boolean(item.cashed),
+              isMe: false
+            });
+            added = true;
+          }
+        }
+      });
+      if (added) renderFeed();
+    } catch (e) {}
   }
 
   function switchFeed(tab, el) {
@@ -898,7 +916,7 @@
     ctx.restore();
 
     if (gameState === "FLYING" && roomState) {
-      const elapsedSec = Math.max(0, (getSyncedNow() - Number(roomState.flyStart)) / 1000);
+      const elapsedSec = Math.max(0, (Date.now() - Number(roomState.flyStart)) / 1000);
       const animProgress = Math.min(1, elapsedSec / 7.5);
       const startX = 28;
       const startY = canvas.height - 24;
@@ -937,18 +955,17 @@
   // ==========================================
   async function tickSynchronizedRound() {
     if (!roomState) return;
-    const now = getSyncedNow();
-    const waitStart = Number(roomState.waitStart);
+    const now = Date.now();
     const flyStart = Number(roomState.flyStart);
     const cp = Number(roomState.crashPoint);
     const flyDurMs = calcDurationForCrash(cp) * 1000;
     const crashTimeMs = flyStart + flyDurMs;
     const nextRoundTimeMs = crashTimeMs + CRASH_HOLD_MS;
 
-    // 1. New Round Initializer (runs once per roundId)
     if (lastHandledRoundId !== roomState.roundId) {
       lastHandledRoundId = roomState.roundId;
-      await buildSharedRoundFeed(roomState.roundId);
+      buildLocalBotsImmediately(roomState.roundId);
+      mergeRealFeedFromFirebase();
 
       if (now < flyStart) {
         for (let s of [1, 2]) {
@@ -965,7 +982,6 @@
       }
     }
 
-    // 2. Determine Current Synchronized Phase
     if (now < flyStart) {
       gameState = "WAITING";
       currentMult = 1.00;
@@ -998,6 +1014,42 @@
       multEl.innerText = currentMult.toFixed(2) + "x";
 
       for (let s of [1, 2]) {
+        if (slots[s].status === "ACTIVE") {
+          const autoCoEnabled = document.getElementById("autoCoCheck" + s).checked;
+          const autoCoTarget = parseFloat(document.getElementById("autoCoVal" + s).value) || 2.0;
+          if (autoCoEnabled && currentMult >= autoCoTarget && currentMult < cp) {
+            executeCashOut(s);
+          } else {
+            updateSlotBtnUI(s);
+          }
+        }
+      }
+
+      let changed = false;
+      liveBets.forEach(b => {
+        if (!b.cashed && !b.isMe && currentMult >= b.targetMult) {
+          b.cashed = true;
+          b.mult = b.targetMult.toFixed(2) + "x";
+          b.win = Number((b.bet * b.targetMult).toFixed(2));
+          changed = true;
+        }
+      });
+      if (changed) renderFeed();
+
+    } else if (now >= crashTimeMs && now < nextRoundTimeMs) {
+      gameState = "CRASHED";
+      currentMult = cp;
+      document.getElementById("waitBarWrap").style.display = "none";
+      const multEl = document.getElementById("multText");
+      multEl.className = "mult-text crashed";
+      multEl.innerText = cp.toFixed(2) + "x";
+      document.getElementById("statusText").innerText = "FLEW AWAY!";
+
+      if (lastPhase !== "CRASHED") {
+        lastPhase = "CRASHED";
+        playAviatorSound("crash");
+
+        for (let s of [1, 2]) {
           if (slots[s].status === "ACTIVE") {
             myHistoryBets.unshift({
               name: (userData.name || "You") + " (Slot " + s + ")",
@@ -1014,14 +1066,15 @@
         renderFeed();
       }
     } else {
-      // Round cycle finished -> Start next synchronized round
       await createNewSharedRound(cp);
     }
   }
 
-  // Initial sync + fast room polling so all clients stay locked together
+  // Boot live feed immediately, then sync with Firebase
+  buildLocalBotsImmediately(roomState.roundId);
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 1500);
+  setInterval(mergeRealFeedFromFirebase, 2000);
   setInterval(tickSynchronizedRound, 60);
 </script>
 </body>
