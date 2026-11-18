@@ -27,12 +27,20 @@
   .qr-section { background: #14021f; border: 2px solid #28e04d; border-radius: 12px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
   .qr-img { width: 190px; height: 190px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
   .status-pill { background: #2b1d02; border: 1px solid #ffae00; color: #ffae00; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-top: 10px; }
-  .status-paid { background: #073312; border: 1px solid #28e04d; color: #28e04d; }
   .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; }
   .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 20px; display: block; }
+
+  /* Success Dialog Modal CSS */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .modal-box { background: #1f042e; border: 2px solid #28e04d; border-radius: 18px; padding: 24px 20px; text-align: center; width: 100%; max-width: 340px; box-shadow: 0 0 25px rgba(40, 224, 77, 0.4); animation: popIn 0.25s ease-out; }
+  @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-icon { font-size: 52px; margin-bottom: 8px; display: block; }
+  .modal-title { color: #28e04d; font-size: 20px; font-weight: bold; margin-bottom: 6px; }
+  .modal-amt { color: #ffd700; font-size: 30px; font-weight: bold; margin: 8px 0; }
+  .modal-desc { color: #ccc; font-size: 13px; margin-bottom: 18px; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -81,6 +89,17 @@
   <div class="box">
     <h4 style="color:#ffd700; margin-bottom:8px;">📜 TRANSACTION HISTORY</h4>
     <div id="txnList">Loading...</div>
+  </div>
+</div>
+
+<!-- Success Dialog Popup -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <span class="modal-icon">✅</span>
+    <div class="modal-title">Payment Successful!</div>
+    <div class="modal-amt">+₹<span id="modalAddedAmt">0</span></div>
+    <div class="modal-desc">Aapका deposit verify ho gaya hai aur amount aapke wallet mein turant add kar diya gaya hai.</div>
+    <button type="button" class="btn btn-add" onclick="document.getElementById('successModal').style.display='none'">OK, GREAT!</button>
   </div>
 </div>
 
@@ -209,9 +228,15 @@
               txns: txns.slice(0, 30)
             });
 
-            statusPill.className = "status-pill status-paid";
-            statusPill.innerHTML = `✅ Verified & Added! ₹${baseAmt} aapke wallet mein jud gaye hain!`;
+            // 1. QR Box aur Input ko turant hide/clear karein
+            document.getElementById("qrBox").style.display = "none";
+            document.getElementById("qrImage").src = "";
             document.getElementById("depInput").value = "";
+            currentAmtKey = null;
+
+            // 2. Center Dialog Modal dikhayein
+            document.getElementById("modalAddedAmt").innerText = baseAmt;
+            document.getElementById("successModal").style.display = "flex";
           } finally {
             isCrediting = false;
           }
