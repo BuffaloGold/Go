@@ -16,8 +16,9 @@
   .btn-red { background: #e63946; color: #fff; }
   .btn-blue { background: #3a86ff; color: #fff; }
   .btn-del { background: #9b0000; border: 1px solid #ff4d4d; color: #fff; }
-  .btn-upi { background: linear-gradient(180deg, #ffbe0b, #fb5607); color: #000; width: 100%; padding: 10px; font-size: 13px; margin-bottom: 6px; }
-  .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 5px 8px; font-size: 10px; }
+  .btn-upi { background: linear-gradient(180deg, #ffbe0b, #fb5607); color: #000; width: 100%; padding: 10px; font-size: 12px; margin-bottom: 6px; }
+  .btn-qr { background: #3d0c57; border: 1px solid #28e04d; color: #28e04d; width: 100%; padding: 9px; font-size: 12px; margin-bottom: 6px; }
+  .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 6px 9px; font-size: 11px; }
 
   .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
   .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
@@ -32,12 +33,14 @@
 
   .card { background: #1e042b; border: 1px solid #5c197d; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
   .reason-box { background: #2d0842; border-left: 3px solid #ffd700; padding: 8px; border-radius: 6px; font-size: 13px; margin: 8px 0; color: #ffe885; }
-  .upi-row { display: flex; justify-content: space-between; align-items: center; background: #14021f; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a1566; margin: 6px 0; }
+  .upi-row { display: flex; justify-content: space-between; align-items: center; background: #14021f; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a1566; margin: 6px 0; gap: 6px; }
   .row-between { display: flex; justify-content: space-between; align-items: center; }
   .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
   .PENDING, .OPEN { background: #ff9f1c; color: #000; }
   .APPROVED, .AUTO_APPROVED, .RESOLVED { background: #2ec4b6; color: #000; }
   .REJECTED { background: #e71d36; color: #fff; }
+  .qr-popup { display: none; background: #12021a; border: 1px dashed #28e04d; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 8px; }
+  .qr-popup img { width: 170px; height: 170px; background: #fff; padding: 6px; border-radius: 8px; margin: 6px auto; display: block; }
   .hidden { display: none; }
 </style>
 </head>
@@ -80,7 +83,7 @@
     <div class="tab" onclick="showTab('settingsTab', this)">⚙️ Rate</div>
   </div>
 
-  <!-- WITHDRAWALS TAB (1-CLICK UPI PAY + COPY + APPROVE/REJECT) -->
+  <!-- WITHDRAWALS TAB -->
   <div id="wdTab"><div id="wdList">Loading requests...</div></div>
 
   <!-- DEPOSITS TAB -->
@@ -124,17 +127,29 @@
     el.classList.add("active");
   }
 
+  function copyText(val, label) {
+    navigator.clipboard.writeText(val);
+    alert("✅ " + label + " (" + val + ") copy ho gaya! Ab Paytm/PhonePe mein paste karke pay karein.");
+  }
+
+  function toggleWdQr(reqId, upiId, name, amount) {
+    const box = document.getElementById("qrBox_" + reqId);
+    const img = document.getElementById("qrImg_" + reqId);
+    if (!box) return;
+    if (box.style.display === "block") {
+      box.style.display = "none";
+      return;
+    }
+    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent(name || "Player")}&am=${amount}&cu=INR`;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    box.style.display = "block";
+  }
+
   function payViaUpiApp(upiId, name, amount) {
     const cleanUpi = encodeURIComponent(upiId.trim());
     const cleanName = encodeURIComponent(name || "Player");
-    const note = encodeURIComponent("Buffalo Gold Withdrawal");
-    const upiUrl = `upi://pay?pa=${cleanUpi}&pn=${cleanName}&am=${amount}&cu=INR&tn=${note}`;
+    const upiUrl = `upi://pay?pa=${cleanUpi}&pn=${cleanName}&am=${amount}&cu=INR`;
     window.location.href = upiUrl;
-  }
-
-  function copyUpiText(upiId) {
-    navigator.clipboard.writeText(upiId);
-    alert("✅ UPI ID (" + upiId + ") copy ho gayi!");
   }
 </script>
 
@@ -145,6 +160,21 @@
   let allDeposits = {};
   let allWithdrawals = {};
   let allTickets = {};
+
+  function getUserTotalDep(u) {
+    if (!u) return 0;
+    if (typeof u.totalDeposited === "number") return u.totalDeposited;
+    let sum = 0;
+    if (Array.isArray(u.txns)) {
+      u.txns.forEach(t => {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && t.type.toLowerCase().includes("deposit")) {
+          const v = parseInt(String(t.amt).replace("+₹", ""));
+          if (!isNaN(v)) sum += v;
+        }
+      });
+    }
+    return sum;
+  }
 
   function updateUsersUI(data) {
     allUsers = data || {};
@@ -170,7 +200,13 @@
       const w = allWithdrawals[k];
       if (w.status === "PENDING") pendingCount++;
       const userRec = allUsers[w.mobile] || {};
-      const hasDepBadge = userRec.hasDeposited ? `<span style="color:#28e04d; font-size:11px;">✔ ₹300+ Deposited</span>` : `<span style="color:#ff4d6d; font-size:11px;">⚠ No Deposit Record</span>`;
+      const totalDep = getUserTotalDep(userRec);
+      const hasDepBadge = totalDep >= 300
+        ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep} (Unlocked)</span>`
+        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300)</span>`;
+
+      const safeName = (w.name || "User").replace(/'/g, "");
+      const safeUpi = (w.upi || "").replace(/'/g, "");
 
       return `
         <div class="card">
@@ -180,18 +216,29 @@
           </div>
           <div style="margin-top:4px;">${hasDepBadge}</div>
           <div class="upi-row">
-            <div>
-              <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:15px;">₹${w.amount}</strong></div>
-              <div style="font-size:13px; color:#28e04d; font-weight:bold;">UPI: ${w.upi}</div>
+            <div style="flex:1;">
+              <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:16px;">₹${w.amount}</strong></div>
+              <div style="font-size:13px; color:#28e04d; font-weight:bold; word-break:break-all;">UPI: ${w.upi}</div>
+              <div style="font-size:12px; color:#ccc; margin-top:2px;">Mob: ${w.mobile}</div>
             </div>
-            <button type="button" class="btn btn-copy" onclick="copyUpiText('${w.upi}')">📋 Copy UPI</button>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+              <button type="button" class="btn btn-copy" onclick="copyText('${safeUpi}', 'UPI ID')">📋 Copy UPI</button>
+              <button type="button" class="btn btn-copy" onclick="copyText('${w.mobile}', 'Mobile Number')">📱 Copy Mob</button>
+            </div>
           </div>
-          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">${w.date}</div>
+          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">Req ID: ${w.reqId || k} | ${w.date}</div>
+
           ${w.status === "PENDING" ? `
-            <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${w.upi}', '${w.name}', '${w.amount}')">⚡ PAY ₹${w.amount} VIA UPI APP</button>
+            <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount}')">📷 SHOW / SCAN QR CODE (No UPI Risk Alert)</button>
+            <div class="qr-popup" id="qrBox_${k}">
+              <div style="font-size:11px; color:#ffd700;">Paytm/PhonePe se Scan karein ya Screenshot lekar Scan from Gallery karein:</div>
+              <img id="qrImg_${k}" src="" alt="Withdrawal QR">
+              <div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount} → ${w.upi}</div>
+            </div>
+            <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount}')">⚡ DIRECT UPI APP LINK (₹${w.amount})</button>
             <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-green" style="flex:1;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
-              <button type="button" class="btn btn-red" style="flex:1;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
+              <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
+              <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
             </div>
           ` : ""}
         </div>
@@ -219,10 +266,12 @@
             <strong>${d.name || 'User'} (${d.mobile})</strong>
             <span class="badge ${d.status}">${d.status}</span>
           </div>
-          <div style="margin:6px 0; font-size:14px;">
-            Amount: <strong style="color:#28e04d;">₹${d.amount}</strong> | UTR: <strong style="color:#ffd700;">${d.utr}</strong>
+          <div style="margin:6px 0; font-size:13px;">
+            Amount: <strong style="color:#28e04d;">₹${d.amount}</strong>
+            ${d.paidExact ? `<span style="color:#ccc;">(Paid: ₹${d.paidExact})</span>` : ""} | 
+            Ref/UTR: <strong style="color:#ffd700;">${d.utr || '-'}</strong>
           </div>
-          <div style="font-size:11px; color:#aaa;">${d.date}</div>
+          <div style="font-size:11px; color:#aaa;">Order: ${d.depId || k} | ${d.date}</div>
         </div>
       `;
     }).join("");
@@ -301,20 +350,46 @@
   };
 
   window.processWd = async (reqId, newStatus) => {
-    const w = allWithdrawals[reqId];
-    if (!w || w.status !== "PENDING") return;
-    await update(ref(db, "withdrawals/" + reqId), { status: newStatus });
+    try {
+      const w = allWithdrawals[reqId];
+      if (!w || w.status !== "PENDING") return;
 
-    if (newStatus === "REJECTED" && allUsers[w.mobile]) {
-      const u = allUsers[w.mobile];
-      const txns = Array.isArray(u.txns) ? [...u.txns] : [];
-      txns.unshift({ type: "Withdraw Refunded", amt: "+₹" + w.amount, date: new Date().toLocaleString() });
-      await update(ref(db, "users/" + w.mobile), {
-        winningBal: Number(u.winningBal || 0) + Number(w.amount),
-        txns: txns.slice(0, 30)
-      });
+      await update(ref(db, "withdrawals/" + reqId), { status: newStatus });
+
+      if (allUsers[w.mobile]) {
+        const u = allUsers[w.mobile];
+        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
+
+        // User ki transaction history mein status update karein
+        txns = txns.map(t => {
+          if (t && t.orderId === (w.reqId || reqId)) {
+            return { ...t, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED" };
+          }
+          return t;
+        });
+
+        if (newStatus === "REJECTED") {
+          txns.unshift({
+            type: "Withdraw Refunded",
+            orderId: w.reqId || reqId,
+            refId: "REFUND",
+            amt: "+₹" + w.amount,
+            date: new Date().toLocaleString()
+          });
+          await update(ref(db, "users/" + w.mobile), {
+            winningBal: Number(u.winningBal || 0) + Number(w.amount),
+            txns: txns.slice(0, 30)
+          });
+        } else {
+          await update(ref(db, "users/" + w.mobile), {
+            txns: txns.slice(0, 30)
+          });
+        }
+      }
+      alert("✅ Withdrawal " + newStatus + " ho gaya!");
+    } catch (err) {
+      alert("❌ Error: " + err.message);
     }
-    alert("Withdrawal " + newStatus + "!");
   };
 
   get(ref(db, "settings/winRate")).then(snap => {
@@ -342,6 +417,7 @@
       const u = allUsers[k] || {};
       const isMaster = String(k) === "9794408205";
       const displayName = u.name ? `👤 ${u.name}` : `⚠️ Unidentified / Ghost User`;
+      const totalDep = getUserTotalDep(u);
       return `
         <div class="card">
           <div class="row-between">
@@ -350,7 +426,8 @@
           </div>
           <div style="font-size:13px; margin:6px 0;">
             Deposit: <strong style="color:#ffd700;">₹${u.depositBal || 0}</strong> | 
-            Winning: <strong style="color:#28e04d;">₹${u.winningBal || 0}</strong>
+            Winning: <strong style="color:#28e04d;">₹${u.winningBal || 0}</strong> |
+            Total Dep: <strong style="color:#ffae00;">₹${totalDep}</strong>
           </div>
           <div style="display:flex; gap:6px; margin-top:8px;">
             <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}', 100)">+₹100</button>
@@ -368,28 +445,4 @@
     const newBal = Math.max(0, Number(u.depositBal || 0) + delta);
     const txns = Array.isArray(u.txns) ? [...u.txns] : [];
     txns.unshift({
-      type: delta > 0 ? "Admin Bonus Added" : "Admin Deduction",
-      amt: (delta > 0 ? "+₹" : "-₹") + Math.abs(delta),
-      date: new Date().toLocaleString()
-    });
-    await update(ref(db, "users/" + mob), { depositBal: newBal, txns: txns.slice(0, 30) });
-    alert("✅ " + u.name + " ka balance update ho gaya!");
-  };
-
-  window.deleteUserAccount = async (mob) => {
-    if (String(mob) === "9794408205") return alert("Master Admin account delete nahi kiya ja sakta!");
-    const u = allUsers[mob] || {};
-    const label = u.name ? `${u.name} (${mob})` : `Unidentified (${mob})`;
-    if (!confirm(`⚠️ Kya aap sach mein ${label} ka data Firebase se permanently DELETE karna chahte hain?`)) {
-      return;
-    }
-    try {
-      await set(ref(db, "users/" + mob), null);
-      alert("🗑️ " + label + " ka record permanently delete ho gaya!");
-    } catch (err) {
-      alert("❌ Delete error: " + err.message);
-    }
-  };
-</script>
-</body>
-</html>
+ 
