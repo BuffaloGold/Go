@@ -1,140 +1,109 @@
-7<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aviator Live Multiplayer - Buffalo Gold</title>
+<title>Aviator Live - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-  body { background: #0e0f12; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
-  .app { width: 100%; max-width: 440px; background: #141519; min-height: 100vh; padding: 10px; }
+  body { background: #0b0b0e; color: #fff; display: flex; justify-content: center; padding-bottom: 72px; }
+  .app { width: 100%; max-width: 440px; background: #14151a; min-height: 100vh; padding: 10px; }
 
-  /* Header Bar */
-  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #1b1c22; border-radius: 10px; margin-bottom: 8px; }
-  .logo-aviator { color: #e51937; font-style: italic; font-weight: 900; font-size: 20px; letter-spacing: 0.5px; }
-  .sync-tag { font-size: 10px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 7px; border-radius: 10px; font-weight: bold; }
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1c1d24; border-radius: 12px; margin-bottom: 8px; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 17px; color: #ff2e4c; font-style: italic; }
+  .sync-pill { font-size: 9px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 6px; border-radius: 8px; font-style: normal; font-weight: bold; }
   .hdr-right { display: flex; align-items: center; gap: 8px; }
-  .snd-btn { background: #262830; border: 1px solid #383b47; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .bal-pill { background: #262830; border: 1px solid #383b47; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
+  .snd-btn { background: #262833; border: 1px solid #3c3f4f; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #262833; border: 1px solid #3c3f4f; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
 
-  /* History Strip */
-  .hist-bar { display: flex; gap: 5px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
-  .hist-bar::-webkit-scrollbar { display: none; }
-  .h-pill { padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: bold; background: #22242c; flex-shrink: 0; }
-  .h-blue { color: #38bdf8; }
-  .h-purple { color: #c084fc; }
-  .h-pink { color: #f43f5e; }
+  /* History Bar */
+  .history-bar { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
+  .history-bar::-webkit-scrollbar { display: none; }
+  .hist-pill { padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: bold; background: #22242e; flex-shrink: 0; }
+  .c-blue { color: #38bdf8; }
+  .c-purple { color: #c084fc; }
+  .c-pink { color: #f472b6; }
 
-  /* Game Canvas Arena */
+  /* Canvas Arena */
   .arena {
     position: relative;
     width: 100%;
-    height: 210px;
-    border-radius: 14px;
-    border: 1px solid #2b2d38;
+    height: 215px;
+    border-radius: 16px;
+    border: 1px solid #2b2d3a;
     overflow: hidden;
-    background: radial-gradient(circle at 20% 80%, #2a0a18 0%, #111216 65%, #090a0d 100%);
+    background: radial-gradient(circle at 20% 80%, #3a0b19 0%, #14151a 65%, #0d0e12 100%);
     margin-bottom: 10px;
   }
   canvas { width: 100%; height: 100%; display: block; }
-  .center-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    text-align: center;
-  }
-  .mult-text { font-size: 46px; font-weight: 900; color: #fff; text-shadow: 0 2px 15px rgba(0,0,0,0.9); }
-  .mult-text.crashed { color: #e51937; }
-  .sub-status { font-size: 13px; font-weight: bold; color: #f43f5e; margin-top: 2px; letter-spacing: 0.5px; }
-  .wait-bar-wrap { width: 160px; height: 5px; background: #2b2d38; border-radius: 6px; margin-top: 8px; overflow: hidden; display: none; }
-  .wait-bar-fill { height: 100%; background: #e51937; width: 100%; transition: width 0.1s linear; }
-  .live-users-badge {
-    position: absolute; bottom: 8px; right: 10px;
-    background: rgba(20, 21, 25, 0.85); border: 1px solid #2e303c;
-    padding: 3px 9px; border-radius: 14px; font-size: 11px; color: #ccc;
-    display: flex; align-items: center; gap: 5px;
-  }
-  .dot-live { width: 7px; height: 7px; background: #28e04d; border-radius: 50%; display: inline-block; }
+  .center-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 90%; }
+  .mult-text { font-size: 46px; font-weight: 900; color: #fff; text-shadow: 0 2px 15px rgba(0,0,0,0.85); }
+  .mult-text.crashed { color: #ff2e4c; }
+  .status-badge { font-size: 13px; font-weight: bold; color: #ff2e4c; margin-top: 2px; letter-spacing: 0.5px; }
+  .wait-bar-wrap { width: 170px; height: 6px; background: #2c2e3b; border-radius: 6px; margin: 10px auto 0; overflow: hidden; }
+  .wait-bar-fill { height: 100%; background: #ff2e4c; width: 100%; transition: width 0.1s linear; }
+  .live-users-tag { position: absolute; bottom: 8px; right: 10px; background: rgba(0,0,0,0.65); padding: 3px 8px; border-radius: 10px; font-size: 10px; color: #ccc; }
 
   /* Dual Bet Panels */
-  .bet-panel { background: #1b1c22; border: 1.5px solid #2a2c36; border-radius: 14px; padding: 10px; margin-bottom: 8px; transition: border-color 0.2s; }
-  .bet-panel.has-bet { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.18); }
-  .panel-tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
-  .p-tab { background: #121317; color: #888; font-size: 11px; padding: 4px 18px; border-radius: 12px; font-weight: bold; cursor: pointer; border: 1px solid transparent; }
-  .p-tab.active { background: #2b2d38; color: #fff; border-color: #4b5063; }
-  .bet-row { display: flex; gap: 10px; align-items: stretch; }
-  .bet-controls { flex: 1; }
-  .stepper { display: flex; align-items: center; justify-content: space-between; background: #111216; border: 1px solid #2f323d; border-radius: 20px; padding: 4px 10px; margin-bottom: 6px; }
-  .step-btn { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444; background: #22242c; color: #fff; font-weight: bold; cursor: pointer; }
-  .bet-val { background: transparent; border: none; color: #fff; font-weight: bold; font-size: 15px; width: 70px; text-align: center; outline: none; }
-  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .chip { background: #252730; border: none; color: #bbb; font-size: 11px; font-weight: bold; padding: 4px; border-radius: 10px; cursor: pointer; }
-  .chip:active { background: #383b47; color: #fff; }
+  .bet-card { background: #1c1d24; border: 1px solid #2d2f3b; border-radius: 16px; padding: 10px; margin-bottom: 8px; }
+  .card-top-tabs { display: flex; justify-content: center; margin-bottom: 8px; }
+  .mode-pills { display: flex; background: #121318; border-radius: 20px; padding: 2px; border: 1px solid #2c2e3b; }
+  .m-pill { padding: 4px 16px; font-size: 11px; border-radius: 18px; cursor: pointer; color: #999; font-weight: bold; }
+  .m-pill.active { background: #2c2e3b; color: #fff; }
 
-  /* Action Button States */
+  .bet-controls { display: flex; gap: 8px; align-items: stretch; }
+  .left-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; background: #121318; border: 1px solid #323442; border-radius: 20px; padding: 4px 10px; }
+  .step-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #555; background: transparent; color: #fff; font-weight: bold; cursor: pointer; }
+  .bet-inp { background: transparent; border: none; color: #fff; font-size: 15px; font-weight: bold; width: 65px; text-align: center; outline: none; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .q-btn { background: #252732; border: none; color: #ccc; padding: 4px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
   .action-btn {
-    flex: 1.15; border: none; border-radius: 14px; font-weight: 800; color: #fff; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 8px; text-transform: uppercase; box-shadow: 0 3px 0 rgba(0,0,0,0.4);
-    transition: background 0.2s, transform 0.1s;
+    flex: 1.15; border: none; border-radius: 14px; font-weight: 900; font-size: 15px; color: #fff;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-transform: uppercase; box-shadow: 0 4px 0 rgba(0,0,0,0.4); transition: transform 0.1s;
   }
-  .action-btn:active { transform: scale(0.98); }
-  .btn-green { background: linear-gradient(180deg, #28a745, #1e7e34); border: 1px solid #3ce063; }
-  .btn-blue { background: linear-gradient(180deg, #0284c7, #0369a1); border: 1.5px solid #38bdf8; color: #fff; }
-  .btn-red { background: linear-gradient(180deg, #d92638, #a61725); border: 1.5px solid #ff6b7a; }
-  .btn-orange { background: linear-gradient(180deg, #f59e0b, #d97706); border: 1.5px solid #fde047; color: #000; }
-  .action-btn span.big { font-size: 15px; }
-  .action-btn span.sm { font-size: 11px; margin-top: 2px; font-weight: 700; }
+  .action-btn:active { transform: scale(0.97); }
+  .btn-green { background: linear-gradient(180deg, #28e04d, #16a332); }
+  .btn-orange { background: linear-gradient(180deg, #ff9f1c, #e67700); }
+  .btn-red { background: linear-gradient(180deg, #ff2e4c, #c91832); }
+  .btn-queued { background: linear-gradient(180deg, #0284c7, #0369a1); }
+  .action-sub { font-size: 11px; font-weight: normal; margin-top: 2px; }
 
-  /* Auto Bet & Auto Cashout Bar */
-  .auto-bar {
-    display: none;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #2b2d38;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: #ccc;
+  /* Auto-Bet & Auto-Cashout Safety Bar */
+  .auto-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #2a2c38; font-size: 11px; color: #bbb;
   }
-  .auto-bar.show { display: flex; }
+  .auto-group { display: flex; align-items: center; gap: 5px; }
   .auto-toggle {
-    display: flex; align-items: center; gap: 6px;
-    background: #111216; border: 1px solid #383b47; padding: 5px 10px; border-radius: 16px; cursor: pointer; font-weight: bold;
+    padding: 4px 9px; border-radius: 12px; border: 1px solid #3f4254; background: #121318;
+    color: #9ca3af; font-size: 10px; font-weight: bold; cursor: pointer;
   }
-  .auto-toggle.on { border-color: #28e04d; color: #28e04d; background: rgba(40, 224, 77, 0.12); }
-  .auto-co-box { display: flex; align-items: center; gap: 5px; }
-  .auto-co-inp {
-    width: 58px; background: #111216; border: 1px solid #383b47; color: #ffd700;
-    border-radius: 10px; padding: 4px 6px; text-align: center; font-weight: bold; font-size: 12px; outline: none;
+  .auto-toggle.on { background: rgba(40, 224, 77, 0.18); border-color: #28e04d; color: #28e04d; }
+  .auto-mult-inp {
+    width: 48px; background: #121318; border: 1px solid #3f4254; color: #ffd700;
+    border-radius: 8px; padding: 3px 4px; text-align: center; font-weight: bold; font-size: 11px; outline: none;
   }
 
-  /* Live Bets Feed */
-  .feed-box { background: #1b1c22; border-radius: 14px; padding: 10px; margin-top: 8px; }
-  .feed-tabs { display: flex; background: #111216; border-radius: 16px; padding: 3px; margin-bottom: 8px; }
-  .f-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 14px; color: #999; font-weight: bold; cursor: pointer; }
-  .f-tab.active { background: #2c2e38; color: #fff; }
-  .feed-stats { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #aaa; padding: 4px 4px 8px; border-bottom: 1px solid #272932; }
-  .col-head { display: grid; grid-template-columns: 1.3fr 1fr 0.7fr 1.1fr; font-size: 10px; color: #777; padding: 6px 6px 4px; }
-  .bet-item {
-    display: grid; grid-template-columns: 1.3fr 1fr 0.7fr 1.1fr; align-items: center;
-    background: #14151a; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
-    border: 1px solid transparent;
+  /* Live Feed */
+  .feed-box { background: #1c1d24; border: 1px solid #2d2f3b; border-radius: 16px; padding: 10px; margin-top: 10px; }
+  .feed-tabs { display: flex; background: #121318; border-radius: 20px; padding: 3px; margin-bottom: 8px; }
+  .f-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 16px; color: #999; font-weight: bold; cursor: pointer; }
+  .f-tab.active { background: #2c2e3b; color: #fff; }
+  .feed-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; padding: 4px 6px 8px; border-bottom: 1px solid #2a2c38; }
+  .feed-row {
+    display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1.1fr; align-items: center;
+    background: #14151a; padding: 7px 8px; border-radius: 8px; margin-top: 5px; font-size: 11px;
   }
-  .bet-item.cashed { background: rgba(40, 224, 77, 0.13); border-color: rgba(40, 224, 77, 0.45); }
-  .bet-item.me { border-color: #ffd700; }
-  .p-cell { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #ddd; }
-  .avatar { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #fff; }
-  .x-badge { background: #23252e; color: #38bdf8; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: bold; text-align: center; width: fit-content; }
-  .win-val { text-align: right; font-weight: bold; color: #28e04d; }
+  .feed-row.won { background: rgba(40, 224, 77, 0.14); border: 1px solid rgba(40, 224, 77, 0.45); }
+  .feed-row.me { border-color: #ffd700; }
+  .mult-badge { background: #262833; color: #c084fc; padding: 2px 6px; border-radius: 6px; font-weight: bold; text-align: center; width: fit-content; }
 
   /* Bottom Navigation */
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1b1c22; border-top: 1px solid #2e303c; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1c1d24; border-top: 1px solid #2d2f3b; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
   .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 19px; display: block; }
@@ -143,120 +112,128 @@
 <body>
 
 <div class="app">
-  <!-- Header -->
+  <!-- Top Header -->
   <div class="header">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span onclick="location.href='game.html'" style="cursor:pointer; font-size:16px; color:#aaa;">⬅</span>
-      <span class="logo-aviator">Aviator</span>
-      <span class="sync-tag">● LIVE SYNC</span>
+    <div class="logo-title">
+      <span onclick="location.href='game.html'" style="cursor:pointer; color:#aaa; font-style:normal; font-size:16px;">⬅</span>
+      <span>Aviator</span>
+      <span class="sync-pill">● LIVE SYNC</span>
     </div>
     <div class="hdr-right">
-      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
-      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="totalBalDisplay">0.00</span> INR</div>
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()" title="Sound On/Off">🔊</button>
+      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span> INR</div>
     </div>
   </div>
 
-  <!-- Multiplier History Strip -->
-  <div class="hist-bar" id="histBar"></div>
+  <!-- Recent Multipliers Bar -->
+  <div class="history-bar" id="historyBar"></div>
 
-  <!-- Flight Canvas Arena -->
+  <!-- Plane Canvas Arena -->
   <div class="arena">
-    <canvas id="flightCanvas" width="420" height="210"></canvas>
+    <canvas id="aviatorCanvas" width="420" height="215"></canvas>
     <div class="center-overlay">
-      <div class="mult-text" id="multText">1.00x</div>
-      <div class="sub-status" id="statusText">PLACE YOUR BETS</div>
-      <div class="wait-bar-wrap" id="waitBarWrap"><div class="wait-bar-fill" id="waitBarFill"></div></div>
+      <div class="mult-text" id="multDisplay">1.00x</div>
+      <div class="status-badge" id="statusText">WAITING FOR NEXT ROUND</div>
+      <div class="wait-bar-wrap" id="waitBarWrap"><div class="wait-bar-fill" id="waitBar"></div></div>
     </div>
-    <div class="live-users-badge"><span class="dot-live"></span> <span id="onlineCount">269</span></div>
+    <div class="live-users-tag">🟢 <span id="onlinePlayers">248</span></div>
   </div>
 
   <!-- Bet Panel 1 -->
-  <div class="bet-panel" id="panel1">
-    <div class="panel-tabs">
-      <span class="p-tab active" id="tabBet1" onclick="switchPanelMode(1, 'bet')">Bet</span>
-      <span class="p-tab" id="tabAuto1" onclick="switchPanelMode(1, 'auto')">Auto</span>
+  <div class="bet-card">
+    <div class="card-top-tabs">
+      <div class="mode-pills">
+        <div class="m-pill active" id="tabMode0_bet" onclick="switchCardMode(0, 'bet')">Bet</div>
+        <div class="m-pill" id="tabMode0_auto" onclick="switchCardMode(0, 'auto')">Auto</div>
+      </div>
     </div>
-    <div class="bet-row">
-      <div class="bet-controls">
+    <div class="bet-controls">
+      <div class="left-inputs">
         <div class="stepper">
-          <button type="button" class="step-btn" onclick="adjBet(1, -10)">-</button>
-          <input type="number" class="bet-val" id="betInp1" value="25">
-          <button type="button" class="step-btn" onclick="adjBet(1, 10)">+</button>
+          <button type="button" class="step-btn" onclick="adjBet(0, -10)">-</button>
+          <input type="number" class="bet-inp" id="betInp0" value="20" oninput="onBetInputChange(0)">
+          <button type="button" class="step-btn" onclick="adjBet(0, 10)">+</button>
         </div>
-        <div class="chips">
-          <button type="button" class="chip" onclick="setBet(1, 100)">100</button>
-          <button type="button" class="chip" onclick="setBet(1, 200)">200</button>
-          <button type="button" class="chip" onclick="setBet(1, 500)">500</button>
-          <button type="button" class="chip" onclick="setBet(1, 1000)">1,000</button>
+        <div class="quick-grid">
+          <button type="button" class="q-btn" onclick="setBet(0, 100)">100</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 200)">200</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 500)">500</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 1000)">1,000</button>
         </div>
       </div>
-      <button type="button" class="action-btn btn-green" id="btn1" onclick="handleSlotClick(1)">
-        <span class="big">Bet</span>
-        <span class="sm" id="btnSub1">25.00 INR</span>
+      <button type="button" class="action-btn btn-green" id="betBtn0" onclick="handleBetBtn(0)">
+        <span>BET</span>
+        <span class="action-sub" id="betSub0">20.00 INR</span>
       </button>
     </div>
-    <div class="auto-bar" id="autoBar1">
-      <div class="auto-toggle" id="autoBetToggle1" onclick="toggleAutoBet(1)">🔁 Auto Bet: OFF</div>
-      <div class="auto-co-box">
-        <input type="checkbox" id="autoCoCheck1">
-        <span>Auto Cash</span>
-        <input type="number" step="0.1" min="1.1" class="auto-co-inp" id="autoCoVal1" value="2.00">
-        <span>x</span>
+    <div class="auto-row" id="autoRow0" style="display:none;">
+      <div class="auto-group">
+        <span>Auto Bet:</span>
+        <button type="button" class="auto-toggle" id="autoBetToggle0" onclick="toggleAutoBet(0)">OFF</button>
+      </div>
+      <div class="auto-group">
+        <span>Auto Cashout:</span>
+        <button type="button" class="auto-toggle" id="autoCashToggle0" onclick="toggleAutoCash(0)">OFF</button>
+        <input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal0" value="2.00">x
       </div>
     </div>
   </div>
 
   <!-- Bet Panel 2 -->
-  <div class="bet-panel" id="panel2">
-    <div class="panel-tabs">
-      <span class="p-tab active" id="tabBet2" onclick="switchPanelMode(2, 'bet')">Bet</span>
-      <span class="p-tab" id="tabAuto2" onclick="switchPanelMode(2, 'auto')">Auto</span>
+  <div class="bet-card">
+    <div class="card-top-tabs">
+      <div class="mode-pills">
+        <div class="m-pill active" id="tabMode1_bet" onclick="switchCardMode(1, 'bet')">Bet</div>
+        <div class="m-pill" id="tabMode1_auto" onclick="switchCardMode(1, 'auto')">Auto</div>
+      </div>
     </div>
-    <div class="bet-row">
-      <div class="bet-controls">
+    <div class="bet-controls">
+      <div class="left-inputs">
         <div class="stepper">
-          <button type="button" class="step-btn" onclick="adjBet(2, -10)">-</button>
-          <input type="number" class="bet-val" id="betInp2" value="50">
-          <button type="button" class="step-btn" onclick="adjBet(2, 10)">+</button>
+          <button type="button" class="step-btn" onclick="adjBet(1, -10)">-</button>
+          <input type="number" class="bet-inp" id="betInp1" value="50" oninput="onBetInputChange(1)">
+          <button type="button" class="step-btn" onclick="adjBet(1, 10)">+</button>
         </div>
-        <div class="chips">
-          <button type="button" class="chip" onclick="setBet(2, 100)">100</button>
-          <button type="button" class="chip" onclick="setBet(2, 200)">200</button>
-          <button type="button" class="chip" onclick="setBet(2, 500)">500</button>
-          <button type="button" class="chip" onclick="setBet(2, 1000)">1,000</button>
+        <div class="quick-grid">
+          <button type="button" class="q-btn" onclick="setBet(1, 100)">100</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 200)">200</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 500)">500</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 1000)">1,000</button>
         </div>
       </div>
-      <button type="button" class="action-btn btn-green" id="btn2" onclick="handleSlotClick(2)">
-        <span class="big">Bet</span>
-        <span class="sm" id="btnSub2">50.00 INR</span>
+      <button type="button" class="action-btn btn-green" id="betBtn1" onclick="handleBetBtn(1)">
+        <span>BET</span>
+        <span class="action-sub" id="betSub1">50.00 INR</span>
       </button>
     </div>
-    <div class="auto-bar" id="autoBar2">
-      <div class="auto-toggle" id="autoBetToggle2" onclick="toggleAutoBet(2)">🔁 Auto Bet: OFF</div>
-      <div class="auto-co-box">
-        <input type="checkbox" id="autoCoCheck2">
-        <span>Auto Cash</span>
-        <input type="number" step="0.1" min="1.1" class="auto-co-inp" id="autoCoVal2" value="2.50">
-        <span>x</span>
+    <div class="auto-row" id="autoRow1" style="display:none;">
+      <div class="auto-group">
+        <span>Auto Bet:</span>
+        <button type="button" class="auto-toggle" id="autoBetToggle1" onclick="toggleAutoBet(1)">OFF</button>
+      </div>
+      <div class="auto-group">
+        <span>Auto Cashout:</span>
+        <button type="button" class="auto-toggle" id="autoCashToggle1" onclick="toggleAutoCash(1)">OFF</button>
+        <input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal1" value="2.00">x
       </div>
     </div>
   </div>
 
-  <!-- Live Bets Feed (Hybrid: Bots + Real Firebase Players) -->
+  <!-- Live Bets Feed -->
   <div class="feed-box">
     <div class="feed-tabs">
-      <div class="f-tab active" onclick="switchFeed('all', this)">All Bets</div>
-      <div class="f-tab" onclick="switchFeed('my', this)">My Bets</div>
-      <div class="f-tab" onclick="switchFeed('top', this)">Top Wins</div>
+      <div class="f-tab active" onclick="switchFeedTab('all', this)">All Bets</div>
+      <div class="f-tab" onclick="switchFeedTab('my', this)">My Bets</div>
+      <div class="f-tab" onclick="switchFeedTab('top', this)">Top Wins</div>
     </div>
-    <div class="feed-stats">
-      <span><strong style="color:#fff;" id="activeBetsCount">18/18</strong> Bets</span>
-      <span>Total win INR: <strong style="color:#28e04d;" id="totalFeedWin">0.00</strong></span>
+    <div class="feed-header">
+      <span id="totalBetsCount">0/25 Bets</span>
+      <span style="color:#28e04d; font-weight:bold;">Total win INR: <span id="totalWinSum">0.00</span></span>
     </div>
-    <div class="col-head">
+    <div style="display:grid; grid-template-columns:1.3fr 1fr 0.8fr 1.1fr; font-size:10px; color:#777; padding:4px 8px;">
       <span>Player</span><span>Bet INR</span><span>X</span><span style="text-align:right;">Win INR</span>
     </div>
-    <div id="liveFeedList"></div>
+    <div id="liveBetsList"></div>
   </div>
 </div>
 
@@ -277,8 +254,7 @@
   try {
     userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
   } catch (e) {}
-
-  let winRateSetting = 35;
+  let winRateSetting = 20;
 
   function getTotalBal() {
     const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
@@ -286,51 +262,49 @@
     return dep + win;
   }
 
-  function updateBalHeader() {
-    document.getElementById("totalBalDisplay").innerText = getTotalBal().toFixed(2);
+  function updateHeaderBal() {
+    document.getElementById("balDisplay").innerText = getTotalBal().toFixed(2);
   }
-  updateBalHeader();
+  updateHeaderBal();
 
   async function syncUserFromDB() {
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-              fetch(`${DB_URL}/settings/rates/aviator.json?t=${Date.now()}`)
-       
+        fetch(`${DB_URL}/settings/rates/aviator.json?t=${Date.now()}`)
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
       if (u && typeof u === "object") {
         userData = { ...userData, ...u };
         localStorage.setItem("cachedUser", JSON.stringify(userData));
-        updateBalHeader();
+        updateHeaderBal();
       }
       if (typeof r === "number") winRateSetting = r;
     } catch (e) {}
   }
   syncUserFromDB();
 
-  // ==========================================
-  // WEB AUDIO AVIATOR SOUND EFFECTS
-  // ==========================================
-  let soundOn = true;
+  let soundEnabled = true;
   let audioCtx = null;
 
   function initAudio() {
     if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) audioCtx = new AC();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
     }
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
   }
 
   function toggleSound() {
-    soundOn = !soundOn;
-    document.getElementById("sndBtn").innerText = soundOn ? "🔊" : "🔇";
+    soundEnabled = !soundEnabled;
+    document.getElementById("sndBtn").innerText = soundEnabled ? "🔊" : "🔇";
   }
 
   function playAviatorSound(type) {
-    if (!soundOn) return;
+    if (!soundEnabled) return;
     try {
       initAudio();
       if (!audioCtx) return;
@@ -351,195 +325,201 @@
       } else if (type === "takeoff") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(110, now);
-        osc.frequency.exponentialRampToValueAtTime(320, now + 0.45);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.48);
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(420, now + 0.55);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.6);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.48);
+        osc.stop(now + 0.6);
       } else if (type === "cashout") {
-        [587.33, 783.99, 1046.5].forEach((freq, idx) => {
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(freq, now + idx * 0.07);
-          gain.gain.setValueAtTime(0.22, now + idx * 0.07);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.25);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start(now + idx * 0.07);
-          osc.stop(now + idx * 0.07 + 0.25);
+          osc.stop(now + idx * 0.07 + 0.28);
         });
       } else if (type === "crash") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(360, now);
-        osc.frequency.exponentialRampToValueAtTime(65, now + 0.42);
-        gain.gain.setValueAtTime(0.16, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.45);
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+        gain.gain.setValueAtTime(0.24, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.45);
+        osc.stop(now + 0.48);
       }
     } catch (e) {}
   }
- // ==========================================
-  // DUAL BET & AUTO-BET CONTROLS
-  // ==========================================
-  function switchPanelMode(slot, mode) {
-    const tBet = document.getElementById("tabBet" + slot);
-    const tAuto = document.getElementById("tabAuto" + slot);
-    const bar = document.getElementById("autoBar" + slot);
-    if (mode === "auto") {
-      tBet.classList.remove("active");
-      tAuto.classList.add("active");
-      bar.classList.add("show");
-    } else {
-      tAuto.classList.remove("active");
-      tBet.classList.add("active");
-      bar.classList.remove("show");
-    }
+
+  let gameState = "WAITING";
+  let currentMult = 1.00;
+  let crashPoint = 1.25;
+  let historyList = [1.14, 1.32, 1.08, 2.15, 1.21, 1.04, 1.48, 1.19];
+
+  const panels = [
+    { state: "IDLE", amount: 20, autoBet: false, autoCash: false, targetMult: 2.00 },
+    { state: "IDLE", amount: 50, autoBet: false, autoCash: false, targetMult: 2.00 }
+  ];
+
+  function switchCardMode(idx, mode) {
+    document.getElementById(`tabMode${idx}_bet`).classList.toggle("active", mode === "bet");
+    document.getElementById(`tabMode${idx}_auto`).classList.toggle("active", mode === "auto");
+    document.getElementById(`autoRow${idx}`).style.display = mode === "auto" ? "flex" : "none";
   }
 
-  function toggleAutoBet(slot) {
+  function toggleAutoBet(idx) {
     initAudio();
-    slots[slot].autoBet = !slots[slot].autoBet;
-    const tog = document.getElementById("autoBetToggle" + slot);
-    if (slots[slot].autoBet) {
-      tog.classList.add("on");
-      tog.innerText = "🔁 Auto Bet: ON";
-      if (slots[slot].status === "IDLE") {
-        handleSlotClick(slot);
+    panels[idx].autoBet = !panels[idx].autoBet;
+    const btn = document.getElementById(`autoBetToggle${idx}`);
+    btn.innerText = panels[idx].autoBet ? "ON" : "OFF";
+    btn.classList.toggle("on", panels[idx].autoBet);
+
+    if (panels[idx].autoBet && panels[idx].state === "IDLE") {
+      if (gameState === "WAITING") {
+        placePanelBetNow(idx, true);
+      } else {
+        const val = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
+        panels[idx].amount = val;
+        panels[idx].state = "QUEUED";
+        updatePanelBtn(idx);
       }
-    } else {
-      tog.classList.remove("on");
-      tog.innerText = "🔁 Auto Bet: OFF";
     }
   }
 
-  function adjBet(slot, delta) {
-    const inp = document.getElementById("betInp" + slot);
+  function toggleAutoCash(idx) {
+    initAudio();
+    panels[idx].autoCash = !panels[idx].autoCash;
+    const btn = document.getElementById(`autoCashToggle${idx}`);
+    btn.innerText = panels[idx].autoCash ? "ON" : "OFF";
+    btn.classList.toggle("on", panels[idx].autoCash);
+  }
+
+  function onBetInputChange(idx) {
+    const val = parseInt(document.getElementById(`betInp${idx}`).value) || 10;
+    if (panels[idx].state === "IDLE") {
+      document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
+    }
+  }
+
+  function adjBet(idx, delta) {
+    if (panels[idx].state !== "IDLE") return;
+    const inp = document.getElementById(`betInp${idx}`);
     let val = Math.max(10, (parseInt(inp.value) || 10) + delta);
     inp.value = val;
-    updateSlotBtnUI(slot);
+    document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-  function setBet(slot, val) {
-    document.getElementById("betInp" + slot).value = val;
-    updateSlotBtnUI(slot);
+
+  function setBet(idx, val) {
+    if (panels[idx].state !== "IDLE") return;
+    document.getElementById(`betInp${idx}`).value = val;
+    document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-  document.getElementById("betInp1").addEventListener("input", () => updateSlotBtnUI(1));
-  document.getElementById("betInp2").addEventListener("input", () => updateSlotBtnUI(2));
+
+  function updatePanelBtn(idx) {
+    const btn = document.getElementById(`betBtn${idx}`);
+    const p = panels[idx];
+    const inpVal = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
+
+    if (p.state === "IDLE") {
+      btn.className = "action-btn btn-green";
+      btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`;
+    } else if (p.state === "QUEUED") {
+      btn.className = "action-btn btn-queued";
+      btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`;
+    } else if (p.state === "PLACED") {
+      btn.className = "action-btn btn-queued";
+      btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`;
+    } else if (p.state === "ACTIVE") {
+      btn.className = "action-btn btn-orange";
+      const winNow = (p.amount * currentMult).toFixed(2);
+      btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${winNow} INR</span>`;
+    }
+  }
+   // ==========================================
+  // STRICT HOUSE-PROFIT CRASH FORMULA
+  // ==========================================
+  function generateCrashPoint() {
+    const r = Math.random() * 100;
+    if (winRateSetting <= 25) {
+      // 20% Mode: 68% rounds 1.00x-1.35x par hi crash honge
+      if (r < 68) return Number((1.00 + Math.random() * 0.35).toFixed(2));
+      if (r < 92) return Number((1.36 + Math.random() * 0.60).toFixed(2));
+      return Number((2.00 + Math.random() * 2.50).toFixed(2));
+    } else if (winRateSetting <= 40) {
+      // 35% Balanced Mode
+      if (r < 45) return Number((1.00 + Math.random() * 0.45).toFixed(2));
+      if (r < 80) return Number((1.46 + Math.random() * 1.10).toFixed(2));
+      return Number((2.56 + Math.random() * 4.50).toFixed(2));
+    } else {
+      // 50% / 75% Promo Mode
+      if (r < 25) return Number((1.02 + Math.random() * 0.50).toFixed(2));
+      return Number((1.60 + Math.random() * 6.50).toFixed(2));
+    }
+  }
 
   // ==========================================
-  // SHARED MULTIPLAYER ROOM STATE (WITH INSTANT START)
+  // SHARED MULTIPLAYER ROOM SYNC (FIREBASE)
   // ==========================================
-  const WAIT_MS = 5500;
-  const CRASH_HOLD_MS = 3200;
+  const WAIT_MS = 5000;
+  const CRASH_PAUSE_MS = 2800;
+  let lastHandledRoundId = null;
+  let roundCrashHandled = false;
+  let roundTakeoffHandled = false;
+  let isCreatingRound = false;
 
-  let historyList = [1.12, 1.48, 2.02, 2.44, 1.31, 1.18, 1.20, 10.65, 1.85, 3.40];
-  let myHistoryBets = [];
-  let currentFeedTab = "all";
-
-  // Start immediately with a valid local round so UI & Live Feed NEVER get stuck
   const bootNow = Date.now();
   let roomState = {
     roundId: "R" + bootNow,
     waitStart: bootNow,
     flyStart: bootNow + WAIT_MS,
-    crashPoint: 2.35,
+    crashAt: 1.24,
     history: historyList
   };
 
-  let lastHandledRoundId = null;
-  let lastPhase = "";
-  let isTransitioning = false;
-  let gameState = "WAITING";
-  let currentMult = 1.00;
-
-  const slots = {
-    1: { status: "IDLE", bet: 0, autoBet: false },
-    2: { status: "IDLE", bet: 0, autoBet: false }
-  };
-
-  function updateSlotBtnUI(s) {
-    const btn = document.getElementById("btn" + s);
-    const sub = document.getElementById("btnSub" + s);
-    const panel = document.getElementById("panel" + s);
-    const inpVal = Math.max(10, parseInt(document.getElementById("betInp" + s).value) || 25);
-
-    if (slots[s].status === "ACTIVE" && gameState === "FLYING") {
-      panel.classList.add("has-bet");
-      btn.className = "action-btn btn-orange";
-      btn.querySelector(".big").innerText = "Cash Out";
-      sub.innerText = (slots[s].bet * currentMult).toFixed(2) + " INR";
-    } else if (slots[s].status === "ACTIVE" && gameState === "WAITING") {
-      panel.classList.add("has-bet");
-      btn.className = "action-btn btn-blue";
-      btn.querySelector(".big").innerText = "✔ Bet Placed";
-      sub.innerText = "₹" + slots[s].bet + " (Starting...)";
-    } else if (slots[s].status === "QUEUED") {
-      panel.classList.add("has-bet");
-      btn.className = "action-btn btn-red";
-      btn.querySelector(".big").innerText = "Cancel";
-      sub.innerText = "Next Round (₹" + slots[s].bet + ")";
-    } else {
-      panel.classList.remove("has-bet");
-      btn.className = "action-btn btn-green";
-      btn.querySelector(".big").innerText = "Bet";
-      sub.innerText = inpVal.toFixed(2) + " INR";
-    }
+  function calcMultAtElapsed(sec) {
+    return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2));
   }
 
-  function calcMultiplierAtElapsed(elapsedSec) {
-    if (elapsedSec <= 0) return 1.00;
-    const val = Math.pow(Math.E, 0.072 * elapsedSec);
-    return Number(val.toFixed(2));
+  function calcDurationToCrash(targetMult) {
+    if (targetMult <= 1.00) return 0.15;
+    return Math.log(targetMult) / 0.135;
   }
 
-  function calcDurationForCrash(cp) {
-    if (cp <= 1.00) return 0.1;
-    return Math.log(cp) / 0.072;
-  }
-
-  function generateNextCrashPoint() {
-    const isEarlyCrash = (Math.random() * 100) > winRateSetting;
-    if (isEarlyCrash && Math.random() < 0.45) {
-      return Number((1.05 + Math.random() * 0.65).toFixed(2));
-    }
-    return Number((1.35 + Math.random() * 6.5).toFixed(2));
-  }
-
-  async function createNewSharedRound(prevCrashPoint) {
-    if (isTransitioning) return;
-    isTransitioning = true;
+  async function publishNewRound(prevCrashedMult) {
+    if (isCreatingRound) return;
+    isCreatingRound = true;
 
     const now = Date.now();
-    const newRoundId = "R" + now;
-    const nextCrash = generateNextCrashPoint();
-
-    let updatedHist = Array.isArray(historyList) ? [...historyList] : [1.48, 2.02, 1.31];
-    if (typeof prevCrashPoint === "number" && prevCrashPoint >= 1) {
-      updatedHist.unshift(prevCrashPoint);
-      updatedHist = updatedHist.slice(0, 15);
+    const nextCrash = generateCrashPoint();
+    let newHist = [...historyList];
+    if (prevCrashedMult && !isNaN(prevCrashedMult)) {
+      newHist.unshift(Number(prevCrashedMult));
+      newHist = newHist.slice(0, 12);
     }
 
     const newRoom = {
-      roundId: newRoundId,
+      roundId: "R" + now,
       waitStart: now,
       flyStart: now + WAIT_MS,
-      crashPoint: nextCrash,
-      history: updatedHist
+      crashAt: nextCrash,
+      history: newHist
     };
 
-    // Update locally right away so game never pauses even if Firebase is slow
     roomState = newRoom;
-    historyList = updatedHist;
-    renderHistoryStrip();
+    historyList = newHist;
+    renderHistory();
 
     try {
       await fetch(`${DB_URL}/aviatorRoom.json`, {
@@ -549,7 +529,7 @@
       });
     } catch (e) {
     } finally {
-      isTransitioning = false;
+      isCreatingRound = false;
     }
   }
 
@@ -560,187 +540,83 @@
       const data = await res.json();
       const now = Date.now();
 
-      if (!data || !data.roundId || !data.flyStart || !data.crashPoint) {
-        await createNewSharedRound(null);
+      if (!data || !data.roundId || !data.flyStart || !data.crashAt) {
+        await publishNewRound(null);
         return;
       }
 
-      const flyDurMs = calcDurationForCrash(Number(data.crashPoint)) * 1000;
-      const roundEndMs = Number(data.flyStart) + flyDurMs + CRASH_HOLD_MS;
+      const flyDurMs = calcDurationToCrash(Number(data.crashAt)) * 1000;
+      const roundEndMs = Number(data.flyStart) + flyDurMs + CRASH_PAUSE_MS;
 
-      if (now >= roundEndMs + 400) {
-        await createNewSharedRound(Number(data.crashPoint));
+      if (now >= roundEndMs + 300) {
+        await publishNewRound(Number(data.crashAt));
         return;
       }
 
       roomState = data;
       if (Array.isArray(data.history) && data.history.length > 0) {
         historyList = data.history;
-        renderHistoryStrip();
+        renderHistory();
       }
     } catch (e) {}
   }
 
   // ==========================================
-  // BET & CASHOUT ACTIONS
+  // BETTING, AUTO-BET & CASHOUT LOGIC
   // ==========================================
-  async function executeCashOut(s) {
-    if (slots[s].status !== "ACTIVE" || gameState !== "FLYING") return;
-
-    const cashMult = currentMult;
-    const betPlaced = slots[s].bet;
-    const winAmt = Number((betPlaced * cashMult).toFixed(2));
-    slots[s].status = "IDLE";
-    slots[s].bet = 0;
-    updateSlotBtnUI(s);
-    playAviatorSound("cashout");
-
-    const myRow = liveBets.find(b => b.id === "ME_" + s);
-    if (myRow) {
-      myRow.cashed = true;
-      myRow.mult = cashMult.toFixed(2) + "x";
-      myRow.win = winAmt;
-    }
-    myHistoryBets.unshift({
-      name: (userData.name || "You") + " (Slot " + s + ")",
-      bet: betPlaced,
-      mult: cashMult.toFixed(2) + "x",
-      win: winAmt,
-      cashed: true
-    });
-    renderFeed();
-
-    const newWin = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + Math.floor(winAmt);
-    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({
-      type: `Aviator Cashout (${cashMult.toFixed(2)}x)`,
-      amt: "+₹" + Math.floor(winAmt),
-      date: new Date().toLocaleString()
-    });
-    userData.winningBal = newWin;
-    userData.txns = txns.slice(0, 30);
-    localStorage.setItem("cachedUser", JSON.stringify(userData));
-    updateBalHeader();
-
-    fetch(`${DB_URL}/users/${mobile}.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ winningBal: newWin, txns: userData.txns })
-    });
-
-    const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
-    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${s}.json`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roundId: roomState ? roomState.roundId : "",
-        name: maskedMe,
-        bet: betPlaced,
-        mult: cashMult.toFixed(2) + "x",
-        win: winAmt,
-        cashed: true,
-        ts: Date.now()
-      })
-    });
-  }
-
-  async function handleSlotClick(s) {
-    initAudio();
-    const state = slots[s].status;
-
-    if (state === "QUEUED") {
-      slots[s].status = "IDLE";
-      slots[s].bet = 0;
-      if (slots[s].autoBet) {
-        slots[s].autoBet = false;
-        const tog = document.getElementById("autoBetToggle" + s);
-        tog.classList.remove("on");
-        tog.innerText = "🔁 Auto Bet: OFF";
+  async function placePanelBetNow(idx, isAuto = false) {
+    const val = parseInt(document.getElementById(`betInp${idx}`).value);
+    if (!val || val < 10) {
+      if (isAuto) {
+        panels[idx].autoBet = false;
+        document.getElementById(`autoBetToggle${idx}`).innerText = "OFF";
+        document.getElementById(`autoBetToggle${idx}`).classList.remove("on");
+      } else {
+        alert("Minimum bet ₹10 hai!");
       }
-      updateSlotBtnUI(s);
-      return;
+      return false;
     }
 
-    if (state === "ACTIVE" && gameState === "FLYING") {
-      await executeCashOut(s);
-      return;
+    if (val > getTotalBal()) {
+      if (isAuto) {
+        panels[idx].autoBet = false;
+        document.getElementById(`autoBetToggle${idx}`).innerText = "OFF";
+        document.getElementById(`autoBetToggle${idx}`).classList.remove("on");
+        alert(`Panel ${idx + 1}: Balance kam hone ke kaaran Auto-Bet band kar diya gaya!`);
+      } else {
+        alert("Wallet mein itna balance nahi hai!");
+      }
+      return false;
     }
 
-    if (state === "ACTIVE" && gameState === "WAITING") {
-      return;
-    }
-
-    const betAmt = parseInt(document.getElementById("betInp" + s).value);
-    if (!betAmt || betAmt < 10) {
-      if (slots[s].autoBet) toggleAutoBet(s);
-      return alert("Minimum bet ₹10 hai!");
-    }
-    if (betAmt > getTotalBal()) {
-      if (slots[s].autoBet) toggleAutoBet(s);
-      return alert("Wallet mein itna balance nahi hai!");
-    }
-
-    slots[s].bet = betAmt;
     playAviatorSound("bet");
-
-    if (gameState === "WAITING") {
-      await activateBetFromWallet(s);
-    } else {
-      slots[s].status = "QUEUED";
-      updateSlotBtnUI(s);
-    }
-  }
-
-  async function activateBetFromWallet(s) {
-    const betAmt = slots[s].bet;
-    if (betAmt > getTotalBal()) {
-      slots[s].status = "IDLE";
-      slots[s].bet = 0;
-      if (slots[s].autoBet) {
-        slots[s].autoBet = false;
-        const tog = document.getElementById("autoBetToggle" + s);
-        tog.classList.remove("on");
-        tog.innerText = "🔁 Auto Bet: OFF";
-      }
-      updateSlotBtnUI(s);
-      return;
-    }
 
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-    if (dBal >= betAmt) {
-      dBal -= betAmt;
+    if (dBal >= val) {
+      dBal -= val;
     } else {
-      const rem = betAmt - dBal;
+      const rem = val - dBal;
       dBal = 0;
       wBal -= rem;
     }
 
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({ type: "Aviator Bet", amt: "-₹" + betAmt, date: new Date().toLocaleString() });
+    txns.unshift({ type: "Aviator Bet", amt: "-₹" + val, date: new Date().toLocaleString() });
 
     userData.depositBal = dBal;
     userData.winningBal = wBal;
     userData.txns = txns.slice(0, 30);
     localStorage.setItem("cachedUser", JSON.stringify(userData));
-    updateBalHeader();
+    updateHeaderBal();
 
-    slots[s].status = "ACTIVE";
-    updateSlotBtnUI(s);
+    panels[idx].amount = val;
+    panels[idx].state = "PLACED";
+    updatePanelBtn(idx);
 
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
-    liveBets.unshift({
-      id: "ME_" + s,
-      name: maskedMe + " (You)",
-      color: "#eab308",
-      bet: betAmt,
-      targetMult: 999,
-      mult: "",
-      win: 0,
-      cashed: false,
-      isMe: true
-    });
-    renderFeed();
+    liveBetsData.unshift({ id: "me_" + idx, name: maskedMe + " (You)", bet: val, mult: null, win: 0, isMe: true });
+    renderLiveFeed();
 
     fetch(`${DB_URL}/users/${mobile}.json`, {
       method: "PATCH",
@@ -748,335 +624,343 @@
       body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
     });
 
-    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${s}.json`, {
+    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        roundId: roomState ? roomState.roundId : "",
-        name: maskedMe,
-        bet: betAmt,
-        mult: "",
-        win: 0,
-        cashed: false,
-        ts: Date.now()
-      })
+      body: JSON.stringify({ name: maskedMe, bet: val, mult: null, win: 0, ts: Date.now() })
     });
- }
- // ==========================================
-  // DETERMINISTIC BOTS + REAL FIREBASE FEED
-  // ==========================================
-  const BOT_NAMES = ["i***4", "c***9", "p***k", "m***i", "n***j", "s***t", "b***l", "r***8", "v***2", "a***7", "k***n", "h***t", "d***5", "g***1"];
-  const AVATAR_COLORS = ["#e11d48", "#2563eb", "#16a34a", "#d97706", "#9333ea", "#0891b2", "#db2777"];
-  const PRESET_AMTS = [12629.68, 7272.10, 5000.00, 3999.88, 3000.00, 2500.00, 1500.00, 1000.00, 500.00, 250.00];
-  let liveBets = [];
 
-  function seededRand(seed) {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
+    return true;
   }
 
-  function buildLocalBotsImmediately(rId) {
-    const numSeed = parseInt(String(rId).replace(/\D/g, "").slice(-6)) || 12345;
-    const bots = [];
-    const botCount = 16 + Math.floor(seededRand(numSeed) * 6);
-    for (let i = 0; i < botCount; i++) {
-      const r1 = seededRand(numSeed + i * 11);
-      const r2 = seededRand(numSeed + i * 23);
-      const r3 = seededRand(numSeed + i * 37);
-      const bName = BOT_NAMES[Math.floor(r1 * BOT_NAMES.length)];
-      const bAmt = PRESET_AMTS[Math.floor(r2 * PRESET_AMTS.length)];
-      const target = Number((1.15 + r3 * 3.8).toFixed(2));
-      bots.push({
-        id: "BOT_" + i,
-        name: bName,
-        color: AVATAR_COLORS[i % AVATAR_COLORS.length],
-        bet: bAmt,
-        targetMult: target,
-        mult: "",
-        win: 0,
-        cashed: false,
-        isMe: false
-      });
-    }
-    bots.sort((a, b) => b.bet - a.bet);
-    liveBets = bots;
-    document.getElementById("onlineCount").innerText = 240 + Math.floor(seededRand(numSeed + 99) * 60);
-    renderFeed();
-  }
+  async function handleBetBtn(idx) {
+    initAudio();
+    const p = panels[idx];
 
-  async function mergeRealFeedFromFirebase() {
-    try {
-      const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
-      if (!res.ok) return;
-      const realFeed = await res.json();
-      if (!realFeed) return;
-      const now = Date.now();
-      let added = false;
-      Object.keys(realFeed).forEach(k => {
-        const item = realFeed[k];
-        if (item && (now - item.ts) < 35000 && !k.startsWith(mobile)) {
-          const existing = liveBets.find(b => b.id === "REAL_" + k);
-          if (existing) {
-            if (item.cashed) {
-              existing.cashed = true;
-              existing.mult = item.mult;
-              existing.win = Number(item.win);
-              added = true;
-            }
-          } else {
-            liveBets.unshift({
-              id: "REAL_" + k,
-              name: item.name,
-              color: "#28e04d",
-              bet: Number(item.bet || 100),
-              targetMult: item.cashed ? parseFloat(item.mult) : 999,
-              mult: item.cashed ? item.mult : "",
-              win: item.cashed ? Number(item.win) : 0,
-              cashed: Boolean(item.cashed),
-              isMe: false
-            });
-            added = true;
-          }
-        }
-      });
-      if (added) renderFeed();
-    } catch (e) {}
-  }
-
-  function switchFeed(tab, el) {
-    currentFeedTab = tab;
-    document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active"));
-    el.classList.add("active");
-    renderFeed();
-  }
-
-  function renderFeed() {
-    const listEl = document.getElementById("liveFeedList");
-    let displayList = liveBets;
-    if (currentFeedTab === "my") {
-      displayList = myHistoryBets;
-    } else if (currentFeedTab === "top") {
-      displayList = [...liveBets].filter(b => b.cashed).sort((a, b) => b.win - a.win);
-    }
-
-    let totalWinSum = 0;
-    let cashedCount = 0;
-    liveBets.forEach(b => {
-      if (b.cashed) {
-        totalWinSum += Number(b.win || 0);
-        cashedCount++;
+    if (p.state === "IDLE") {
+      if (gameState === "WAITING") {
+        await placePanelBetNow(idx, false);
+      } else {
+        const val = parseInt(document.getElementById(`betInp${idx}`).value);
+        if (!val || val < 10) return alert("Minimum bet ₹10 hai!");
+        if (val > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
+        playAviatorSound("bet");
+        p.amount = val;
+        p.state = "QUEUED";
+        updatePanelBtn(idx);
       }
-    });
+      return;
+    }
 
-    document.getElementById("activeBetsCount").innerText = `${cashedCount}/${liveBets.length}`;
-    document.getElementById("totalFeedWin").innerText = totalWinSum.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (p.state === "QUEUED") {
+      p.state = "IDLE";
+      updatePanelBtn(idx);
+      return;
+    }
 
-    listEl.innerHTML = displayList.slice(0, 20).map(b => `
-      <div class="bet-item ${b.cashed ? 'cashed' : ''} ${b.isMe ? 'me' : ''}">
-        <div class="p-cell">
-          <span class="avatar" style="background:${b.color || '#e11d48'};">${b.name.charAt(0).toUpperCase()}</span>
-          <span>${b.name}</span>
-        </div>
-        <div style="color:#ccc;">${Number(b.bet).toFixed(2)}</div>
-        <div>${b.mult ? `<span class="x-badge">${b.mult}</span>` : ''}</div>
-        <div class="win-val">${b.cashed ? Number(b.win).toFixed(2) : ''}</div>
-      </div>
-    `).join("") || "<div style='text-align:center; color:#666; padding:12px; font-size:12px;'>No bets yet</div>";
+    if (p.state === "PLACED") {
+      return;
+    }
+
+    if (p.state === "ACTIVE" && gameState === "FLYING") {
+      const cashMult = currentMult;
+      const winAmt = Number((p.amount * cashMult).toFixed(2));
+      p.state = "IDLE";
+      updatePanelBtn(idx);
+      playAviatorSound("cashout");
+
+      const currentWin = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+      const newWin = Number((currentWin + winAmt).toFixed(2));
+      const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+      txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
+
+      userData.winningBal = newWin;
+      userData.txns = txns.slice(0, 30);
+      localStorage.setItem("cachedUser", JSON.stringify(userData));
+      updateHeaderBal();
+
+      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+      const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
+      if (myRow) {
+        myRow.mult = cashMult.toFixed(2) + "x";
+        myRow.win = winAmt;
+      }
+      myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
+      renderLiveFeed();
+
+      fetch(`${DB_URL}/users/${mobile}.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ winningBal: newWin, txns: userData.txns })
+      });
+
+      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: Date.now() })
+      });
+    }
   }
 
-  function renderHistoryStrip() {
-    document.getElementById("histBar").innerHTML = historyList.slice(0, 14).map(val => {
-      const cls = val >= 10 ? "h-pink" : (val >= 2 ? "h-purple" : "h-blue");
-      return `<span class="h-pill ${cls}">${Number(val).toFixed(2)}x</span>`;
+  // ==========================================
+  // MASTER SYNCHRONIZED RENDER & STATE ENGINE
+  // ==========================================
+  const canvas = document.getElementById("aviatorCanvas");
+  const ctx = canvas.getContext("2d");
+  let planeX = 35, planeY = 180;
+
+  function renderHistory() {
+    document.getElementById("historyBar").innerHTML = historyList.slice(0, 12).map(m => {
+      const val = Number(m);
+      const cls = val < 2 ? "c-blue" : (val < 10 ? "c-purple" : "c-pink");
+      return `<span class="hist-pill ${cls}">${val.toFixed(2)}x</span>`;
     }).join("");
   }
-  renderHistoryStrip();
+  renderHistory();
 
-  // ==========================================
-  // CANVAS PLANE & CURVE ANIMATION
-  // ==========================================
-  const canvas = document.getElementById("flightCanvas");
-  const ctx = canvas.getContext("2d");
-
-  function drawArena() {
+  function drawCanvas(progress = 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.save();
-    ctx.translate(40, canvas.height - 25);
-    const angleOffset = (Date.now() / 4000) % (Math.PI * 2);
-    for (let i = 0; i < 16; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      const a1 = angleOffset + (i * Math.PI) / 8;
-      const a2 = a1 + Math.PI / 16;
-      ctx.arc(0, 0, 480, a1, a2);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(229, 25, 55, 0.04)";
-      ctx.fill();
-    }
-    ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 35) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+    for (let j = 0; j < canvas.height; j += 35) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
 
-    if (gameState === "FLYING" && roomState) {
-      const elapsedSec = Math.max(0, (Date.now() - Number(roomState.flyStart)) / 1000);
-      const animProgress = Math.min(1, elapsedSec / 7.5);
-      const startX = 28;
-      const startY = canvas.height - 24;
-      const hoverY = Math.sin(Date.now() / 220) * 6;
-      const endX = startX + animProgress * (canvas.width - 95);
-      const endY = startY - Math.pow(animProgress, 0.85) * (canvas.height - 65) + hoverY;
+    if (gameState === "FLYING") {
+      const targetX = Math.min(345, 35 + progress * 310);
+      const targetY = Math.max(42, 185 - Math.pow(progress, 0.85) * 140 + Math.sin(Date.now() / 160) * 5);
+      planeX = targetX;
+      planeY = targetY;
 
       ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.quadraticCurveTo(startX + (endX - startX) * 0.55, startY, endX, endY);
-      ctx.lineTo(endX, startY);
+      ctx.moveTo(25, 195);
+      ctx.quadraticCurveTo(planeX * 0.55, 192, planeX, planeY);
+      ctx.lineTo(planeX, 195);
       ctx.closePath();
-      ctx.fillStyle = "rgba(229, 25, 55, 0.25)";
+      ctx.fillStyle = "rgba(255, 46, 76, 0.25)";
       ctx.fill();
 
       ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.quadraticCurveTo(startX + (endX - startX) * 0.55, startY, endX, endY);
-      ctx.strokeStyle = "#e51937";
+      ctx.moveTo(25, 195);
+      ctx.quadraticCurveTo(planeX * 0.55, 192, planeX, planeY);
+      ctx.strokeStyle = "#ff2e4c";
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      ctx.save();
-      ctx.translate(endX, endY);
-      ctx.rotate(-0.22);
-      ctx.font = "28px Arial";
-      ctx.fillText("🛩️", -14, 8);
-      ctx.restore();
+      drawPlaneIcon(planeX, planeY);
+    } else if (gameState === "WAITING") {
+      drawPlaneIcon(38, 182);
     }
-    requestAnimationFrame(drawArena);
   }
-  drawArena();
 
-  // ==========================================
-  // MASTER SYNCHRONIZED TICKER LOOP (60ms)
-  // ==========================================
-  async function tickSynchronizedRound() {
+  function drawPlaneIcon(x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.18);
+    ctx.fillStyle = "#ff2e4c";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-18, -2); ctx.lineTo(-24, -12); ctx.lineTo(-12, -2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(8, -2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffbe0b";
+    ctx.beginPath();
+    ctx.arc(-25, 0, 4 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function tickSynchronizedEngine() {
     if (!roomState) return;
     const now = Date.now();
+    const waitStart = Number(roomState.waitStart);
     const flyStart = Number(roomState.flyStart);
-    const cp = Number(roomState.crashPoint);
-    const flyDurMs = calcDurationForCrash(cp) * 1000;
+    const targetCrash = Number(roomState.crashAt);
+    const flyDurMs = calcDurationToCrash(targetCrash) * 1000;
     const crashTimeMs = flyStart + flyDurMs;
-    const nextRoundTimeMs = crashTimeMs + CRASH_HOLD_MS;
+    const nextRoundTimeMs = crashTimeMs + CRASH_PAUSE_MS;
 
     if (lastHandledRoundId !== roomState.roundId) {
       lastHandledRoundId = roomState.roundId;
-      buildLocalBotsImmediately(roomState.roundId);
-      mergeRealFeedFromFirebase();
+      roundCrashHandled = false;
+      roundTakeoffHandled = false;
 
-      if (now < flyStart) {
-        for (let s of [1, 2]) {
-          if (slots[s].status === "QUEUED") {
-            await activateBetFromWallet(s);
-          } else if (slots[s].autoBet && slots[s].status === "IDLE") {
-            const autoAmt = Math.max(10, parseInt(document.getElementById("betInp" + s).value) || 25);
-            slots[s].bet = autoAmt;
-            await activateBetFromWallet(s);
-          } else {
-            updateSlotBtnUI(s);
-          }
+      [0, 1].forEach(idx => {
+        if (panels[idx].state === "QUEUED") {
+          placePanelBetNow(idx, false);
+        } else if (panels[idx].autoBet && panels[idx].state === "IDLE") {
+          placePanelBetNow(idx, true);
         }
-      }
+      });
     }
 
     if (now < flyStart) {
       gameState = "WAITING";
       currentMult = 1.00;
-      const multEl = document.getElementById("multText");
-      multEl.className = "mult-text";
-      multEl.innerText = "1.00x";
+      document.getElementById("multDisplay").innerText = "1.00x";
+      document.getElementById("multDisplay").classList.remove("crashed");
       document.getElementById("statusText").innerText = "PLACE YOUR BETS";
       document.getElementById("waitBarWrap").style.display = "block";
-      const remPct = Math.max(0, Math.min(100, ((flyStart - now) / WAIT_MS) * 100));
-      document.getElementById("waitBarFill").style.width = remPct + "%";
-      if (lastPhase !== "WAITING") {
-        lastPhase = "WAITING";
-        updateSlotBtnUI(1);
-        updateSlotBtnUI(2);
-      }
+      const pct = Math.max(0, Math.min(100, ((flyStart - now) / WAIT_MS) * 100));
+      document.getElementById("waitBar").style.width = pct + "%";
+      drawCanvas(0);
     } else if (now >= flyStart && now < crashTimeMs) {
       gameState = "FLYING";
-      document.getElementById("waitBarWrap").style.display = "none";
-      document.getElementById("statusText").innerText = "";
-
-      if (lastPhase !== "FLYING") {
-        lastPhase = "FLYING";
+      if (!roundTakeoffHandled) {
+        roundTakeoffHandled = true;
         playAviatorSound("takeoff");
+        [0, 1].forEach(idx => {
+          if (panels[idx].state === "PLACED") {
+            panels[idx].state = "ACTIVE";
+            updatePanelBtn(idx);
+          }
+        });
       }
 
       const elapsedSec = (now - flyStart) / 1000;
-      currentMult = Math.min(cp, calcMultiplierAtElapsed(elapsedSec));
-      const multEl = document.getElementById("multText");
-      multEl.className = "mult-text";
-      multEl.innerText = currentMult.toFixed(2) + "x";
+      currentMult = Math.min(targetCrash, calcMultAtElapsed(elapsedSec));
+      document.getElementById("multDisplay").innerText = currentMult.toFixed(2) + "x";
+      document.getElementById("multDisplay").classList.remove("crashed");
+      document.getElementById("statusText").innerText = "";
+      document.getElementById("waitBarWrap").style.display = "none";
 
-      for (let s of [1, 2]) {
-        if (slots[s].status === "ACTIVE") {
-          const autoCoEnabled = document.getElementById("autoCoCheck" + s).checked;
-          const autoCoTarget = parseFloat(document.getElementById("autoCoVal" + s).value) || 2.0;
-          if (autoCoEnabled && currentMult >= autoCoTarget && currentMult < cp) {
-            executeCashOut(s);
-          } else {
-            updateSlotBtnUI(s);
+      [0, 1].forEach(idx => {
+        if (panels[idx].state === "ACTIVE") {
+          updatePanelBtn(idx);
+          const autoTarget = parseFloat(document.getElementById(`autoCashVal${idx}`).value) || 2.00;
+          if (panels[idx].autoCash && currentMult >= autoTarget) {
+            handleBetBtn(idx);
           }
-        }
-      }
-
-      let changed = false;
-      liveBets.forEach(b => {
-        if (!b.cashed && !b.isMe && currentMult >= b.targetMult) {
-          b.cashed = true;
-          b.mult = b.targetMult.toFixed(2) + "x";
-          b.win = Number((b.bet * b.targetMult).toFixed(2));
-          changed = true;
         }
       });
-      if (changed) renderFeed();
 
+      const progress = Math.min(1, elapsedSec / 7.5);
+      drawCanvas(progress);
     } else if (now >= crashTimeMs && now < nextRoundTimeMs) {
       gameState = "CRASHED";
-      currentMult = cp;
-      document.getElementById("waitBarWrap").style.display = "none";
-      const multEl = document.getElementById("multText");
-      multEl.className = "mult-text crashed";
-      multEl.innerText = cp.toFixed(2) + "x";
+      currentMult = targetCrash;
+      document.getElementById("multDisplay").innerText = targetCrash.toFixed(2) + "x";
+      document.getElementById("multDisplay").classList.add("crashed");
       document.getElementById("statusText").innerText = "FLEW AWAY!";
+      document.getElementById("waitBarWrap").style.display = "none";
+      drawCanvas(1);
 
-      if (lastPhase !== "CRASHED") {
-        lastPhase = "CRASHED";
+      if (!roundCrashHandled) {
+        roundCrashHandled = true;
         playAviatorSound("crash");
-
-        for (let s of [1, 2]) {
-          if (slots[s].status === "ACTIVE") {
-            myHistoryBets.unshift({
-              name: (userData.name || "You") + " (Slot " + s + ")",
-              bet: slots[s].bet,
-              mult: "",
-              win: 0,
-              cashed: false
-            });
-            slots[s].status = "IDLE";
-            slots[s].bet = 0;
-            updateSlotBtnUI(s);
+        [0, 1].forEach(idx => {
+          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED") {
+            myBetsHistory.unshift({ bet: panels[idx].amount, mult: "0.00x", win: 0 });
+            panels[idx].state = "IDLE";
+            updatePanelBtn(idx);
           }
-        }
-        renderFeed();
+        });
+        renderLiveFeed();
       }
     } else {
-      await createNewSharedRound(cp);
+      publishNewRound(targetCrash);
     }
   }
 
-  // Boot live feed immediately, then sync with Firebase
-  buildLocalBotsImmediately(roomState.roundId);
+  // ==========================================
+  // HYBRID LIVE FEED (BOTS + REAL MULTIPLAYER)
+  // ==========================================
+  const BOT_NAMES = ["d***4", "a***9", "r***2", "s***7", "v***1", "k***8", "m***3", "p***5", "n***6", "t***0", "g***4", "b***2"];
+  let liveBetsData = [];
+  let myBetsHistory = [];
+  let activeFeedTab = "all";
+
+  function seedBots() {
+    liveBetsData = [];
+    for (let i = 0; i < 18; i++) {
+      const bAmt = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
+      liveBetsData.push({
+        id: "bot_" + i,
+        name: BOT_NAMES[i % BOT_NAMES.length],
+        bet: bAmt,
+        mult: null,
+        win: 0,
+        isMe: false,
+        targetBotCash: Number((1.12 + Math.random() * 0.45).toFixed(2))
+      });
+    }
+    renderLiveFeed();
+  }
+  seedBots();
+
+  setInterval(async () => {
+    if (gameState === "WAITING" && Math.random() < 0.35) {
+      seedBots();
+      document.getElementById("onlinePlayers").innerText = 215 + Math.floor(Math.random() * 65);
+    }
+
+    if (gameState === "FLYING") {
+      liveBetsData.forEach(b => {
+        if (!b.isMe && !b.mult && currentMult >= b.targetBotCash) {
+          b.mult = currentMult.toFixed(2) + "x";
+          b.win = Number((b.bet * currentMult).toFixed(2));
+        }
+      });
+    }
+
+    try {
+      const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
+      const realFeed = await res.json();
+      if (realFeed && typeof realFeed === "object") {
+        const now = Date.now();
+        Object.keys(realFeed).forEach(k => {
+          const item = realFeed[k];
+          if (item && (now - item.ts) < 20000 && !k.startsWith(mobile)) {
+            const existing = liveBetsData.find(x => x.id === k);
+            if (existing) {
+              existing.mult = item.mult;
+              existing.win = item.win;
+            } else {
+              liveBetsData.unshift({ id: k, name: item.name, bet: item.bet, mult: item.mult, win: item.win, isMe: false });
+            }
+          }
+        });
+      }
+    } catch (e) {}
+
+    renderLiveFeed();
+  }, 1500);
+
+  function switchFeedTab(tab, el) {
+    activeFeedTab = tab;
+    document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active"));
+    el.classList.add("active");
+    renderLiveFeed();
+  }
+
+  function renderLiveFeed() {
+    const listEl = document.getElementById("liveBetsList");
+    let rows = [];
+    if (activeFeedTab === "all") rows = liveBetsData.slice(0, 22);
+    else if (activeFeedTab === "my") rows = myBetsHistory.slice(0, 15).map(m => ({ name: "You", bet: m.bet, mult: m.mult, win: m.win, isMe: true }));
+    else rows = [...liveBetsData].filter(b => b.win > 0).sort((a, b) => b.win - a.win).slice(0, 15);
+
+    const totalWin = liveBetsData.reduce((acc, b) => acc + (Number(b.win) || 0), 0);
+    document.getElementById("totalBetsCount").innerText = `${liveBetsData.length}/25 Bets`;
+    document.getElementById("totalWinSum").innerText = totalWin.toFixed(2);
+
+    listEl.innerHTML = rows.map(r => `
+      <div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}">
+        <div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div>
+        <div>₹${Number(r.bet).toFixed(2)}</div>
+        <div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div>
+        <div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div>
+      </div>
+    `).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
+  }
+
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 1500);
-  setInterval(mergeRealFeedFromFirebase, 2000);
-  setInterval(tickSynchronizedRound, 60);
+  setInterval(tickSynchronizedEngine, 60);
 </script>
 </body>
 </html>
