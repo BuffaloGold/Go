@@ -131,7 +131,7 @@
 
     <div class="form-group">
       <label id="refLabel" style="color:#ffd700;">Referral Code (Optional - Naye Users Ke Liye)</label>
-      <input type="text" id="userRef" placeholder="Jaise: BUF8205">
+      <input type="text" id="userRef" placeholder="Jaise: BUF8205 ya Mobile Number">
     </div>
 
     <button type="button" class="btn-green" id="completeSignupBtn">
@@ -166,7 +166,6 @@
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
 
-  // Agar user Logout hokar aaya hai (activeUser nahi hai), toh Firebase Auth session bhi signOut karein
   if (!localStorage.getItem("activeUser")) {
     await signOut(auth).catch(() => {});
   } else {
@@ -209,9 +208,15 @@
         const linkedMobile = emailSnap.val().mobile;
         const userSnap = await get(ref(db, "users/" + linkedMobile));
         if (userSnap.exists()) {
+          const u = userSnap.val();
+          // Agar purane user ke paas depositBalance naam se bonus pada hai to use depositBal me sync karein
+          if (u.depositBal === undefined && u.depositBalance !== undefined) {
+            u.depositBal = Number(u.depositBalance);
+            await update(ref(db, "users/" + linkedMobile), { depositBal: u.depositBal });
+          }
           localStorage.removeItem("pendingRefCode");
           localStorage.setItem("activeUser", linkedMobile);
-          localStorage.setItem("cachedUser", JSON.stringify(userSnap.val()));
+          localStorage.setItem("cachedUser", JSON.stringify(u));
           window.location.replace("game.html");
           return;
         }
@@ -230,7 +235,6 @@
     }
   }
 
-  // Redirect se wapas aane par hi check karein (bina button dabaye auto-login nahi hoga)
   getRedirectResult(auth).then((res) => {
     if (res && res.user) processGoogleUser(res.user);
   }).catch(() => {});
@@ -287,9 +291,11 @@
       if (mobSnap.exists()) {
         const existingUser = mobSnap.val();
         if (!existingUser.email || existingUser.email === verifiedGoogleUser.email) {
+          const syncedDepBal = Number(existingUser.depositBal ?? existingUser.depositBalance ?? 0);
           const updatedData = {
             email: verifiedGoogleUser.email,
-            uid: verifiedGoogleUser.uid
+            uid: verifiedGoogleUser.uid,
+            depositBal: syncedDepBal
           };
           await update(ref(db, "users/" + mobile), updatedData);
           await set(ref(db, "verifiedEmails/" + emailKey), {
@@ -314,20 +320,31 @@
 
       let welcomeBonus = 100;
       let referredByMobile = "";
+      const nowStr = new Date().toLocaleString();
 
-      if (refInput) {
+      if (refInput && refInput !== mobile && refInput !== ("BUF" + mobile.slice(-4))) {
         const allSnap = await get(ref(db, "users"));
         if (allSnap.exists()) {
           const allUsers = allSnap.val();
           for (const key in allUsers) {
-            if ((allUsers[key].refCode || "").toUpperCase() === refInput) {
+            const u = allUsers[key] || {};
+            if ((u.refCode || "").toUpperCase() === refInput || key === refInput) {
               referredByMobile = key;
               welcomeBonus = 150;
-              const curBal = Number(allUsers[key].depositBalance || allUsers[key].balance || 0);
-              const curRef = Number(allUsers[key].totalRefers || 0);
+              const curBal = Number(u.depositBal ?? u.depositBalance ?? 0);
+              const curRef = Number(u.referCount ?? u.totalRefers ?? 0);
+              const curEarn = Number(u.referEarn ?? 0);
+              const rTxns = Array.isArray(u.txns) ? [...u.txns] : [];
+              rTxns.unshift({
+                type: "Referral Bonus (" + (verifiedGoogleUser.displayName || mobile) + ")",
+                amt: "+₹50",
+                date: nowStr
+              });
               await update(ref(db, "users/" + key), {
-                depositBalance: curBal + 50,
-                totalRefers: curRef + 1
+                depositBal: curBal + 50,
+                referCount: curRef + 1,
+                referEarn: curEarn + 50,
+                txns: rTxns.slice(0, 30)
               });
               break;
             }
@@ -336,16 +353,26 @@
       }
 
       const newRefCode = "BUF" + mobile.slice(-4);
+      const initTxns = [{
+        type: referredByMobile ? "Welcome + Referral Signup Bonus" : "Welcome Signup Bonus",
+        amt: "+₹" + welcomeBonus,
+        date: nowStr
+      }];
+
       const userObj = {
         name: verifiedGoogleUser.displayName || "Player",
         email: verifiedGoogleUser.email,
         uid: verifiedGoogleUser.uid,
         mobile: mobile,
-        depositBalance: welcomeBonus,
-        winningBalance: 0,
+        depositBal: welcomeBonus,
+        winningBal: 0,
+        totalDeposited: 0,
+        hasDeposited: false,
         refCode: newRefCode,
         referredBy: referredByMobile,
-        totalRefers: 0,
+        referCount: 0,
+        referEarn: 0,
+        txns: initTxns,
         createdAt: Date.now()
       };
 
