@@ -83,22 +83,15 @@
     <div class="tab" onclick="showTab('settingsTab', this)">⚙️ Rate</div>
   </div>
 
-  <!-- WITHDRAWALS TAB -->
   <div id="wdTab"><div id="wdList">Loading requests...</div></div>
-
-  <!-- DEPOSITS TAB -->
   <div id="depTab" class="hidden"><div id="depList">Loading deposits...</div></div>
-
-  <!-- SUPPORT TICKETS TAB -->
   <div id="tktTab" class="hidden"><div id="tktList">Loading support tickets...</div></div>
 
-  <!-- USERS TAB -->
   <div id="usersTab" class="hidden">
     <input type="text" id="searchUser" placeholder="🔍 Mobile ya Naam se search karein..." onkeyup="renderUsers()">
     <div id="usersList"></div>
   </div>
 
-  <!-- WIN RATE SETTINGS -->
   <div id="settingsTab" class="hidden">
     <div class="card">
       <h4 style="color:#ffd700; margin-bottom:6px;">🎰 Slot Game Win Probability</h4>
@@ -129,7 +122,7 @@
 
   function copyText(val, label) {
     navigator.clipboard.writeText(val);
-    alert("✅ " + label + " (" + val + ") copy ho gaya! Ab Paytm/PhonePe mein paste karke pay karein.");
+    alert("✅ " + label + " (" + val + ") copy ho gaya!");
   }
 
   function toggleWdQr(reqId, upiId, name, amount) {
@@ -140,15 +133,13 @@
       box.style.display = "none";
       return;
     }
-    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent(name || "Player")}&am=${amount}&cu=INR`;
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    const upiUri = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUri);
     box.style.display = "block";
   }
 
   function payViaUpiApp(upiId, name, amount) {
-    const cleanUpi = encodeURIComponent(upiId.trim());
-    const cleanName = encodeURIComponent(name || "Player");
-    const upiUrl = `upi://pay?pa=${cleanUpi}&pn=${cleanName}&am=${amount}&cu=INR`;
+    const upiUrl = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
     window.location.href = upiUrl;
   }
 </script>
@@ -167,7 +158,7 @@
     let sum = 0;
     if (Array.isArray(u.txns)) {
       u.txns.forEach(t => {
-        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && t.type.toLowerCase().includes("deposit")) {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && String(t.type).toLowerCase().includes("deposit")) {
           const v = parseInt(String(t.amt).replace("+₹", ""));
           if (!isNaN(v)) sum += v;
         }
@@ -177,272 +168,136 @@
   }
 
   function updateUsersUI(data) {
-    allUsers = data || {};
-    const count = Object.keys(allUsers).length;
-    document.getElementById("stUsers").innerText = count;
-    document.getElementById("connStatus").innerText = "✅ Live Connected! Total " + count + " users.";
-    window.renderUsers();
+    try {
+      allUsers = data || {};
+      const count = Object.keys(allUsers).length;
+      document.getElementById("stUsers").innerText = count;
+      document.getElementById("connStatus").innerText = "✅ Live Connected! Total " + count + " users.";
+      window.renderUsers();
+    } catch (e) {
+      document.getElementById("connStatus").innerText = "⚠️ UI Error: " + e.message;
+    }
   }
 
   function updateWithdrawalsUI(data) {
-    allWithdrawals = data || {};
-    let pendingCount = 0;
-    const list = document.getElementById("wdList");
-    const keys = Object.keys(allWithdrawals).reverse();
+    try {
+      allWithdrawals = data || {};
+      let pendingCount = 0;
+      const list = document.getElementById("wdList");
+      const keys = Object.keys(allWithdrawals).reverse();
 
-    if (keys.length === 0) {
-      list.innerHTML = "<div class='card'>Abhi koi withdrawal request nahi hai.</div>";
-      document.getElementById("stWd").innerText = 0;
-      return;
+      if (keys.length === 0) {
+        list.innerHTML = "<div class='card'>Abhi koi withdrawal request nahi hai.</div>";
+        document.getElementById("stWd").innerText = 0;
+        return;
+      }
+
+      list.innerHTML = keys.map(k => {
+        const w = allWithdrawals[k];
+        if (!w) return "";
+        if (w.status === "PENDING") pendingCount++;
+        const userRec = allUsers[w.mobile] || {};
+        const totalDep = getUserTotalDep(userRec);
+        const hasDepBadge = (totalDep >= 300 || userRec.hasDeposited)
+          ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep}</span>`
+          : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300)</span>`;
+
+        const safeName = String(w.name || "User").replace(/['"\\]/g, "");
+        const safeUpi = String(w.upi || "").replace(/['"\\]/g, "");
+
+        return `
+          <div class="card">
+            <div class="row-between">
+              <strong>👤 ${w.name \vert{}\vert{} 'User'} (${w.mobile || '-'})</strong>
+              <span class="badge ${w.status \vert{}\vert{} 'PENDING'}">${w.status || 'PENDING'}</span>
+            </div>
+            <div style="margin-top:4px;">${hasDepBadge}</div>
+            <div class="upi-row">
+              <div style="flex:1;">
+                <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:16px;">₹${w.amount || 0}</strong></div>
+                <div style="font-size:13px; color:#28e04d; font-weight:bold; word-break:break-all;">UPI: ${w.upi || '-'}</div>
+                <div style="font-size:12px; color:#ccc; margin-top:2px;">Mob: ${w.mobile || '-'}</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <button type="button" class="btn btn-copy" onclick="copyText('${safeUpi}', 'UPI ID')">📋 Copy UPI</button>
+                <button type="button" class="btn btn-copy" onclick="copyText('${w.mobile || ''}', 'Mobile')">📱 Copy Mob</button>
+              </div>
+            </div>
+            <div style="font-size:11px; color:#aaa; margin-bottom:8px;">ID: ${w.reqId \vert{}\vert{} k} \vert{}${w.date || ''}</div>
+
+            ${w.status === "PENDING" ? `
+              <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount || 0}')">📷 SHOW / SCAN QR CODE</button>
+              <div class="qr-popup" id="qrBox_${k}">
+                <div style="font-size:11px; color:#ffd700;">Paytm/PhonePe se Scan karein:</div>
+                <img id="qrImg_${k}" src="" alt="QR">
+                <div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div>
+              </div>
+              <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
+                <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+      document.getElementById("stWd").innerText = pendingCount;
+    } catch (e) {
+      document.getElementById("wdList").innerHTML = "<div class='card'>Error loading withdrawals: " + e.message + "</div>";
     }
-
-    list.innerHTML = keys.map(k => {
-      const w = allWithdrawals[k];
-      if (w.status === "PENDING") pendingCount++;
-      const userRec = allUsers[w.mobile] || {};
-      const totalDep = getUserTotalDep(userRec);
-      const hasDepBadge = totalDep >= 300
-        ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep} (Unlocked)</span>`
-        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300)</span>`;
-
-      const safeName = (w.name || "User").replace(/'/g, "");
-      const safeUpi = (w.upi || "").replace(/'/g, "");
-
-      return `
-        <div class="card">
-          <div class="row-between">
-            <strong>👤 ${w.name || 'User'} (${w.mobile})</strong>
-            <span class="badge ${w.status}">${w.status}</span>
-          </div>
-          <div style="margin-top:4px;">${hasDepBadge}</div>
-          <div class="upi-row">
-            <div style="flex:1;">
-              <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:16px;">₹${w.amount}</strong></div>
-              <div style="font-size:13px; color:#28e04d; font-weight:bold; word-break:break-all;">UPI: ${w.upi}</div>
-              <div style="font-size:12px; color:#ccc; margin-top:2px;">Mob: ${w.mobile}</div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-              <button type="button" class="btn btn-copy" onclick="copyText('${safeUpi}', 'UPI ID')">📋 Copy UPI</button>
-              <button type="button" class="btn btn-copy" onclick="copyText('${w.mobile}', 'Mobile Number')">📱 Copy Mob</button>
-            </div>
-          </div>
-          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">Req ID: ${w.reqId || k} | ${w.date}</div>
-
-          ${w.status === "PENDING" ? `
-            <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount}')">📷 SHOW / SCAN QR CODE (No UPI Risk Alert)</button>
-            <div class="qr-popup" id="qrBox_${k}">
-              <div style="font-size:11px; color:#ffd700;">Paytm/PhonePe se Scan karein ya Screenshot lekar Scan from Gallery karein:</div>
-              <img id="qrImg_${k}" src="" alt="Withdrawal QR">
-              <div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount} → ${w.upi}</div>
-            </div>
-            <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount}')">⚡ DIRECT UPI APP LINK (₹${w.amount})</button>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
-              <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
-            </div>
-          ` : ""}
-        </div>
-      `;
-    }).join("");
-    document.getElementById("stWd").innerText = pendingCount;
   }
 
   function updateDepositsUI(data) {
-    allDeposits = data || {};
-    const list = document.getElementById("depList");
-    const keys = Object.keys(allDeposits).reverse();
-    document.getElementById("stDep").innerText = keys.length;
+    try {
+      allDeposits = data || {};
+      const list = document.getElementById("depList");
+      const keys = Object.keys(allDeposits).reverse();
+      document.getElementById("stDep").innerText = keys.length;
 
-    if (keys.length === 0) {
-      list.innerHTML = "<div class='card'>Abhi koi deposit record nahi hai.</div>";
-      return;
-    }
+      if (keys.length === 0) {
+        list.innerHTML = "<div class='card'>Abhi koi deposit record nahi hai.</div>";
+        return;
+      }
 
-    list.innerHTML = keys.map(k => {
-      const d = allDeposits[k];
-      return `
-        <div class="card">
-          <div class="row-between">
-            <strong>${d.name || 'User'} (${d.mobile})</strong>
-            <span class="badge ${d.status}">${d.status}</span>
+      list.innerHTML = keys.map(k => {
+        const d = allDeposits[k];
+        if (!d) return "";
+        return `
+          <div class="card">
+            <div class="row-between">
+              <strong>${d.name \vert{}\vert{} 'User'} (${d.mobile || '-'})</strong>
+              <span class="badge ${d.status \vert{}\vert{} 'APPROVED'}">${d.status || 'APPROVED'}</span>
+            </div>
+            <div style="margin:6px 0; font-size:13px;">
+              Amount: <strong style="color:#28e04d;">₹${d.amount \vert{}\vert{} 0}</strong>${d.paidExact ? `<span style="color:#ccc;">(Paid: ₹${d.paidExact})</span>` : ""} | 
+              UTR: <strong style="color:#ffd700;">${d.utr || '-'}</strong>
+            </div>
+            <div style="font-size:11px; color:#aaa;">Order: ${d.depId \vert{}\vert{} k} \vert{}${d.date || ''}</div>
           </div>
-          <div style="margin:6px 0; font-size:13px;">
-            Amount: <strong style="color:#28e04d;">₹${d.amount}</strong>
-            ${d.paidExact ? `<span style="color:#ccc;">(Paid: ₹${d.paidExact})</span>` : ""} | 
-            Ref/UTR: <strong style="color:#ffd700;">${d.utr || '-'}</strong>
-          </div>
-          <div style="font-size:11px; color:#aaa;">Order: ${d.depId || k} | ${d.date}</div>
-        </div>
-      `;
-    }).join("");
+        `;
+      }).join("");
+    } catch (e) {}
   }
 
   function updateTicketsUI(data) {
-    allTickets = data || {};
-    let openCount = 0;
-    const list = document.getElementById("tktList");
-    const keys = Object.keys(allTickets).reverse();
-
-    if (keys.length === 0) {
-      list.innerHTML = "<div class='card'>Abhi koi support ticket nahi hai.</div>";
-      document.getElementById("stTkt").innerText = 0;
-      return;
-    }
-
-    list.innerHTML = keys.map(k => {
-      const t = allTickets[k];
-      if (t.status === "OPEN") openCount++;
-      return `
-        <div class="card">
-          <div class="row-between">
-            <strong>👤 ${t.name} (${t.mobile})</strong>
-            <span class="badge ${t.status}">${t.status}</span>
-          </div>
-          <div class="reason-box">
-            <strong>Main Reason:</strong> ${t.mainReason}
-          </div>
-          <div style="font-size:11px; color:#aaa; margin-bottom:6px;">${t.date}</div>
-          ${t.adminReply ? `<div style="font-size:12px; color:#28e04d; margin-bottom:6px;">✅ Reply: ${t.adminReply}</div>` : ""}
-          <div style="display:flex; gap:6px;">
-            <input type="text" id="repInput_${k}" placeholder="User ko reply likhein..." style="margin:0; padding:8px; font-size:12px;">
-            <button type="button" class="btn btn-green" onclick="replyTicket('${k}')">Send</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-    document.getElementById("stTkt").innerText = openCount;
-  }
-
-  onValue(ref(db, "users"), (snap) => {
-    updateUsersUI(snap.val());
-    updateWithdrawalsUI(allWithdrawals);
-  }, (err) => {
-    document.getElementById("connStatus").innerText = "❌ Error: " + err.message;
-  });
-  onValue(ref(db, "withdrawals"), (snap) => updateWithdrawalsUI(snap.val()));
-  onValue(ref(db, "deposits"), (snap) => updateDepositsUI(snap.val()));
-  onValue(ref(db, "supportTickets"), (snap) => updateTicketsUI(snap.val()));
-
-  window.forceLoadAll = async () => {
-    document.getElementById("connStatus").innerText = "🔄 Syncing...";
-    const [uSnap, wSnap, dSnap, tSnap] = await Promise.all([
-      get(ref(db, "users")),
-      get(ref(db, "withdrawals")),
-      get(ref(db, "deposits")),
-      get(ref(db, "supportTickets"))
-    ]);
-    updateUsersUI(uSnap.val());
-    updateWithdrawalsUI(wSnap.val());
-    updateDepositsUI(dSnap.val());
-    updateTicketsUI(tSnap.val());
-  };
-
-  window.replyTicket = async (tktId) => {
-    const inp = document.getElementById("repInput_" + tktId);
-    const msg = (inp.value || "").trim();
-    if (!msg) return alert("Reply message likhein!");
-    await update(ref(db, "supportTickets/" + tktId), {
-      adminReply: msg,
-      status: "RESOLVED"
-    });
-    inp.value = "";
-    alert("✅ User ko reply bhej diya gaya!");
-  };
-
-  window.processWd = async (reqId, newStatus) => {
     try {
-      const w = allWithdrawals[reqId];
-      if (!w || w.status !== "PENDING") return;
+      allTickets = data || {};
+      let openCount = 0;
+      const list = document.getElementById("tktList");
+      const keys = Object.keys(allTickets).reverse();
 
-      await update(ref(db, "withdrawals/" + reqId), { status: newStatus });
-
-      if (allUsers[w.mobile]) {
-        const u = allUsers[w.mobile];
-        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
-
-        // User ki transaction history mein status update karein
-        txns = txns.map(t => {
-          if (t && t.orderId === (w.reqId || reqId)) {
-            return { ...t, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED" };
-          }
-          return t;
-        });
-
-        if (newStatus === "REJECTED") {
-          txns.unshift({
-            type: "Withdraw Refunded",
-            orderId: w.reqId || reqId,
-            refId: "REFUND",
-            amt: "+₹" + w.amount,
-            date: new Date().toLocaleString()
-          });
-          await update(ref(db, "users/" + w.mobile), {
-            winningBal: Number(u.winningBal || 0) + Number(w.amount),
-            txns: txns.slice(0, 30)
-          });
-        } else {
-          await update(ref(db, "users/" + w.mobile), {
-            txns: txns.slice(0, 30)
-          });
-        }
+      if (keys.length === 0) {
+        list.innerHTML = "<div class='card'>Abhi koi support ticket nahi hai.</div>";
+        document.getElementById("stTkt").innerText = 0;
+        return;
       }
-      alert("✅ Withdrawal " + newStatus + " ho gaya!");
-    } catch (err) {
-      alert("❌ Error: " + err.message);
-    }
-  };
 
-  get(ref(db, "settings/winRate")).then(snap => {
-    if (snap.exists()) document.getElementById("winRateSelect").value = snap.val();
-  });
+      list.innerHTML = keys.map(k => {
+        const t = allTickets[k];
+        if (!t) return "";
+        if (t.status === "OPEN") openCount++;
+        return `
+          <div class="card">
+            <div class="row-between">
 
-  window.saveSettings = async () => {
-    const rate = Number(document.getElementById("winRateSelect").value);
-    await set(ref(db, "settings/winRate"), rate);
-    alert("✅ Game Win-Rate " + rate + "% par set ho gaya!");
-  };
-
-  window.renderUsers = () => {
-    const q = (document.getElementById("searchUser").value || "").toLowerCase();
-    const list = document.getElementById("usersList");
-    const keys = Object.keys(allUsers);
-    if (keys.length === 0) {
-      list.innerHTML = "<div class='card'>Abhi koi user registered nahi hai.</div>";
-      return;
-    }
-    list.innerHTML = keys.filter(k => {
-      const u = allUsers[k] || {};
-      return (u.name || "unidentified").toLowerCase().includes(q) || String(k).includes(q);
-    }).map(k => {
-      const u = allUsers[k] || {};
-      const isMaster = String(k) === "9794408205";
-      const displayName = u.name ? `👤 ${u.name}` : `⚠️ Unidentified / Ghost User`;
-      const totalDep = getUserTotalDep(u);
-      return `
-        <div class="card">
-          <div class="row-between">
-            <strong>${displayName}</strong>
-            <span style="font-size:12px; color:#ccc;">📱 ${k}</span>
-          </div>
-          <div style="font-size:13px; margin:6px 0;">
-            Deposit: <strong style="color:#ffd700;">₹${u.depositBal || 0}</strong> | 
-            Winning: <strong style="color:#28e04d;">₹${u.winningBal || 0}</strong> |
-            Total Dep: <strong style="color:#ffae00;">₹${totalDep}</strong>
-          </div>
-          <div style="display:flex; gap:6px; margin-top:8px;">
-            <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}', 100)">+₹100</button>
-            <button type="button" class="btn btn-blue" style="flex:1;" onclick="editUserBal('${k}', -100)">-₹100</button>
-            ${isMaster ? "" : `<button type="button" class="btn btn-del" style="flex:1;" onclick="deleteUserAccount('${k}')">🗑️ Delete</button>`}
-          </div>
-        </div>
-      `;
-    }).join("");
-  };
-
-  window.editUserBal = async (mob, delta) => {
-    const u = allUsers[mob];
-    if (!u || !u.name) return alert("Valid user nahi hai!");
-    const newBal = Math.max(0, Number(u.depositBal || 0) + delta);
-    const txns = Array.isArray(u.txns) ? [...u.txns] : [];
-    txns.unshift({
- 
+              
