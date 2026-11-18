@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Roulette - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 80px; }
+  .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 15px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #260636; padding: 10px 14px; border-radius: 12px; border: 1px solid #75229e; }
+  .box { background: #260636; padding: 16px; border-radius: 14px; border: 1px solid #5c197d; margin-bottom: 15px; text-align: center; }
+  .cars-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+  .car-btn { padding: 14px; background: #3d0c57; border: 2px solid #75229e; color: #fff; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
+  .car-btn.selected { border-color: #ffd700; background: #5c197d; }
+  input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 15px; }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
+  .btn-add { background: linear-gradient(180deg, #28e04d, #118a28); color: #fff; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
+  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  .nav-item.active { color: #ffd700; font-weight: bold; }
+  .nav-icon { font-size: 20px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="top-bar">
+    <h3 style="color:#ffd700;">🚗 Car Roulette</h3>
+    <div>Winning Bal: <strong style="color:#28e04d;" id="winBal">₹0</strong></div>
+  </div>
+
+  <div class="box">
+    <div id="rouletteDisplay" style="font-size:48px; margin:10px 0;">🏎️</div>
+    <div id="resultText" style="font-size:16px; color:#ffd700; font-weight:bold; margin:10px 0;">Koi ek car chunein aur bet lagayein (4x Win)</div>
+    
+    <div class="cars-grid">
+      <button type="button" class="car-btn" onclick="selectCar('Ferrari', this)">🏎️ Ferrari (4x)</button>
+      <button type="button" class="car-btn" onclick="selectCar('BMW', this)">🚙 BMW (4x)</button>
+      <button type="button" class="car-btn" onclick="selectCar('Audi', this)">🚗 Audi (4x)</button>
+      <button type="button" class="car-btn" onclick="selectCar('Mercedes', this)">🚓 Mercedes (4x)</button>
+    </div>
+
+    <input type="number" id="betInput" placeholder="Enter Bet Amount (Min ₹10)">
+    <button type="button" class="btn btn-add" onclick="spinWheel()">SPIN & WIN</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+</div>
+
+<script type="module">
+  import { db, ref, get, update } from "./firebase-config.js";
+
+  const mobile = localStorage.getItem("activeUser");
+  if (!mobile) window.location.replace("index.html");
+
+  const userRef = ref(db, "users/" + mobile);
+  let userData = null;
+  let selectedCarName = "";
+
+  async function fetchUser() {
+    const snap = await get(userRef);
+    if (snap.exists()) {
+      userData = snap.val();
+      document.getElementById("winBal").innerText = "₹" + (userData.winningBal || 0);
+    }
+  }
+  fetchUser();
+
+  window.selectCar = function(car, btn) {
+    selectedCarName = car;
+    document.querySelectorAll(".car-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  };
+
+  window.spinWheel = async function() {
+    if (!selectedCarName) return alert("Pehle koi ek Car chunein!");
+    const bet = parseInt(document.getElementById("betInput").value);
+    if (!bet || bet < 10) return alert("Minimum bet ₹10 hai!");
+
+    await fetchUser();
+    const totalAvail = Number(userData.depositBal || 0) + Number(userData.winningBal || 0);
+    if (bet > totalAvail) return alert("Aapke wallet mein itna balance nahi hai!");
+
+    let dBal = Number(userData.depositBal || 0);
+    let wBal = Number(userData.winningBal || 0);
+    if (dBal >= bet) { dBal -= bet; } 
+    else { let rem = bet - dBal; dBal = 0; wBal -= rem; }
+
+    let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: "Car Roulette Bet (" + selectedCarName + ")", amt: "-₹" + bet, date: new Date().toLocaleString() });
+
+    await update(userRef, { depositBal: dBal, winningBal: wBal, txns: txns.slice(0, 30) });
+    userData.depositBal = dBal;
+    userData.winningBal = wBal;
+    document.getElementById("winBal").innerText = "₹" + wBal;
+
+    document.getElementById("resultText").innerText = "🎲 Wheel ghum raha hai...";
+
+    setTimeout(async () => {
+      const cars = ["Ferrari", "BMW", "Audi", "Mercedes"];
+      const winningCar = cars[Math.floor(Math.random() * cars.length)];
+
+      if (winningCar === selectedCarName) {
+        const winAmt = bet * 4;
+        const newWinBal = Number(userData.winningBal || 0) + winAmt;
+        
+        let txnsUpdate = Array.isArray(userData.txns) ? [...userData.txns] : [];
+        txnsUpdate.unshift({ type: "Car Roulette Win (" + winningCar + ")", amt: "+₹" + winAmt, date: new Date().toLocaleString() });
+
+        await update(userRef, { winningBal: newWinBal, txns: txnsUpdate.slice(0, 30) });
+        userData.winningBal = newWinBal;
+        document.getElementById("winBal").innerText = "₹" + newWinBal;
+
+        document.getElementById("resultText").innerText = `🎉 Winner! ${winningCar} aayi. Aapne jeete: ₹${winAmt}`;
+      } else {
+        document.getElementById("resultText").innerText = `❌ ${winningCar} aayi! Aap haar gaye.`;
+      }
+    }, 1500);
+  };
+</script>
+</body>
+</html>
