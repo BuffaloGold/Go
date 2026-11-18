@@ -23,24 +23,30 @@
   .btn-wd { background: linear-gradient(180deg, #ff9900, #cc5200); color: #fff; }
   .btn-wd:disabled { background: #4a3b52; color: #999; cursor: not-allowed; }
   .btn-copy { background: #3d0c57; color: #ffd700; border: 1px dashed #ffd700; padding: 8px; font-size: 13px; margin-bottom: 8px; }
-  .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin: 8px 0; }
+  .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 8px; }
   .qr-section { background: #14021f; border: 2px solid #28e04d; border-radius: 12px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
   .qr-img { width: 190px; height: 190px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
   .status-pill { background: #2b1d02; border: 1px solid #ffae00; color: #ffae00; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-top: 10px; }
-  .txn-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
+  .txn-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
+  .txn-sub { font-size: 11px; color: #ffd700; margin-top: 2px; }
+  .txn-date { font-size: 10px; color: #aaa; margin-top: 2px; }
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; }
   .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 20px; display: block; }
 
-  /* Success Dialog Modal CSS */
-  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
-  .modal-box { background: #1f042e; border: 2px solid #28e04d; border-radius: 18px; padding: 24px 20px; text-align: center; width: 100%; max-width: 340px; box-shadow: 0 0 25px rgba(40, 224, 77, 0.4); animation: popIn 0.25s ease-out; }
+  /* Success Receipt Modal CSS */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .modal-box { background: #1f042e; border: 2px solid #28e04d; border-radius: 18px; padding: 22px 18px; text-align: center; width: 100%; max-width: 350px; box-shadow: 0 0 25px rgba(40, 224, 77, 0.4); animation: popIn 0.25s ease-out; }
   @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal-icon { font-size: 52px; margin-bottom: 8px; display: block; }
-  .modal-title { color: #28e04d; font-size: 20px; font-weight: bold; margin-bottom: 6px; }
-  .modal-amt { color: #ffd700; font-size: 30px; font-weight: bold; margin: 8px 0; }
-  .modal-desc { color: #ccc; font-size: 13px; margin-bottom: 18px; line-height: 1.4; }
+  .modal-icon { font-size: 48px; margin-bottom: 4px; display: block; }
+  .modal-title { color: #28e04d; font-size: 19px; font-weight: bold; }
+  .modal-amt { color: #ffd700; font-size: 32px; font-weight: bold; margin: 6px 0 12px; }
+  .receipt-box { background: #14021f; border: 1px dashed #5c197d; border-radius: 10px; padding: 10px 12px; text-align: left; font-size: 12px; margin-bottom: 15px; }
+  .r-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #260636; }
+  .r-row:last-child { border-bottom: none; }
+  .r-lbl { color: #aaa; }
+  .r-val { color: #fff; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -92,14 +98,21 @@
   </div>
 </div>
 
-<!-- Success Dialog Popup -->
+<!-- Success Receipt Dialog Popup -->
 <div class="modal-overlay" id="successModal">
   <div class="modal-box">
     <span class="modal-icon">✅</span>
     <div class="modal-title">Payment Successful!</div>
     <div class="modal-amt">+₹<span id="modalAddedAmt">0</span></div>
-    <div class="modal-desc">Aapका deposit verify ho gaya hai aur amount aapke wallet mein turant add kar diya gaya hai.</div>
-    <button type="button" class="btn btn-add" onclick="document.getElementById('successModal').style.display='none'">OK, GREAT!</button>
+    
+    <div class="receipt-box">
+      <div class="r-row"><span class="r-lbl">Order ID:</span><span class="r-val" id="mOrderId">-</span></div>
+      <div class="r-row"><span class="r-lbl">UTR / Ref No:</span><span class="r-val" id="mUtrId" style="color:#ffd700;">-</span></div>
+      <div class="r-row"><span class="r-lbl">UPI Paid:</span><span class="r-val" id="mExactPaid">-</span></div>
+      <div class="r-row"><span class="r-lbl">Date & Time:</span><span class="r-val" id="mDateTime">-</span></div>
+    </div>
+
+    <button type="button" class="btn btn-add" onclick="document.getElementById('successModal').style.display='none'">DONE</button>
   </div>
 </div>
 
@@ -157,8 +170,12 @@
     const txns = Array.isArray(userData.txns) ? userData.txns : [];
     document.getElementById("txnList").innerHTML = txns.map(t => `
       <div class="txn-item">
-        <div><strong>${t.type}</strong><br><span style="font-size:11px;color:#aaa;">${t.date}</span></div>
-        <div style="font-weight:bold; color:${t.amt.startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
+        <div>
+          <strong>${t.type}</strong>
+          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} | Order: ${t.orderId || '-'}</div>` : ''}
+          <div class="txn-date">${t.date}</div>
+        </div>
+        <div style="font-weight:bold; font-size:15px; color:${t.amt.startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
       </div>
     `).join("") || "No transactions yet.";
   }, (error) => {
@@ -204,22 +221,29 @@
           try {
             await update(orderRef, { credited: true });
 
-            const depId = "DEP_" + Date.now();
+            const nowStr = new Date().toLocaleString();
+            const depId = "DEP" + Date.now().toString().slice(-8);
+            const refUtr = order.utr || ("UPI" + Date.now().toString().slice(-10));
+
             await set(ref(db, "deposits/" + depId), {
               depId,
               mobile,
               name: userData ? userData.name : "User",
               amount: baseAmt,
               paidExact: exactAmt,
+              utr: refUtr,
+              notifInfo: order.notifInfo || "",
               status: "AUTO_APPROVED",
-              date: new Date().toLocaleString()
+              date: nowStr
             });
 
             let txns = userData && Array.isArray(userData.txns) ? [...userData.txns] : [];
             txns.unshift({
-              type: "UPI Instant Auto-Deposit (₹" + exactAmt + ")",
+              type: `UPI Auto-Deposit (Paid ₹${exactAmt})`,
+              orderId: depId,
+              refId: refUtr,
               amt: "+₹" + baseAmt,
-              date: new Date().toLocaleString()
+              date: nowStr
             });
 
             await update(userRef, {
@@ -228,14 +252,18 @@
               txns: txns.slice(0, 30)
             });
 
-            // 1. QR Box aur Input ko turant hide/clear karein
+            // 1. QR Box hide karein
             document.getElementById("qrBox").style.display = "none";
             document.getElementById("qrImage").src = "";
             document.getElementById("depInput").value = "";
             currentAmtKey = null;
 
-            // 2. Center Dialog Modal dikhayein
+            // 2. Receipt Modal mein saari details bhar kar dikhayein
             document.getElementById("modalAddedAmt").innerText = baseAmt;
+            document.getElementById("mOrderId").innerText = depId;
+            document.getElementById("mUtrId").innerText = refUtr;
+            document.getElementById("mExactPaid").innerText = "₹" + exactAmt;
+            document.getElementById("mDateTime").innerText = nowStr;
             document.getElementById("successModal").style.display = "flex";
           } finally {
             isCrediting = false;
@@ -265,21 +293,29 @@
     if (!upi.includes("@")) return alert("Sahi UPI ID dalein!");
     if (amt > Number(userData.winningBal || 0)) return alert("Aapke Winning Wallet mein itna balance nahi hai!");
 
+    const wdId = "WD" + Date.now().toString().slice(-8);
+    const nowStr = new Date().toLocaleString();
+
     let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({ type: "Withdraw (" + upi + ")", amt: "-₹" + amt, date: new Date().toLocaleString() });
+    txns.unshift({
+      type: "Withdraw (" + upi + ")",
+      orderId: wdId,
+      refId: "PENDING",
+      amt: "-₹" + amt,
+      date: nowStr
+    });
 
     await update(userRef, {
       winningBal: Number(userData.winningBal || 0) - amt,
       txns: txns.slice(0, 30)
     });
 
-    const reqId = "WD_" + Date.now();
-    await set(ref(db, "withdrawals/" + reqId), {
-      reqId, mobile, name: userData.name, amount: amt, upi, status: "PENDING", date: new Date().toLocaleString()
+    await set(ref(db, "withdrawals/" + wdId), {
+      reqId: wdId, mobile, name: userData.name, amount: amt, upi, status: "PENDING", date: nowStr
     });
 
     document.getElementById("wdInput").value = "";
-    alert("⏳ ₹" + amt + " ka withdrawal request bhej diya gaya!");
+    alert("⏳ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") bhej diya gaya!");
   });
 </script>
 </body>
