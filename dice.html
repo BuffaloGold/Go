@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Lucky Dice - Buffalo Gold</title>
+<title>3D Lucky Dice Live - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
   body { background: #080a10; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
@@ -11,7 +11,8 @@
 
   /* Header */
   .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #191f30; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2b354f; }
-  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #ffd700; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 15px; color: #ffd700; }
+  .sync-pill { font-size: 9px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 6px; border-radius: 8px; font-weight: bold; }
   .hdr-right { display: flex; align-items: center; gap: 8px; }
   .snd-btn { background: #232b42; border: 1px solid #3a476b; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .bal-pill { background: #232b42; border: 1px solid #3a476b; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
@@ -19,14 +20,14 @@
   /* Recent Roll History Pills */
   .hist-bar { display: flex; gap: 5px; overflow-x: auto; padding: 3px 2px 8px; scrollbar-width: none; }
   .hist-bar::-webkit-scrollbar { display: none; }
-  .h-pill { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 800; background: #1c2236; color: #94a3b8; flex-shrink: 0; }
-  .h-pill.win { background: rgba(40, 224, 77, 0.18); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); }
+  .h-pill { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 800; background: #1c2236; color: #38bdf8; border: 1px solid #2b354f; flex-shrink: 0; }
+  .h-pill.high { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); }
 
   /* 3D Dice Arena */
   .arena-3d {
     position: relative;
     width: 100%;
-    height: 215px;
+    height: 220px;
     border-radius: 16px;
     border: 2px solid #2c3652;
     overflow: hidden;
@@ -35,27 +36,34 @@
     box-shadow: inset 0 0 35px rgba(0,0,0,0.85);
   }
   canvas { width: 100%; height: 100%; display: block; }
-  .roll-badge {
-    position: absolute; top: 10px; right: 12px;
-    background: rgba(15, 23, 42, 0.88); border: 1px solid #3b486b;
-    padding: 4px 12px; border-radius: 12px; text-align: center; pointer-events: none;
+  .hud-top {
+    position: absolute; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: center; pointer-events: none;
   }
-  .roll-badge span { font-size: 9px; color: #94a3b8; display: block; font-weight: bold; }
-  .roll-badge strong { font-size: 20px; color: #ffd700; font-weight: 900; }
+  .timer-pill {
+    background: rgba(15, 23, 42, 0.9); border: 1px solid #38bdf8;
+    padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 800; color: #38bdf8;
+  }
+  .roll-badge {
+    background: rgba(15, 23, 42, 0.9); border: 1px solid #fbbf24;
+    padding: 3px 11px; border-radius: 10px; text-align: center;
+  }
+  .roll-badge span { font-size: 8px; color: #94a3b8; display: block; font-weight: bold; }
+  .roll-badge strong { font-size: 18px; color: #ffd700; font-weight: 900; }
   .result-toast {
-    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.9); border: 1px solid #3b486b;
-    padding: 4px 14px; border-radius: 14px; font-size: 12px; font-weight: 800;
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.92); border: 1px solid #3b486b;
+    padding: 4px 14px; border-radius: 14px; font-size: 11px; font-weight: 800;
     color: #e2e8f0; white-space: nowrap; pointer-events: none;
   }
 
   /* Prediction Slider Deck */
-  .slider-card { background: #191f30; border: 1px solid #2b354f; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
-  .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #101420; padding: 8px; border-radius: 12px; margin-bottom: 12px; text-align: center; }
+  .slider-card { background: #191f30; border: 1px solid #2b354f; border-radius: 16px; padding: 11px; margin-bottom: 10px; }
+  .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #101420; padding: 7px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
   .st-box span { font-size: 10px; color: #94a3b8; display: block; }
   .st-box strong { font-size: 15px; color: #38bdf8; font-weight: 900; }
 
-  .slider-wrap { position: relative; padding: 8px 4px; margin-bottom: 10px; }
+  .slider-wrap { position: relative; padding: 6px 4px; margin-bottom: 8px; }
   input[type=range] {
     -webkit-appearance: none; width: 100%; height: 12px; border-radius: 8px; outline: none; cursor: pointer;
     background: linear-gradient(90deg, #22c55e 0%, #22c55e 50%, #ef4444 50%, #ef4444 100%);
@@ -74,7 +82,7 @@
   .m-btn.active { background: #252f47; color: #fff; border-color: #ffd700; }
 
   /* Bet Control Deck */
-  .bet-deck { background: #191f30; border: 1px solid #2b354f; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+  .bet-deck { background: #191f30; border: 1px solid #2b354f; border-radius: 16px; padding: 11px; margin-bottom: 10px; }
   .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
   .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #101420; border: 1px solid #2e3954; border-radius: 12px; padding: 6px 10px; }
   .step-btn { width: 26px; height: 26px; border-radius: 8px; border: 1px solid #3f4d70; background: #222a40; color: #fff; font-weight: bold; cursor: pointer; }
@@ -82,19 +90,14 @@
   .quick-chips { display: flex; gap: 5px; }
   .q-chip { background: #232b42; border: none; color: #cbd5e1; padding: 8px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
-  .action-row { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; }
-  .btn-auto {
-    background: #101420; border: 1.5px solid #3a476b; color: #cbd5e1;
-    border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer;
-  }
-  .btn-auto.on { background: rgba(40, 224, 77, 0.16); border-color: #28e04d; color: #28e04d; }
-  .btn-roll {
-    padding: 14px; border: none; border-radius: 12px;
+  .btn-bet {
+    width: 100%; padding: 13px; border: none; border-radius: 12px;
     background: linear-gradient(180deg, #28e04d, #149630);
-    color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
+    color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
     box-shadow: 0 4px 0 #0b591b; text-transform: uppercase;
   }
-  .btn-roll:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-bet.placed { background: linear-gradient(180deg, #0284c7, #0369a1); box-shadow: 0 4px 0 #075985; }
+  .btn-bet.locked { background: #334155; box-shadow: none; color: #94a3b8; cursor: not-allowed; }
 
   /* Live Feed */
   .feed-box { background: #191f30; border: 1px solid #2b354f; border-radius: 14px; padding: 10px; }
@@ -121,6 +124,7 @@
     <div class="logo-title">
       <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
       <span>🎲 3D LUCKY DICE</span>
+      <span class="sync-pill">● LIVE</span>
     </div>
     <div class="hdr-right">
       <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
@@ -133,12 +137,15 @@
 
   <!-- 3D Twin Dice Canvas Arena -->
   <div class="arena-3d">
-    <canvas id="dice3dCanvas" width="420" height="215"></canvas>
-    <div class="roll-badge">
-      <span>ROLLED</span>
-      <strong id="rolledScoreTxt">50.00</strong>
+    <canvas id="dice3dCanvas" width="420" height="220"></canvas>
+    <div class="hud-top">
+      <div class="timer-pill" id="timerBadge">BETTING: 10s</div>
+      <div class="roll-badge">
+        <span>ROLLED</span>
+        <strong id="rolledScoreTxt">50.00</strong>
+      </div>
     </div>
-    <div class="result-toast" id="statusToast">Target set karein aur ROLL 3D DICE dabayein!</div>
+    <div class="result-toast" id="statusToast">Target set karke is round ki Bet lagayein!</div>
   </div>
 
   <!-- Target Slider & Multiplier Card -->
@@ -160,7 +167,7 @@
     </div>
   </div>
 
-  <!-- Bet & Auto-Roll Deck -->
+  <!-- Bet Deck -->
   <div class="bet-deck">
     <div class="bet-row">
       <div class="stepper">
@@ -175,16 +182,13 @@
       </div>
     </div>
 
-    <div class="action-row">
-      <button type="button" class="btn-auto" id="autoRollBtn" onclick="toggleAutoRoll()">🔁 Auto: OFF</button>
-      <button type="button" class="btn-roll" id="rollBtn" onclick="triggerDiceRoll()">🎲 ROLL 3D DICE</button>
-    </div>
+    <button type="button" class="btn-bet" id="betActionBtn" onclick="placeDiceBet()">🎲 PLACE BET FOR ROUND</button>
   </div>
 
   <!-- Live Hybrid Winners Feed -->
   <div class="feed-box">
     <div class="feed-head">
-      <span>🔥 LIVE DICE ROLLS</span>
+      <span>🔥 LIVE ARENA ROLLS</span>
       <span style="color:#28e04d; font-weight:bold;" id="onlineTxt">● 246 Playing</span>
     </div>
     <div id="liveFeedList"></div>
@@ -198,7 +202,6 @@
   <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
 </div>
-
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
   const mobile = localStorage.getItem("activeUser");
@@ -225,8 +228,7 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-              fetch(`${DB_URL}/settings/rates/dice.json?t=${Date.now()}`)
-       
+        fetch(`${DB_URL}/settings/rates/dice.json?t=${Date.now()}`)
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
@@ -278,7 +280,6 @@
         osc.start(now);
         osc.stop(now + 0.035);
       } else if (type === "shake") {
-        // Multi-bounce wooden/acrylic dice clatter
         [0, 0.09, 0.18, 0.28, 0.39].forEach((offset, idx) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
@@ -322,22 +323,15 @@
   }
 
   // ==========================================
-  // SLIDER, MULTIPLIER & BET CONTROLS
+  // SLIDER & BET CONTROLS
   // ==========================================
-  let rollMode = "UNDER"; // UNDER | OVER
+  let rollMode = "UNDER";
   let targetVal = 50;
-  let isRolling = false;
-  let autoRollActive = false;
-  let rollHistory = [
-    { val: 34.2, win: true },
-    { val: 78.5, win: false },
-    { val: 19.8, win: true },
-    { val: 45.1, win: true },
-    { val: 88.4, win: false }
-  ];
+  let rollHistory = [34.2, 78.5, 19.8, 45.1, 88.4, 22.6, 61.9];
+  let activeBet = null; // { roundId, amt, mode, target, mult }
 
   function setRollMode(mode) {
-    if (isRolling) return;
+    if (activeBet) return;
     rollMode = mode;
     document.getElementById("btnUnder").classList.toggle("active", mode === "UNDER");
     document.getElementById("btnOver").classList.toggle("active", mode === "OVER");
@@ -348,6 +342,10 @@
   let lastSliderTick = 50;
   function onSliderChange() {
     const slider = document.getElementById("targetSlider");
+    if (activeBet) {
+      slider.value = activeBet.target;
+      return;
+    }
     targetVal = parseInt(slider.value);
     if (Math.abs(targetVal - lastSliderTick) >= 2) {
       lastSliderTick = targetVal;
@@ -370,59 +368,105 @@
   onSliderChange();
 
   function adjBet(delta) {
-    if (isRolling) return;
+    if (activeBet) return;
     const inp = document.getElementById("betInp");
     inp.value = Math.max(10, (parseInt(inp.value) || 10) + delta);
   }
   function setBet(val) {
-    if (isRolling) return;
+    if (activeBet) return;
     document.getElementById("betInp").value = val;
   }
 
-  function toggleAutoRoll() {
-    initAudio();
-    autoRollActive = !autoRollActive;
-    const btn = document.getElementById("autoRollBtn");
-    if (autoRollActive) {
-      btn.classList.add("on");
-      btn.innerText = "🔁 Auto: ON";
-      if (!isRolling) triggerDiceRoll();
-    } else {
-      btn.classList.remove("on");
-      btn.innerText = "🔁 Auto: OFF";
-    }
-  }
-
   function renderHistory() {
-    document.getElementById("histBar").innerHTML = rollHistory.slice(0, 12).map(h =>
-      `<span class="h-pill ${h.win ? 'win' : ''}">${h.val.toFixed(2)}</span>`
+    document.getElementById("histBar").innerHTML = rollHistory.slice(0, 12).map(val =>
+      `<span class="h-pill ${val >= 50 ? 'high' : ''}">${Number(val).toFixed(2)}</span>`
     ).join("");
   }
   renderHistory();
 
+  async function placeDiceBet() {
+    initAudio();
+    if (gamePhase !== "BETTING") return alert("Abhi dice roll ho raha hai! Agle round mein bet lagayein.");
+    if (activeBet) return;
+
+    const bet = parseInt(document.getElementById("betInp").value);
+    if (!bet || bet < 10) return alert("Minimum bet ₹10 hai!");
+    if (bet > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
+
+    playDiceSound("tick");
+
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    if (dBal >= bet) {
+      dBal -= bet;
+    } else {
+      const rem = bet - dBal;
+      dBal = 0;
+      wBal -= rem;
+    }
+
+    const winChance = rollMode === "UNDER" ? targetVal : (100 - targetVal);
+    const mult = Number((98 / Math.max(2, winChance)).toFixed(2));
+
+    activeBet = {
+      roundId: roomState.roundId,
+      amt: bet,
+      mode: rollMode,
+      target: targetVal,
+      mult: mult
+    };
+
+    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: `3D Dice Bet (${rollMode} ${targetVal})`, amt: "-₹" + bet, date: new Date().toLocaleString() });
+
+    userData.depositBal = dBal;
+    userData.winningBal = wBal;
+    userData.txns = txns.slice(0, 30);
+    localStorage.setItem("cachedUser", JSON.stringify(userData));
+    updateHeaderBal();
+    updateBetBtnUI();
+
+    document.getElementById("statusToast").innerHTML = `<span style="color:#38bdf8;">✔ Bet Placed: ₹${bet} (${rollMode} ${targetVal} @ ${mult}x)</span>`;
+
+    fetch(`${DB_URL}/users/${mobile}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
+    });
+  }
+
+  function updateBetBtnUI() {
+    const btn = document.getElementById("betActionBtn");
+    if (activeBet) {
+      btn.className = "btn-bet placed";
+      btn.innerText = `✔ BET LOCKED (₹${activeBet.amt})`;
+    } else if (gamePhase !== "BETTING") {
+      btn.className = "btn-bet locked";
+      btn.innerText = "⏳ ROLLING 3D DICE...";
+    } else {
+      btn.className = "btn-bet";
+      btn.innerText = "🎲 PLACE BET FOR ROUND";
+    }
+  }
+
   // ==========================================
-  // TRUE 3D ROTATING TWIN DICE ENGINE (CANVAS)
+  // TRUE 3D ROTATING TWIN DICE ENGINE
   // ==========================================
   const canvas = document.getElementById("dice3dCanvas");
   const ctx = canvas.getContext("2d");
 
-  // 8 vertices of a unit 3D cube
   const CUBE_VERTS = [
     [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
     [-1, -1,  1], [1, -1,  1], [1, 1,  1], [-1, 1,  1]
   ];
-
-  // 6 faces with vertex indices and pip layout (1..6)
   const CUBE_FACES = [
-    { verts: [4, 5, 6, 7], pips: 1, col: "#ffffff" },
-    { verts: [1, 0, 3, 2], pips: 6, col: "#f8fafc" },
-    { verts: [5, 1, 2, 6], pips: 3, col: "#f1f5f9" },
-    { verts: [0, 4, 7, 3], pips: 4, col: "#e2e8f0" },
-    { verts: [0, 1, 5, 4], pips: 2, col: "#f8fafc" },
-    { verts: [3, 2, 6, 7], pips: 5, col: "#e2e8f0" }
+    { verts: [4, 5, 6, 7], pips: 1 },
+    { verts: [1, 0, 3, 2], pips: 6 },
+    { verts: [5, 1, 2, 6], pips: 3 },
+    { verts: [0, 4, 7, 3], pips: 4 },
+    { verts: [0, 1, 5, 4], pips: 2 },
+    { verts: [3, 2, 6, 7], pips: 5 }
   ];
-
-  // Standard pip coordinates in [-0.55 .. 0.55] face space
   const PIP_COORDS = {
     1: [[0, 0]],
     2: [[-0.45, -0.45], [0.45, 0.45]],
@@ -432,20 +476,17 @@
     6: [[-0.45, -0.5], [0.45, -0.5], [-0.45, 0], [0.45, 0], [-0.45, 0.5], [0.45, 0.5]]
   };
 
-  let dice1 = { rx: 0.45, ry: 0.65, rz: 0.1, vrx: 0.015, vry: 0.02, vrz: 0.008, bounceY: 0, faceVal: 5 };
-  let dice2 = { rx: -0.35, ry: 0.85, rz: -0.15, vrx: -0.018, vry: 0.016, vrz: -0.01, bounceY: 0, faceVal: 3 };
+  let dice1 = { rx: 0.45, ry: 0.65, rz: 0.1, vrx: 0.015, vry: 0.02, vrz: 0.008, bounceY: 0 };
+  let dice2 = { rx: -0.35, ry: 0.85, rz: -0.15, vrx: -0.018, vry: 0.016, vrz: -0.01, bounceY: 0 };
 
   function rotatePoint3D(p, rx, ry, rz) {
     let [x, y, z] = p;
-    // Rotate X
     let y1 = y * Math.cos(rx) - z * Math.sin(rx);
     let z1 = y * Math.sin(rx) + z * Math.cos(rx);
     y = y1; z = z1;
-    // Rotate Y
     let x2 = x * Math.cos(ry) + z * Math.sin(ry);
     let z2 = -x * Math.sin(ry) + z * Math.cos(ry);
     x = x2; z = z2;
-    // Rotate Z
     let x3 = x * Math.cos(rz) - y * Math.sin(rz);
     let y3 = x * Math.sin(rz) + y * Math.cos(rz);
     return [x3, y3, z];
@@ -454,18 +495,13 @@
   function projectCubeVert(v, cx, cy, size) {
     const fov = 4.2;
     const scale = fov / (fov + v[2]);
-    return {
-      x: cx + v[0] * size * scale,
-      y: cy + v[1] * size * scale,
-      z: v[2]
-    };
+    return { x: cx + v[0] * size * scale, y: cy + v[1] * size * scale, z: v[2] };
   }
 
   function draw3DDie(die, cx, cy, size, accentColor) {
     const transformed = CUBE_VERTS.map(v => rotatePoint3D(v, die.rx, die.ry, die.rz));
     const projected = transformed.map(v => projectCubeVert(v, cx, cy - die.bounceY, size));
 
-    // Ground Shadow
     ctx.save();
     const shadowScale = Math.max(0.55, 1 - die.bounceY / 90);
     ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
@@ -473,12 +509,10 @@
     ctx.ellipse(cx, cy + size * 1.45, size * 1.15 * shadowScale, size * 0.35 * shadowScale, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sort visible faces back-to-front by average Z
     const visibleFaces = CUBE_FACES.map(f => {
       const p0 = projected[f.verts[0]];
       const p1 = projected[f.verts[1]];
       const p2 = projected[f.verts[2]];
-      // Backface culling via 2D cross product
       const cross = (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x);
       const avgZ = f.verts.reduce((acc, idx) => acc + transformed[idx][2], 0) / 4;
       return { face: f, cross, avgZ };
@@ -493,17 +527,13 @@
       ctx.lineTo(pts[3].x, pts[3].y);
       ctx.closePath();
 
-      // Lighting shade based on depth
-      const shade = avgZ < -0.3 ? "#ffffff" : (avgZ < 0.2 ? "#e2e8f0" : "#cbd5e1");
-      ctx.fillStyle = shade;
+      ctx.fillStyle = avgZ < -0.3 ? "#ffffff" : (avgZ < 0.2 ? "#e2e8f0" : "#cbd5e1");
       ctx.fill();
       ctx.strokeStyle = "#64748b";
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Bilinear interpolation for 3D Pips on the Face
-      const coords = PIP_COORDS[face.pips];
-      coords.forEach(([u, v]) => {
+      PIP_COORDS[face.pips].forEach(([u, v]) => {
         const s = (u + 1) / 2;
         const t = (v + 1) / 2;
         const topX = pts[0].x + (pts[1].x - pts[0].x) * s;
@@ -519,161 +549,153 @@
         ctx.fill();
       });
     });
-
     ctx.restore();
   }
 
   function render3DDiceLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Subtle 3D Arena Table Grid Floor
     ctx.save();
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.14)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.ellipse(canvas.width / 2, 152, 165, 42, 0, 0, Math.PI * 2);
+    ctx.ellipse(canvas.width / 2, 155, 165, 42, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
-    // Update Cube Rotation
-    dice1.rx += dice1.vrx;
-    dice1.ry += dice1.vry;
-    dice1.rz += dice1.vrz;
+    dice1.rx += dice1.vrx; dice1.ry += dice1.vry; dice1.rz += dice1.vrz;
+    dice2.rx += dice2.vrx; dice2.ry += dice2.vry; dice2.rz += dice2.vrz;
 
-    dice2.rx += dice2.vrx;
-    dice2.ry += dice2.vry;
-    dice2.rz += dice2.vrz;
-
-    draw3DDie(dice1, 148, 114, 34, "#0f172a");
-    draw3DDie(dice2, 265, 114, 34, "#1e3a8a");
+    draw3DDie(dice1, 148, 116, 34, "#0f172a");
+    draw3DDie(dice2, 265, 116, 34, "#1e3a8a");
 
     requestAnimationFrame(render3DDiceLoop);
   }
   requestAnimationFrame(render3DDiceLoop);
 
   // ==========================================
-  // DICE ROLL GAMEPLAY & SETTLEMENT
+  // SHARED MULTIPLAYER ROOM SYNC (SAME ROLL FOR ALL USERS)
   // ==========================================
-  async function triggerDiceRoll() {
-    if (isRolling) return;
-    initAudio();
+  const BET_MS = 9000;
+  const ROLL_MS = 2200;
+  const RESULT_MS = 3300;
 
-    const bet = parseInt(document.getElementById("betInp").value);
-    if (!bet || bet < 10) {
-      if (autoRollActive) toggleAutoRoll();
-      return alert("Minimum bet ₹10 hai!");
+  let gamePhase = "BETTING";
+  let lastHandledRound = null;
+  let roundSettled = false;
+  let isCreating = false;
+
+  const bootNow = Date.now();
+  let roomState = {
+    roundId: "DR" + bootNow,
+    betStart: bootNow,
+    rollStart: bootNow + BET_MS,
+    rolledNumber: 42.85,
+    history: rollHistory
+  };
+
+  function generateSynchronizedRoll() {
+    // Biased by Admin dice winRateSetting (low rate favors extreme edges <15 or >85 so standard 50% bets lose more often)
+    const favorHouse = (Math.random() * 100) > winRateSetting;
+    if (favorHouse && Math.random() < 0.5) {
+      return Number((Math.random() < 0.5 ? (52 + Math.random() * 46) : (1 + Math.random() * 47)).toFixed(2));
     }
-    if (bet > getTotalBal()) {
-      if (autoRollActive) toggleAutoRoll();
-      return alert("Wallet mein itna balance nahi hai!");
-    }
-
-    isRolling = true;
-    document.getElementById("rollBtn").disabled = true;
-    playDiceSound("shake");
-
-    // Deduct bet immediately
-    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
-    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-    if (dBal >= bet) {
-      dBal -= bet;
-    } else {
-      const rem = bet - dBal;
-      dBal = 0;
-      wBal -= rem;
-    }
-
-    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({ type: `3D Dice Bet (${rollMode} ${targetVal})`, amt: "-₹" + bet, date: new Date().toLocaleString() });
-
-    userData.depositBal = dBal;
-    userData.winningBal = wBal;
-    userData.txns = txns.slice(0, 30);
-    localStorage.setItem("cachedUser", JSON.stringify(userData));
-    updateHeaderBal();
-
-    fetch(`${DB_URL}/users/${mobile}.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
-    });
-
-    // High-speed 3D spin + bounce animation
-    dice1.vrx = 0.28; dice1.vry = 0.34; dice1.vrz = 0.18;
-    dice2.vrx = -0.32; dice2.vry = 0.29; dice2.vrz = -0.22;
-
-    let frame = 0;
-    const spinInterval = setInterval(() => {
-      frame++;
-      dice1.bounceY = Math.abs(Math.sin(frame * 0.32)) * 36 * (1 - frame / 22);
-      dice2.bounceY = Math.abs(Math.cos(frame * 0.32)) * 36 * (1 - frame / 22);
-      document.getElementById("rolledScoreTxt").innerText = (Math.random() * 99.99).toFixed(2);
-
-      if (frame >= 22) {
-        clearInterval(spinInterval);
-        dice1.bounceY = 0;
-        dice2.bounceY = 0;
-        dice1.vrx = 0.012; dice1.vry = 0.016; dice1.vrz = 0.005;
-        dice2.vrx = -0.014; dice2.vry = 0.013; dice2.vrz = -0.006;
-        finishDiceRoll(bet);
-      }
-    }, 30);
+    return Number((1 + Math.random() * 98).toFixed(2));
   }
 
-  async function finishDiceRoll(bet) {
-    const winChance = rollMode === "UNDER" ? targetVal : (100 - targetVal);
-    const mult = Number((98 / Math.max(2, winChance)).toFixed(2));
-
-    // Calculate outcome calibrated by Admin winRate setting
-    const effectiveWinProb = (winChance / 100) * (winRateSetting / 42);
-    const isWin = Math.random() < Math.min(0.92, Math.max(0.04, effectiveWinProb));
-
-    let rolledVal = 50.00;
-    if (isWin) {
-      if (rollMode === "UNDER") {
-        rolledVal = Number((Math.random() * Math.max(1, targetVal - 0.5)).toFixed(2));
-      } else {
-        rolledVal = Number((targetVal + 0.5 + Math.random() * Math.max(1, 99.5 - targetVal)).toFixed(2));
-      }
-    } else {
-      if (rollMode === "UNDER") {
-        rolledVal = Number((targetVal + 0.5 + Math.random() * Math.max(1, 99.5 - targetVal)).toFixed(2));
-      } else {
-        rolledVal = Number((Math.random() * Math.max(1, targetVal - 0.5)).toFixed(2));
-      }
+  async function startNewDiceRound(prevRoll) {
+    if (isCreating) return;
+    isCreating = true;
+    const now = Date.now();
+    const nextNum = generateSynchronizedRoll();
+    let newHist = [...rollHistory];
+    if (typeof prevRoll === "number") {
+      newHist.unshift(prevRoll);
+      newHist = newHist.slice(0, 14);
     }
 
-    document.getElementById("rolledScoreTxt").innerText = rolledVal.toFixed(2);
-    rollHistory.unshift({ val: rolledVal, win: isWin });
+    const newRoom = {
+      roundId: "DR" + now,
+      betStart: now,
+      rollStart: now + BET_MS,
+      rolledNumber: nextNum,
+      history: newHist
+    };
+    roomState = newRoom;
+    rollHistory = newHist;
     renderHistory();
 
+    try {
+      await fetch(`${DB_URL}/diceRoom.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newRoom)
+      });
+    } catch (e) {
+    } finally {
+      isCreating = false;
+    }
+  }
+
+  async function syncDiceRoom() {
+    try {
+      const res = await fetch(`${DB_URL}/diceRoom.json?t=${Date.now()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const now = Date.now();
+      if (!data || !data.roundId || !data.rollStart) {
+        await startNewDiceRound(null);
+        return;
+      }
+      const endMs = Number(data.rollStart) + ROLL_MS + RESULT_MS;
+      if (now >= endMs + 400) {
+        await startNewDiceRound(Number(data.rolledNumber));
+        return;
+      }
+      roomState = data;
+      if (Array.isArray(data.history)) {
+        rollHistory = data.history;
+        renderHistory();
+      }
+    } catch (e) {}
+  }
+
+  async function settleDiceRound(rolledNum) {
+    if (roundSettled) return;
+    roundSettled = true;
+
+    document.getElementById("rolledScoreTxt").innerText = rolledNum.toFixed(2);
+
+    if (!activeBet) {
+      document.getElementById("statusToast").innerHTML = `Rolled <strong style="color:#ffd700;">${rolledNum.toFixed(2)}</strong> • Agle round mein bet lagayein!`;
+      return;
+    }
+
+    const betObj = activeBet;
+    activeBet = null;
+    updateBetBtnUI();
+
+    const isWin = betObj.mode === "UNDER" ? (rolledNum < betObj.target) : (rolledNum > betObj.target);
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
 
     if (isWin) {
-      const winAmt = Math.floor(bet * mult);
+      const winAmt = Math.floor(betObj.amt * betObj.mult);
       playDiceSound("win");
-      document.getElementById("statusToast").innerHTML = `<span style="color:#28e04d;">🎉 YOU WON +₹${winAmt} (${mult}x)!</span>`;
+      document.getElementById("statusToast").innerHTML = `<span style="color:#28e04d;">🎉 Rolled ${rolledNum.toFixed(2)} • YOU WON +₹${winAmt}!</span>`;
 
       const newWinBal = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt;
       const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
       txns.unshift({
-        type: `3D Dice Win (${mult}x)`,
+        type: `3D Dice Win (${betObj.mult}x)`,
         amt: "+₹" + winAmt,
         date: new Date().toLocaleString()
       });
-
       userData.winningBal = newWinBal;
       userData.txns = txns.slice(0, 30);
       localStorage.setItem("cachedUser", JSON.stringify(userData));
       updateHeaderBal();
 
-      liveFeedData.unshift({
-        name: maskedMe + " (You)",
-        bet: bet,
-        mult: mult + "x",
-        win: winAmt,
-        isMe: true
-      });
+      liveFeedData.unshift({ name: maskedMe + " (You)", bet: betObj.amt, mult: betObj.mult + "x", win: winAmt, isMe: true });
       renderFeed();
 
       fetch(`${DB_URL}/users/${mobile}.json`, {
@@ -685,32 +707,65 @@
       fetch(`${DB_URL}/diceLiveFeed/${mobile}.json`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: maskedMe,
-          bet: bet,
-          mult: mult + "x",
-          win: winAmt,
-          ts: Date.now()
-        })
+        body: JSON.stringify({ name: maskedMe, bet: betObj.amt, mult: betObj.mult + "x", win: winAmt, ts: Date.now() })
       });
     } else {
       playDiceSound("lose");
-      document.getElementById("statusToast").innerHTML = `<span style="color:#f87171;">Rolled ${rolledVal.toFixed(2)} • Try Again!</span>`;
-    }
-
-    isRolling = false;
-    document.getElementById("rollBtn").disabled = false;
-
-    if (autoRollActive) {
-      setTimeout(() => {
-        if (autoRollActive && !isRolling) triggerDiceRoll();
-      }, 650);
+      document.getElementById("statusToast").innerHTML = `<span style="color:#f87171;">Rolled ${rolledNum.toFixed(2)} (${betObj.mode} ${betObj.target}) • Lost</span>`;
     }
   }
 
-  // ==========================================
-  // HYBRID LIVE FEED (BOTS + REAL PLAYERS)
-  // ==========================================
+  function tickDiceRoom() {
+    if (!roomState) return;
+    const now = Date.now();
+    const rollStart = Number(roomState.rollStart);
+    const resultStart = rollStart + ROLL_MS;
+    const nextRoundStart = resultStart + RESULT_MS;
+    const rolledNum = Number(roomState.rolledNumber) || 50.00;
+
+    if (lastHandledRound !== roomState.roundId) {
+      lastHandledRound = roomState.roundId;
+      activeBet = null;
+      roundSettled = false;
+      dice1.bounceY = 0; dice2.bounceY = 0;
+      dice1.vrx = 0.015; dice1.vry = 0.02;
+      dice2.vrx = -0.018; dice2.vry = 0.016;
+      document.getElementById("statusToast").innerText = "Target set karke is round ki Bet lagayein!";
+      updateBetBtnUI();
+    }
+
+    if (now < rollStart) {
+      gamePhase = "BETTING";
+      const remSec = Math.max(1, Math.ceil((rollStart - now) / 1000));
+      document.getElementById("timerBadge").innerText = `BETTING: ${remSec}s`;
+      document.getElementById("timerBadge").style.color = remSec <= 3 ? "#ef4444" : "#38bdf8";
+      updateBetBtnUI();
+    } else if (now >= rollStart && now < resultStart) {
+      if (gamePhase !== "ROLLING") {
+        gamePhase = "ROLLING";
+        playDiceSound("shake");
+        dice1.vrx = 0.28; dice1.vry = 0.34;
+        dice2.vrx = -0.32; dice2.vry = 0.29;
+        updateBetBtnUI();
+      }
+      const prog = (now - rollStart) / ROLL_MS;
+      dice1.bounceY = Math.abs(Math.sin(prog * Math.PI * 4)) * 34 * (1 - prog);
+      dice2.bounceY = Math.abs(Math.cos(prog * Math.PI * 4)) * 34 * (1 - prog);
+      document.getElementById("timerBadge").innerText = "ROLLING...";
+      document.getElementById("rolledScoreTxt").innerText = (Math.random() * 99.99).toFixed(2);
+    } else if (now >= resultStart && now < nextRoundStart) {
+      gamePhase = "RESULT";
+      dice1.bounceY = 0; dice2.bounceY = 0;
+      dice1.vrx = 0.012; dice1.vry = 0.015;
+      dice2.vrx = -0.014; dice2.vry = 0.012;
+      document.getElementById("timerBadge").innerText = "RESULT";
+      settleDiceRound(rolledNum);
+    } else {
+      startNewDiceRound(rolledNum);
+    }
+  }
+
+  // Hybrid Live Feed
   const BOTS = ["r***7", "a***2", "k***9", "s***4", "v***6", "m***1", "p***8", "d***3", "n***5", "t***0"];
   let liveFeedData = [
     { name: "r***7", bet: 500, mult: "1.96x", win: 980, isMe: false },
@@ -736,13 +791,7 @@
     const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
     const bBet = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
     const bMult = (1.35 + Math.random() * 3.8).toFixed(2);
-    liveFeedData.unshift({
-      name: bName,
-      bet: bBet,
-      mult: bMult + "x",
-      win: Math.floor(bBet * Number(bMult)),
-      isMe: false
-    });
+    liveFeedData.unshift({ name: bName, bet: bBet, mult: bMult + "x", win: Math.floor(bBet * Number(bMult)), isMe: false });
     document.getElementById("onlineTxt").innerText = "● " + (220 + Math.floor(Math.random() * 50)) + " Playing";
 
     try {
@@ -757,9 +806,12 @@
         });
       }
     } catch (e) {}
-
     renderFeed();
   }, 4500);
+
+  syncDiceRoom();
+  setInterval(syncDiceRoom, 1500);
+  setInterval(tickDiceRoom, 60);
 </script>
 </body>
 </html>
