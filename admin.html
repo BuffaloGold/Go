@@ -9,7 +9,7 @@
   body { background: #0d0214; color: #fff; padding: 14px; display: flex; justify-content: center; }
   .wrap { width: 100%; max-width: 500px; }
 
-  input, select { width: 100%; padding: 11px; margin: 8px 0; border-radius: 8px; border: 1px solid #75229e; background: #14021f; color: #fff; font-size: 14px; }
+  input, select { width: 100%; padding: 11px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #75229e; background: #14021f; color: #fff; font-size: 14px; }
   .btn { padding: 8px 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
   .btn-gold { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; width: 100%; padding: 13px; font-size: 15px; }
   .btn-green { background: #1db954; color: #fff; }
@@ -94,14 +94,49 @@
 
   <div id="settingsTab" class="hidden">
     <div class="card">
-      <h4 style="color:#ffd700; margin-bottom:6px;">🎰 Slot Game Win Probability</h4>
-      <select id="winRateSelect">
-        <option value="20">20% Win Chance (High Admin Profit)</option>
-        <option value="35" selected>35% Win Chance (Balanced - Recommended)</option>
-        <option value="50">50% Win Chance (Medium)</option>
-        <option value="75">75% Win Chance (Promo Mode)</option>
+      <h4 style="color:#ffd700; margin-bottom:10px;">🎮 Game-Wise Win Rate Control</h4>
+
+      <label style="font-size:12px; color:#ccc;">🐃 Buffalo Gold Slot (%):</label>
+      <select id="rate_slot">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
       </select>
-      <button type="button" class="btn btn-gold" style="margin-top:10px;" onclick="saveSettings()">SAVE GAME SETTINGS</button>
+
+      <label style="font-size:12px; color:#ccc;">✈️ Aviator Crash (%):</label>
+      <select id="rate_aviator">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
+      </select>
+
+      <label style="font-size:12px; color:#ccc;">🐔 Chicken Road 3D (%):</label>
+      <select id="rate_chicken">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
+      </select>
+
+      <label style="font-size:12px; color:#ccc;">🏎️ Car Roulette 3D (%):</label>
+      <select id="rate_car">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
+      </select>
+
+      <label style="font-size:12px; color:#ccc;">🎲 Lucky Dice 3D (%):</label>
+      <select id="rate_dice">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
+      </select>
+
+      <button type="button" class="btn btn-gold" style="margin-top:6px;" onclick="saveSettings()">SAVE ALL GAME RATES</button>
     </div>
   </div>
 </div>
@@ -335,21 +370,26 @@
     try {
       const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
       const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
-      if (anyQrOpen || isTypingReply) return;
+      const isChangingRate = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("rate_");
+      if (anyQrOpen || isTypingReply || isChangingRate) return;
 
-      const [uData, wData, dData, tData, rateData] = await Promise.all([
+      const [uData, wData, dData, tData, ratesData] = await Promise.all([
         dbGet("users"),
         dbGet("withdrawals"),
         dbGet("deposits"),
         dbGet("supportTickets"),
-        dbGet("settings/winRate")
+        dbGet("settings/rates")
       ]);
       updateUsersUI(uData);
       updateWithdrawalsUI(wData);
       updateDepositsUI(dData);
       updateTicketsUI(tData);
-      if (rateData !== null && rateData !== undefined) {
-        document.getElementById("winRateSelect").value = rateData;
+      if (ratesData && typeof ratesData === "object") {
+        if (ratesData.slot) document.getElementById("rate_slot").value = ratesData.slot;
+        if (ratesData.aviator) document.getElementById("rate_aviator").value = ratesData.aviator;
+        if (ratesData.chicken) document.getElementById("rate_chicken").value = ratesData.chicken;
+        if (ratesData.car) document.getElementById("rate_car").value = ratesData.car;
+        if (ratesData.dice) document.getElementById("rate_dice").value = ratesData.dice;
       }
     } catch (e) {
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
@@ -425,12 +465,19 @@
   }
 
   async function saveSettings() {
-    const rate = Number(document.getElementById("winRateSelect").value);
-    await dbPut("settings/winRate", rate);
-    alert("✅ Game Win-Rate " + rate + "% par set ho gaya!");
+    const rates = {
+      slot: Number(document.getElementById("rate_slot").value),
+      aviator: Number(document.getElementById("rate_aviator").value),
+      chicken: Number(document.getElementById("rate_chicken").value),
+      car: Number(document.getElementById("rate_car").value),
+      dice: Number(document.getElementById("rate_dice").value)
+    };
+    await dbPut("settings/rates", rates);
+    await dbPut("settings/winRate", rates.slot);
+    alert("✅ Sabhi games ke alag-alag Win Rates save ho gaye!");
   }
 
-function renderUsers() {
+  function renderUsers() {
     const q = (document.getElementById("searchUser").value || "").toLowerCase();
     const list = document.getElementById("usersList");
     const keys = Object.keys(allUsers);
