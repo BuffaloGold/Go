@@ -23,9 +23,7 @@
   .btn-wd { background: linear-gradient(180deg, #ff9900, #cc5200); color: #fff; }
   .btn-wd:disabled { background: #4a3b52; color: #999; cursor: not-allowed; }
   .btn-copy { background: #3d0c57; color: #ffd700; border: 1px dashed #ffd700; padding: 8px; font-size: 13px; margin-bottom: 8px; }
-  .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 8px; line-height: 1.5; }
-  .prog-bar-bg { width: 100%; height: 8px; background: #1f0412; border-radius: 6px; margin-top: 6px; overflow: hidden; border: 1px solid #ff4d6d; }
-  .prog-bar-fill { height: 100%; background: linear-gradient(90deg, #ffae00, #28e04d); width: 0%; transition: width 0.3s ease; }
+  .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 8px; }
   .qr-section { background: #14021f; border: 2px solid #28e04d; border-radius: 12px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
   .qr-img { width: 190px; height: 190px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
   .status-pill { background: #2b1d02; border: 1px solid #ffae00; color: #ffae00; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-top: 10px; }
@@ -62,13 +60,13 @@
   </div>
 
   <div class="box">
-    <h4 style="color:#28e04d;">⚡ INSTANT AUTO-ADD CASH (MIN ₹100)</h4>
+    <h4 style="color:#28e04d;">⚡ INSTANT AUTO-ADD CASH (MIN ₹1 TEST)</h4>
     <div class="quick-btns">
-      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=100">+₹100</button>
+      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=1">+₹1</button>
+      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=50">+₹50</button>
       <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=300">+₹300</button>
-      <button type="button" class="q-btn" onclick="document.getElementById('depInput').value=500">+₹500</button>
     </div>
-    <input type="number" id="depInput" placeholder="Enter Amount (Min ₹100)">
+    <input type="number" id="depInput" placeholder="Enter Amount (Min ₹1)">
     <button type="button" class="btn btn-add" id="genQrBtn">GENERATE AUTO-PAY QR</button>
 
     <div class="qr-section" id="qrBox">
@@ -86,14 +84,12 @@
     <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw kiya ja sakta hai (Min ₹100).</p>
     
     <div id="wdLockMsg" class="lock-notice">
-      🔒 <strong>Withdrawal Locked:</strong> Withdrawal unlock karne ke liye total <strong>₹300 deposit</strong> zaroori hai.<br>
-      <span id="depProgressText" style="color:#ffd700; font-weight:bold;">Total Deposited: ₹0 / ₹300 (₹300 baki)</span>
-      <div class="prog-bar-bg"><div class="prog-bar-fill" id="depProgFill"></div></div>
+      🔒 <strong>Withdrawal Locked:</strong> Account activate aur withdrawal unlock karne ke liye pehla deposit zaroori hai.
     </div>
 
     <input type="number" id="wdInput" placeholder="Withdraw Amount (Min ₹100)" disabled>
     <input type="text" id="upiId" placeholder="Enter Your UPI ID (e.g. name@okicici)" disabled>
-    <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT ₹300 TO UNLOCK</button>
+    <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT TO UNLOCK</button>
   </div>
 
   <div class="box">
@@ -152,22 +148,6 @@
   let isCrediting = false;
   const userRef = ref(db, "users/" + mobile);
 
-  // Total deposit calculate karne ka helper (totalDeposited field ya txns history se)
-  function getCalculatedTotalDeposit(uData) {
-    if (!uData) return 0;
-    if (typeof uData.totalDeposited === "number") return uData.totalDeposited;
-    let sum = 0;
-    if (Array.isArray(uData.txns)) {
-      uData.txns.forEach(t => {
-        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && t.type.toLowerCase().includes("deposit")) {
-          const val = parseInt(String(t.amt).replace("+₹", ""));
-          if (!isNaN(val)) sum += val;
-        }
-      });
-    }
-    return sum;
-  }
-
   onValue(userRef, (snapshot) => {
     if (!snapshot.exists() || !snapshot.val().name) {
       localStorage.removeItem("activeUser");
@@ -180,20 +160,12 @@
     document.getElementById("depBal").innerText = userData.depositBal || 0;
     document.getElementById("winBal").innerText = userData.winningBal || 0;
 
-    // Sirf tabhi unlock hoga jab total deposit >= 300 ho
-    const totalDep = getCalculatedTotalDeposit(userData);
-    const isUnlocked = totalDep >= 300;
-    const remAmt = Math.max(0, 300 - totalDep);
-    const pct = Math.min(100, Math.round((totalDep / 300) * 100));
-
-    document.getElementById("depProgressText").innerText = `Total Deposited: ₹${totalDep} / ₹300 (₹${remAmt} aur baki)`;
-    document.getElementById("depProgFill").style.width = pct + "%";
-
+    const isUnlocked = userData.hasDeposited === true;
     document.getElementById("wdLockMsg").style.display = isUnlocked ? "none" : "block";
     document.getElementById("wdInput").disabled = !isUnlocked;
     document.getElementById("upiId").disabled = !isUnlocked;
     document.getElementById("wdBtn").disabled = !isUnlocked;
-    document.getElementById("wdBtn").innerText = isUnlocked ? "REQUEST WITHDRAWAL" : `🔒 DEPOSIT ₹${remAmt} MORE TO UNLOCK`;
+    document.getElementById("wdBtn").innerText = isUnlocked ? "REQUEST WITHDRAWAL" : "🔒 DEPOSIT TO UNLOCK";
 
     const txns = Array.isArray(userData.txns) ? userData.txns : [];
     document.getElementById("txnList").innerHTML = txns.map(t => `
@@ -212,7 +184,7 @@
 
   document.getElementById("genQrBtn").addEventListener("click", async () => {
     const baseAmt = parseInt(document.getElementById("depInput").value);
-    if (!baseAmt || baseAmt < 100) return alert("Minimum deposit ₹100 hai!");
+    if (!baseAmt || baseAmt < 1) return alert("Minimum deposit ₹1 hai!");
 
     const randPaise = String(Math.floor(Math.random() * 89) + 11);
     const exactAmt = `${baseAmt}.${randPaise}`;
@@ -274,14 +246,9 @@
               date: nowStr
             });
 
-            const prevTotalDep = getCalculatedTotalDeposit(userData);
-            const newTotalDep = prevTotalDep + baseAmt;
-            const unlockWd = newTotalDep >= 300;
-
             await update(userRef, {
               depositBal: Number((userData && userData.depositBal) || 0) + baseAmt,
-              totalDeposited: newTotalDep,
-              hasDeposited: unlockWd,
+              hasDeposited: true,
               txns: txns.slice(0, 30)
             });
 
@@ -315,9 +282,8 @@
 
   document.getElementById("wdBtn").addEventListener("click", async () => {
     if (!userData || !userData.name) return;
-    const totalDep = getCalculatedTotalDeposit(userData);
-    if (totalDep < 300) {
-      return alert(`Withdrawal unlock karne ke liye total ₹300 deposit zaroori hai! Aapne abhi tak ₹${totalDep} deposit kiya hai.`);
+    if (userData.hasDeposited !== true) {
+      return alert("Withdrawal unlock karne ke liye pehle deposit karein!");
     }
 
     let amt = parseInt(document.getElementById("wdInput").value);
