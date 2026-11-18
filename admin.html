@@ -136,6 +136,14 @@
         <option value="75">75% (Promo)</option>
       </select>
 
+      <label style="font-size:12px; color:#ccc;">🎨 Color Trading 3D (%):</label>
+      <select id="rate_color">
+        <option value="20">20% (High Profit)</option>
+        <option value="35" selected>35% (Balanced)</option>
+        <option value="50">50% (Medium)</option>
+        <option value="75">75% (Promo)</option>
+      </select>
+
       <button type="button" class="btn btn-gold" style="margin-top:6px;" onclick="saveSettings()">SAVE ALL GAME RATES</button>
     </div>
   </div>
@@ -286,7 +294,7 @@
             <div class="qr-popup" id="qrBox_${k}">
               <div style="font-size:11px; color:#ffd700;">Paytm/PhonePe se Scan karein ya Screenshot lekar Scan from Gallery karein:</div>
               <img id="qrImg_${k}" src="" alt="QR">
-              <div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div>
+              <div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount \vert{}\vert{} 0} →${w.upi || ''}</div>
             </div>
             <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
             <div style="display:flex; gap:8px;">
@@ -390,6 +398,7 @@
         if (ratesData.chicken) document.getElementById("rate_chicken").value = ratesData.chicken;
         if (ratesData.car) document.getElementById("rate_car").value = ratesData.car;
         if (ratesData.dice) document.getElementById("rate_dice").value = ratesData.dice;
+        if (ratesData.color) document.getElementById("rate_color").value = ratesData.color;
       }
     } catch (e) {
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
@@ -470,7 +479,8 @@
       aviator: Number(document.getElementById("rate_aviator").value),
       chicken: Number(document.getElementById("rate_chicken").value),
       car: Number(document.getElementById("rate_car").value),
-      dice: Number(document.getElementById("rate_dice").value)
+      dice: Number(document.getElementById("rate_dice").value),
+      color: Number(document.getElementById("rate_color").value)
     };
     await dbPut("settings/rates", rates);
     await dbPut("settings/winRate", rates.slot);
