@@ -203,7 +203,8 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-        fetch(`${DB_URL}/settings/winRate.json?t=${Date.now()}`)
+              fetch(`${DB_URL}/settings/rates/chicken.json?t=${Date.now()}`)
+       
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
