@@ -20,11 +20,11 @@
   .arena-3d {
     position: relative;
     width: 100%;
-    height: 265px;
+    height: 270px;
     border-radius: 16px;
     border: 2px solid #2e384d;
     overflow: hidden;
-    background: linear-gradient(180deg, #0b132b 0%, #1c2541 40%, #1f242d 100%);
+    background: #141923;
     margin-bottom: 8px;
     box-shadow: inset 0 0 30px rgba(0,0,0,0.75);
   }
@@ -35,11 +35,11 @@
     pointer-events: none;
   }
   .hud-badge {
-    background: rgba(15, 20, 32, 0.85); border: 1px solid #3b4661;
+    background: rgba(15, 20, 32, 0.88); border: 1px solid #3b4661;
     padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; color: #fde047;
   }
   .hud-mult {
-    background: rgba(40, 224, 77, 0.18); border: 1px solid #28e04d;
+    background: rgba(40, 224, 77, 0.22); border: 1px solid #28e04d;
     padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; color: #4ade80;
   }
 
@@ -123,7 +123,7 @@
 
   <!-- 3D Highway Canvas Arena -->
   <div class="arena-3d">
-    <canvas id="road3dCanvas" width="420" height="265"></canvas>
+    <canvas id="road3dCanvas" width="420" height="270"></canvas>
     <div class="hud-top">
       <div class="hud-badge" id="modeBadge">MODE: EASY</div>
       <div class="hud-mult" id="curMultBadge">1.00x</div>
@@ -218,7 +218,7 @@
   syncUser();
 
   // ==========================================
-  // REAL-TIME WEB AUDIO SOUND SYNTHESIZER
+  // WEB AUDIO SOUND EFFECTS
   // ==========================================
   let soundEnabled = true;
   let audioCtx = null;
@@ -226,9 +226,9 @@
   function ensureAudio() {
     if (!audioCtx) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioContext();
+      if (AudioContext) audioCtx = new AudioContext();
     }
-    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
 
   function toggleSound() {
@@ -240,28 +240,27 @@
     if (!soundEnabled) return;
     try {
       ensureAudio();
+      if (!audioCtx) return;
       const now = audioCtx.currentTime;
 
       if (type === "jump") {
-        // Chicken hop + cluck chirp
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(280, now);
-        osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
-        gain.gain.setValueAtTime(0.22, now);
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.14);
+        gain.gain.setValueAtTime(0.24, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.16);
       } else if (type === "coin") {
-        // Golden multiplier chime
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(880, now);
-        osc.frequency.setValueAtTime(1320, now + 0.08);
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.setValueAtTime(1380, now + 0.08);
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
         osc.connect(gain);
@@ -269,20 +268,18 @@
         osc.start(now);
         osc.stop(now + 0.25);
       } else if (type === "horn") {
-        // Car horn whoosh
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(340, now);
-        osc.frequency.linearRampToValueAtTime(290, now + 0.22);
+        osc.frequency.linearRampToValueAtTime(290, now + 0.2);
         gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.24);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.24);
+        osc.stop(now + 0.22);
       } else if (type === "crash") {
-        // Car horn + heavy crash thud
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -302,7 +299,6 @@
         osc1.stop(now + 0.48);
         osc2.stop(now + 0.48);
       } else if (type === "win") {
-        // Cashout victory fanfare
         [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
@@ -338,29 +334,30 @@
   let crashedStep = -1;
   let killerCar = null;
 
-  // Ambient 3D Traffic Cars running along the highway lanes
   const CAR_TYPES = [
-    { body: "#ef4444", roof: "#fca5a5", type: "SPORTS" },
-    { body: "#3b82f6", roof: "#93c5fd", type: "SEDAN" },
-    { body: "#f59e0b", roof: "#fde68a", type: "TAXI" },
-    { body: "#10b981", roof: "#6ee7b7", type: "SUV" },
-    { body: "#a855f7", roof: "#e9d5ff", type: "VAN" }
+    { body: "#ef4444", roof: "#fca5a5" },
+    { body: "#3b82f6", roof: "#93c5fd" },
+    { body: "#f59e0b", roof: "#fde68a" },
+    { body: "#10b981", roof: "#6ee7b7" },
+    { body: "#a855f7", roof: "#e9d5ff" }
   ];
-  let ambientCars = [];
+  let ambientCars = [
+    { lane: 1, z: 0.22, speed: 0.013, style: CAR_TYPES[0] },
+    { lane: 3, z: 0.58, speed: 0.015, style: CAR_TYPES[2] },
+    { lane: 4, z: 0.10, speed: 0.012, style: CAR_TYPES[1] }
+  ];
 
   function spawnAmbientCar() {
     const mults = MODES[currentMode].mults;
     const laneIdx = Math.floor(Math.random() * mults.length) + 1;
-    // Do not spawn on chicken's current safe lane while active
     if (isGameActive && laneIdx === currentStep) return;
-    // Avoid overlapping cars in same lane
-    if (ambientCars.some(c => c.lane === laneIdx && c.z < 0.35)) return;
+    if (ambientCars.some(c => c.lane === laneIdx && c.z < 0.38)) return;
 
     const style = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
     ambientCars.push({
       lane: laneIdx,
-      z: -0.1, // 0 = far horizon, 1 = bottom foreground
-      speed: 0.011 + Math.random() * 0.008,
+      z: -0.05,
+      speed: 0.012 + Math.random() * 0.008,
       style
     });
   }
@@ -375,7 +372,10 @@
     killerCar = null;
     currentStep = 0;
     visualStep = 0;
-    ambientCars = [];
+    ambientCars = [
+      { lane: 1, z: 0.25, speed: 0.013, style: CAR_TYPES[0] },
+      { lane: 2, z: 0.62, speed: 0.015, style: CAR_TYPES[2] }
+    ];
   }
 
   function adjBet(delta) {
@@ -389,19 +389,32 @@
   }
 
   // ==========================================
-  // 3D PERSPECTIVE HIGHWAY RENDERER (CANVAS)
+  // 3D HIGHWAY RENDERER (100% COMPATIBLE)
   // ==========================================
   const canvas = document.getElementById("road3dCanvas");
   const ctx = canvas.getContext("2d");
 
-  // Project 3D world coordinates (laneOffset relative to camera, depth z: 0=far, 1=near) to 2D screen
+  function drawRoundedBox(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
   function project3D(laneWorldX, z) {
-    const horizonY = 58;
-    const groundY = 252;
-    const persp = 0.36 + 0.64 * z; // Perspective scaling from horizon to foreground
-    const screenY = horizonY + (groundY - horizonY) * Math.pow(z, 1.15);
-    const laneScreenWidth = 92 * persp;
-    const cameraCenterScreenX = 115;
+    const horizonY = 56;
+    const groundY = 258;
+    const persp = 0.36 + 0.64 * z;
+    const screenY = horizonY + (groundY - horizonY) * Math.pow(Math.max(0, z), 1.12);
+    const laneScreenWidth = 94 * persp;
+    const cameraCenterScreenX = 110;
     const screenX = cameraCenterScreenX + (laneWorldX - visualStep) * laneScreenWidth;
     return { x: screenX, y: screenY, scale: persp, w: laneScreenWidth };
   }
@@ -411,51 +424,49 @@
     const p = project3D(car.lane, z);
     if (p.x < -80 || p.x > canvas.width + 80) return;
 
-    const w = 52 * p.scale;
-    const h = 36 * p.scale;
+    const w = 54 * p.scale;
+    const h = 38 * p.scale;
     const x = p.x - w / 2;
     const y = p.y - h;
 
     ctx.save();
-    // Ground Shadow
+    // Shadow
     ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
     ctx.beginPath();
     ctx.ellipse(p.x, p.y + 2 * p.scale, w * 0.58, 7 * p.scale, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Lower Car Bumper / Chassis
+    // Car Body
     ctx.fillStyle = car.style.body;
-    ctx.beginPath();
-    ctx.roundRect(x, y + h * 0.35, w, h * 0.55, 6 * p.scale);
+    drawRoundedBox(x, y + h * 0.35, w, h * 0.55, 6 * p.scale);
     ctx.fill();
 
-    // Cabin / Windshield
+    // Car Roof
     ctx.fillStyle = car.style.roof;
-    ctx.beginPath();
-    ctx.roundRect(x + w * 0.14, y + h * 0.05, w * 0.72, h * 0.38, 5 * p.scale);
+    drawRoundedBox(x + w * 0.14, y + h * 0.05, w * 0.72, h * 0.38, 5 * p.scale);
     ctx.fill();
 
-    // Dark Front Glass
+    // Windshield
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(x + w * 0.2, y + h * 0.12, w * 0.6, h * 0.24);
 
-    // Glowing Headlights + Light Beams
+    // Headlights
     ctx.fillStyle = "#fef08a";
     ctx.beginPath();
     ctx.arc(x + w * 0.18, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
     ctx.arc(x + w * 0.82, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
     ctx.fill();
 
-    // Headlight Cone
-    const beamGrad = ctx.createLinearGradient(p.x, y + h * 0.62, p.x, p.y + 26 * p.scale);
-    beamGrad.addColorStop(0, "rgba(254, 240, 138, 0.38)");
+    // Headlight Beam
+    const beamGrad = ctx.createLinearGradient(p.x, y + h * 0.62, p.x, p.y + 28 * p.scale);
+    beamGrad.addColorStop(0, "rgba(254, 240, 138, 0.42)");
     beamGrad.addColorStop(1, "rgba(254, 240, 138, 0)");
     ctx.fillStyle = beamGrad;
     ctx.beginPath();
     ctx.moveTo(x + w * 0.1, y + h * 0.62);
     ctx.lineTo(x + w * 0.9, y + h * 0.62);
-    ctx.lineTo(x + w * 1.15, p.y + 26 * p.scale);
-    ctx.lineTo(x - w * 0.15, p.y + 26 * p.scale);
+    ctx.lineTo(x + w * 1.15, p.y + 28 * p.scale);
+    ctx.lineTo(x - w * 0.15, p.y + 28 * p.scale);
     ctx.closePath();
     ctx.fill();
 
@@ -469,221 +480,217 @@
   function draw3DChicken(stepX, jumpHeight, isSquashed) {
     const z = 0.76;
     const p = project3D(stepX, z);
-    const s = p.scale * 1.15;
+    const s = p.scale * 1.28;
     const cx = p.x;
-    const cy = p.y - jumpHeight * s;
+    const bob = Math.sin(Date.now() / 180) * 2.5;
+    const cy = p.y - jumpHeight * s + (isSquashed ? 0 : bob);
 
     ctx.save();
-    // Shadow under chicken
-    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    // Ground Shadow
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.beginPath();
-    ctx.ellipse(cx, p.y + 3 * s, 18 * s, 6 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, p.y + 4 * s, 20 * s, 7 * s, 0, 0, Math.PI * 2);
     ctx.fill();
 
     if (isSquashed) {
-      ctx.font = `${Math.round(34 * s)}px Arial`;
+      ctx.font = `${Math.round(38 * s)}px Arial`;
       ctx.textAlign = "center";
-      ctx.fillText("💥", cx, cy - 6 * s);
-      ctx.font = `${Math.round(26 * s)}px Arial`;
-      ctx.fillText("🍗", cx, cy + 4 * s);
+      ctx.fillText("💥", cx, cy - 8 * s);
+      ctx.font = `${Math.round(30 * s)}px Arial`;
+      ctx.fillText("🍗", cx, cy + 6 * s);
       ctx.restore();
       return;
     }
 
-    // 3D Layered Chicken Body
+    // Orange Feet
+    ctx.strokeStyle = "#f97316";
+    ctx.lineWidth = 3 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx - 5 * s, cy - 5 * s);
+    ctx.lineTo(cx - 5 * s, cy + 3 * s);
+    ctx.moveTo(cx + 5 * s, cy - 5 * s);
+    ctx.lineTo(cx + 5 * s, cy + 3 * s);
+    ctx.stroke();
+
+    // Chicken Body
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 16 * s, 15 * s, 13 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy - 18 * s, 17 * s, 14 * s, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#cbd5e1";
+    ctx.strokeStyle = "#94a3b8";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // Chicken Head
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(cx + 6 * s, cy - 29 * s, 9.5 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 7 * s, cy - 32 * s, 10.5 * s, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
-    // Red Comb on Top
+    // Red Comb
     ctx.fillStyle = "#ef4444";
     ctx.beginPath();
-    ctx.arc(cx + 4 * s, cy - 39 * s, 4 * s, 0, Math.PI * 2);
-    ctx.arc(cx + 9 * s, cy - 38 * s, 3.5 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 4 * s, cy - 43 * s, 4.5 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 10 * s, cy - 42 * s, 4 * s, 0, Math.PI * 2);
     ctx.fill();
 
     // Yellow Beak
     ctx.fillStyle = "#f59e0b";
     ctx.beginPath();
-    ctx.moveTo(cx + 14 * s, cy - 30 * s);
-    ctx.lineTo(cx + 22 * s, cy - 27 * s);
-    ctx.lineTo(cx + 14 * s, cy - 24 * s);
+    ctx.moveTo(cx + 16 * s, cy - 33 * s);
+    ctx.lineTo(cx + 25 * s, cy - 30 * s);
+    ctx.lineTo(cx + 16 * s, cy - 27 * s);
     ctx.closePath();
     ctx.fill();
 
     // Eye
     ctx.fillStyle = "#0f172a";
     ctx.beginPath();
-    ctx.arc(cx + 10 * s, cy - 30 * s, 2.2 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 11 * s, cy - 33 * s, 2.4 * s, 0, Math.PI * 2);
     ctx.fill();
 
     // Wing
     ctx.fillStyle = "#e2e8f0";
     ctx.beginPath();
-    ctx.ellipse(cx - 3 * s, cy - 15 * s, 8 * s, 5 * s, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(cx - 3 * s, cy - 17 * s, 9 * s, 5.5 * s, -0.3, 0, Math.PI * 2);
     ctx.fill();
-
-    // Orange Feet
-    ctx.strokeStyle = "#f97316";
-    ctx.lineWidth = 2.5 * s;
-    ctx.beginPath();
-    ctx.moveTo(cx - 4 * s, cy - 4 * s);
-    ctx.lineTo(cx - 4 * s, cy + 2 * s);
-    ctx.moveTo(cx + 5 * s, cy - 4 * s);
-    ctx.lineTo(cx + 5 * s, cy + 2 * s);
-    ctx.stroke();
 
     ctx.restore();
   }
 
   function render3DScene() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    try {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Smooth camera follow
-    visualStep += (currentStep - visualStep) * 0.16;
-    if (hopAnim > 0) hopAnim = Math.max(0, hopAnim - 0.08);
+      visualStep += (currentStep - visualStep) * 0.18;
+      if (hopAnim > 0) hopAnim = Math.max(0, hopAnim - 0.08);
 
-    const horizonY = 58;
-    const groundY = 265;
-    const mults = MODES[currentMode].mults;
+      const horizonY = 56;
+      const groundY = 270;
+      const mults = MODES[currentMode].mults;
 
-    // 1. Night City Skyline & Horizon Glow
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-    skyGrad.addColorStop(0, "#090d1a");
-    skyGrad.addColorStop(1, "#1e293b");
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, canvas.width, horizonY);
+      // 1. Sky & Buildings
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+      skyGrad.addColorStop(0, "#090d1a");
+      skyGrad.addColorStop(1, "#1e293b");
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvas.width, horizonY);
 
-    // Distant City Buildings
-    ctx.fillStyle = "#0f172a";
-    for (let bx = 0; bx < canvas.width; bx += 34) {
-      const bh = 14 + ((bx * 7) % 24);
-      ctx.fillRect(bx, horizonY - bh, 28, bh);
-    }
-
-    // 2. Asphalt 3D Ground Plane
-    const roadGrad = ctx.createLinearGradient(0, horizonY, 0, groundY);
-    roadGrad.addColorStop(0, "#181c26");
-    roadGrad.addColorStop(1, "#262c3a");
-    ctx.fillStyle = roadGrad;
-    ctx.fillRect(0, horizonY, canvas.width, groundY - horizonY);
-
-    // 3. Draw Safe Start Sidewalk (Lane 0) & Road Lanes (1..N)
-    for (let i = 0; i <= mults.length + 1; i++) {
-      const farLeft = project3D(i - 0.5, 0);
-      const farRight = project3D(i + 0.5, 0);
-      const nearLeft = project3D(i - 0.5, 1);
-      const nearRight = project3D(i + 0.5, 1);
-
-      if (nearRight.x < -50 || nearLeft.x > canvas.width + 50) continue;
-
-      // Lane Surface Polygon
-      ctx.beginPath();
-      ctx.moveTo(farLeft.x, farLeft.y);
-      ctx.lineTo(farRight.x, farRight.y);
-      ctx.lineTo(nearRight.x, nearRight.y);
-      ctx.lineTo(nearLeft.x, nearLeft.y);
-      ctx.closePath();
-
-      if (i === 0) {
-        ctx.fillStyle = "#2d3548"; // Safe curb
-      } else if (i === mults.length + 1) {
-        ctx.fillStyle = "#713f12"; // Golden Finish Zone
-      } else if (crashedStep === i) {
-        ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
-      } else if (i <= currentStep) {
-        ctx.fillStyle = "rgba(40, 224, 77, 0.14)";
-      } else {
-        ctx.fillStyle = (i % 2 === 0) ? "#1f2430" : "#242a38";
+      ctx.fillStyle = "#0f172a";
+      for (let bx = 0; bx < canvas.width; bx += 34) {
+        const bh = 14 + ((bx * 7) % 24);
+        ctx.fillRect(bx, horizonY - bh, 28, bh);
       }
-      ctx.fill();
 
-      // Perspective Dashed Lane Divider
-      ctx.strokeStyle = i === 0 ? "#fbbf24" : "rgba(255, 255, 255, 0.25)";
-      ctx.lineWidth = i === 0 ? 2.5 : 1.5;
-      ctx.setLineDash(i === 0 ? [] : [8, 8]);
-      ctx.beginPath();
-      ctx.moveTo(farRight.x, farRight.y);
-      ctx.lineTo(nearRight.x, nearRight.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      // 2. 3D Road Ground
+      const roadGrad = ctx.createLinearGradient(0, horizonY, 0, groundY);
+      roadGrad.addColorStop(0, "#181c26");
+      roadGrad.addColorStop(1, "#262c3a");
+      ctx.fillStyle = roadGrad;
+      ctx.fillRect(0, horizonY, canvas.width, groundY - horizonY);
 
-      // 3D Perspective Manhole Multiplier Coin on the Road
-      if (i >= 1 && i <= mults.length) {
-        const coinPos = project3D(i, 0.76);
-        const rx = 25 * coinPos.scale;
-        const ry = 13 * coinPos.scale;
+      // 3. Draw Lanes & Multiplier Coins
+      for (let i = 0; i <= mults.length + 1; i++) {
+        const farLeft = project3D(i - 0.5, 0);
+        const farRight = project3D(i + 0.5, 0);
+        const nearLeft = project3D(i - 0.5, 1);
+        const nearRight = project3D(i + 0.5, 1);
 
-        ctx.save();
-        // 3D Coin Thickness Rim
-        ctx.fillStyle = i <= currentStep ? "#15803d" : (i === currentStep + 1 && isGameActive ? "#b45309" : "#334155");
+        if (nearRight.x < -50 || nearLeft.x > canvas.width + 50) continue;
+
         ctx.beginPath();
-        ctx.ellipse(coinPos.x, coinPos.y + 4 * coinPos.scale, rx, ry, 0, 0, Math.PI * 2);
+        ctx.moveTo(farLeft.x, farLeft.y);
+        ctx.lineTo(farRight.x, farRight.y);
+        ctx.lineTo(nearRight.x, nearRight.y);
+        ctx.lineTo(nearLeft.x, nearLeft.y);
+        ctx.closePath();
+
+        if (i === 0) {
+          ctx.fillStyle = "#2d3548";
+        } else if (i === mults.length + 1) {
+          ctx.fillStyle = "#713f12";
+        } else if (crashedStep === i) {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
+        } else if (i <= currentStep) {
+          ctx.fillStyle = "rgba(40, 224, 77, 0.16)";
+        } else {
+          ctx.fillStyle = (i % 2 === 0) ? "#1f2430" : "#242a38";
+        }
         ctx.fill();
 
-        // Coin Top Face
-        ctx.fillStyle = crashedStep === i ? "#991b1b" : (i <= currentStep ? "#166534" : (i === currentStep + 1 && isGameActive ? "#451a03" : "#1e293b"));
-        ctx.strokeStyle = crashedStep === i ? "#ef4444" : (i <= currentStep ? "#4ade80" : (i === currentStep + 1 && isGameActive ? "#fbbf24" : "#64748b"));
-        ctx.lineWidth = 2 * coinPos.scale;
+        // Lane Divider Line
+        ctx.strokeStyle = i === 0 ? "#fbbf24" : "rgba(255, 255, 255, 0.28)";
+        ctx.lineWidth = i === 0 ? 2.5 : 1.5;
+        ctx.setLineDash(i === 0 ? [] : [8, 8]);
         ctx.beginPath();
-        ctx.ellipse(coinPos.x, coinPos.y, rx, ry, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(farRight.x, farRight.y);
+        ctx.lineTo(nearRight.x, nearRight.y);
         ctx.stroke();
+        ctx.setLineDash([]);
 
-        // Multiplier Text
-        ctx.fillStyle = i <= currentStep ? "#bbf7d0" : "#fde047";
-        ctx.font = `bold ${Math.max(9, Math.round(11 * coinPos.scale))}px Segoe UI`;
-        ctx.textAlign = "center";
-        ctx.fillText(mults[i - 1].toFixed(2) + "x", coinPos.x, coinPos.y + 3 * coinPos.scale);
-        ctx.restore();
-      } else if (i === mults.length + 1) {
-        const finPos = project3D(i, 0.72);
-        ctx.font = `${Math.round(28 * finPos.scale)}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText("🏆", finPos.x, finPos.y);
+        if (i >= 1 && i <= mults.length) {
+          const coinPos = project3D(i, 0.76);
+          const rx = 26 * coinPos.scale;
+          const ry = 14 * coinPos.scale;
+
+          ctx.save();
+          ctx.fillStyle = i <= currentStep ? "#15803d" : (i === currentStep + 1 && isGameActive ? "#b45309" : "#334155");
+          ctx.beginPath();
+          ctx.ellipse(coinPos.x, coinPos.y + 4 * coinPos.scale, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = crashedStep === i ? "#991b1b" : (i <= currentStep ? "#166534" : (i === currentStep + 1 && isGameActive ? "#451a03" : "#1e293b"));
+          ctx.strokeStyle = crashedStep === i ? "#ef4444" : (i <= currentStep ? "#4ade80" : (i === currentStep + 1 && isGameActive ? "#fbbf24" : "#64748b"));
+          ctx.lineWidth = 2 * coinPos.scale;
+          ctx.beginPath();
+          ctx.ellipse(coinPos.x, coinPos.y, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = i <= currentStep ? "#bbf7d0" : "#fde047";
+          ctx.font = `bold ${Math.max(9, Math.round(11 * coinPos.scale))}px Segoe UI`;
+          ctx.textAlign = "center";
+          ctx.fillText(mults[i - 1].toFixed(2) + "x", coinPos.x, coinPos.y + 3 * coinPos.scale);
+          ctx.restore();
+        } else if (i === mults.length + 1) {
+          const finPos = project3D(i, 0.72);
+          ctx.font = `${Math.round(28 * finPos.scale)}px Arial`;
+          ctx.textAlign = "center";
+          ctx.fillText("🏆", finPos.x, finPos.y);
+        }
       }
-    }
 
-    // 4. Update & Draw 3D Traffic Cars (Sorted Back-to-Front by depth Z)
-    if (Math.random() < 0.045) spawnAmbientCar();
-    ambientCars.forEach(c => {
-      c.z += c.speed;
-      // Play subtle passing horn when car zooms close to player
-      if (!c.honked && c.z > 0.65 && Math.abs(c.lane - currentStep) <= 1) {
-        c.honked = true;
-        if (Math.random() < 0.35) playSound("horn");
-      }
-    });
-    ambientCars = ambientCars.filter(c => c.z < 1.25);
+      // 4. Update & Draw Cars + Chicken
+      if (Math.random() < 0.05) spawnAmbientCar();
+      ambientCars.forEach(c => {
+        c.z += c.speed;
+        if (!c.honked && c.z > 0.65 && Math.abs(c.lane - currentStep) <= 1) {
+          c.honked = true;
+          if (Math.random() < 0.35) playSound("horn");
+        }
+      });
+      ambientCars = ambientCars.filter(c => c.z < 1.25);
 
-    const renderQueue = [];
-    ambientCars.forEach(c => renderQueue.push({ type: "car", z: c.z, obj: c }));
-    if (killerCar) renderQueue.push({ type: "killer", z: killerCar.z, obj: killerCar });
-    renderQueue.push({ type: "chicken", z: 0.76 });
+      const renderQueue = [];
+      ambientCars.forEach(c => renderQueue.push({ type: "car", z: c.z, obj: c }));
+      if (killerCar) renderQueue.push({ type: "killer", z: killerCar.z, obj: killerCar });
+      renderQueue.push({ type: "chicken", z: 0.76 });
 
-    renderQueue.sort((a, b) => a.z - b.z);
+      renderQueue.sort((a, b) => a.z - b.z);
 
-    renderQueue.forEach(item => {
-      if (item.type === "car") {
-        draw3DCar(item.obj);
-      } else if (item.type === "killer") {
-        if (item.obj.z < 0.78) item.obj.z += 0.065;
-        draw3DCar(item.obj, item.obj.z);
-      } else if (item.type === "chicken") {
-        const jumpArc = Math.sin(hopAnim * Math.PI) * 34;
-        draw3DChicken(visualStep, jumpArc, crashedStep !== -1);
-      }
-    });
+      renderQueue.forEach(item => {
+        if (item.type === "car") {
+          draw3DCar(item.obj);
+        } else if (item.type === "killer") {
+          if (item.obj.z < 0.78) item.obj.z += 0.065;
+          draw3DCar(item.obj, item.obj.z);
+        } else if (item.type === "chicken") {
+          const jumpArc = Math.sin(hopAnim * Math.PI) * 36;
+          draw3DChicken(visualStep, jumpArc, crashedStep !== -1);
+        }
+      });
+    } catch (err) {}
 
     requestAnimationFrame(render3DScene);
   }
@@ -747,7 +754,6 @@
     const nextStep = currentStep + 1;
     if (nextStep > mults.length) return;
 
-    // Clear ambient cars from target lane so crash animation is clean
     ambientCars = ambientCars.filter(c => c.lane !== nextStep);
 
     const baseFail = MODES[currentMode].baseFail;
@@ -755,7 +761,6 @@
     const failProb = Math.min(0.75, Math.max(0.08, baseFail * adminFactor));
 
     if (Math.random() < failProb) {
-      // Speeding 3D Car hits chicken!
       currentStep = nextStep;
       hopAnim = 1.0;
       crashedStep = nextStep;
@@ -771,7 +776,6 @@
       return;
     }
 
-    // Safe Jump!
     currentStep = nextStep;
     hopAnim = 1.0;
     playSound("jump");
@@ -852,7 +856,7 @@
     document.getElementById("activeBtnsWrap").style.display = "none";
   }
 
-  // Hybrid Live Feed (Bots + Real Players)
+  // Hybrid Live Feed
   const BOTS = ["r***9", "s***2", "a***7", "m***4", "k***1", "v***8", "p***5", "d***3", "n***6", "t***0"];
   let liveFeedData = [
     { name: "r***9", bet: 500, mult: "2.48x", win: 1240, isMe: false },
