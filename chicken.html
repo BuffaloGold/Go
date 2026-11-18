@@ -3,213 +3,104 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chicken Road - Buffalo Gold</title>
+<title>3D Chicken Road - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-  body { background: #0e1015; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
-  .app { width: 100%; max-width: 440px; background: #141720; min-height: 100vh; padding: 10px; }
+  body { background: #090b10; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
+  .app { width: 100%; max-width: 440px; background: #11151f; min-height: 100vh; padding: 10px; }
 
   /* Header */
-  .header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #1c202b; border-radius: 12px; margin-bottom: 10px; border: 1px solid #2b3142; }
-  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 18px; color: #ffbe0b; letter-spacing: 0.5px; }
-  .bal-pill { background: #262b38; border: 1px solid #3c4459; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a202e; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2c354a; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #ffbe0b; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .sound-btn { background: #262e42; border: 1px solid #3d4966; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #232a3b; border: 1px solid #3c4863; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
 
-  /* Highway Road Arena */
-  .road-arena {
+  /* 3D Canvas Arena */
+  .arena-3d {
     position: relative;
     width: 100%;
-    height: 235px;
-    background: linear-gradient(180deg, #1b1f29 0%, #242936 100%);
+    height: 265px;
     border-radius: 16px;
-    border: 2px solid #2f3646;
+    border: 2px solid #2e384d;
     overflow: hidden;
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
+    background: linear-gradient(180deg, #0b132b 0%, #1c2541 40%, #1f242d 100%);
+    margin-bottom: 8px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.75);
   }
-  .road-sky {
-    height: 36px;
-    background: #13161f;
-    border-bottom: 2px solid #384052;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 12px;
-    font-size: 11px;
-    color: #9ca3af;
+  canvas { width: 100%; height: 100%; display: block; }
+  .hud-top {
+    position: absolute; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none;
   }
-  .lanes-viewport {
-    flex: 1;
-    display: flex;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    position: relative;
+  .hud-badge {
+    background: rgba(15, 20, 32, 0.85); border: 1px solid #3b4661;
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; color: #fde047;
   }
-  .lanes-viewport::-webkit-scrollbar { display: none; }
-
-  /* Safe Start Curb */
-  .start-zone {
-    min-width: 78px;
-    background: repeating-linear-gradient(45deg, #272c38, #272c38 10px, #1f232e 10px, #1f232e 20px);
-    border-right: 3px dashed #fbbf24;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-  .start-tag { font-size: 10px; font-weight: 800; color: #fbbf24; position: absolute; top: 8px; }
-
-  /* Individual Road Lane */
-  .lane {
-    min-width: 86px;
-    height: 100%;
-    background: #232834;
-    border-right: 2px dashed rgba(255, 255, 255, 0.22);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 4px 16px;
-    position: relative;
-    transition: background 0.25s;
-  }
-  .lane.passed { background: rgba(40, 224, 77, 0.12); }
-  .lane.current { background: rgba(255, 190, 11, 0.16); box-shadow: inset 0 0 18px rgba(255, 190, 11, 0.25); }
-  .lane.burned { background: rgba(239, 68, 68, 0.25); }
-
-  /* Golden Manhole Multiplier Coin */
-  .manhole {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #3a4152, #1c2029);
-    border: 3px solid #4b5563;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 13px;
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
-    z-index: 2;
-  }
-  .lane.next-target .manhole {
-    border-color: #fbbf24;
-    background: radial-gradient(circle at 30% 30%, #4d3e14, #261e08);
-    color: #fde047;
-    animation: pulseCoin 1.1s infinite;
-  }
-  .lane.passed .manhole {
-    border-color: #28e04d;
-    background: #14532d;
-    color: #86efac;
-  }
-  .lane.burned .manhole {
-    border-color: #ef4444;
-    background: #7f1d1d;
-    color: #fca5a5;
-  }
-  @keyframes pulseCoin {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.07); }
-  }
-
-  /* Golden Finish Trophy Lane */
-  .finish-zone {
-    min-width: 92px;
-    background: linear-gradient(180deg, #422006, #713f12);
-    border-left: 3px solid #ffd700;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  /* Chicken Character */
-  .chicken-sprite {
-    font-size: 38px;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.8));
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 5;
-  }
-  .chicken-hop { transform: translateY(-12px) scale(1.12); }
-
-  /* Traffic Car Animation */
-  .car-hazard {
-    position: absolute;
-    top: -45px;
-    font-size: 32px;
-    z-index: 4;
-    transition: top 0.35s ease-in;
+  .hud-mult {
+    background: rgba(40, 224, 77, 0.18); border: 1px solid #28e04d;
+    padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; color: #4ade80;
   }
 
   /* Status Banner */
   .game-banner {
-    background: #1c202b;
-    border: 1px solid #2f3646;
-    border-radius: 10px;
-    padding: 7px 12px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: bold;
-    color: #fde047;
-    margin-bottom: 10px;
+    background: #1a202e; border: 1px solid #2d364a; border-radius: 10px;
+    padding: 7px 10px; text-align: center; font-size: 12px; font-weight: bold;
+    color: #fde047; margin-bottom: 8px;
   }
 
   /* Control Deck */
-  .deck { background: #1c202b; border: 1px solid #2b3142; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
-  .diff-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+  .deck { background: #1a202e; border: 1px solid #2c354a; border-radius: 16px; padding: 11px; margin-bottom: 10px; }
+  .diff-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 9px; }
   .diff-btn {
-    background: #13161f; border: 1px solid #2f3646; color: #9ca3af;
+    background: #11151f; border: 1px solid #2d364a; color: #9ca3af;
     padding: 7px 2px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer;
   }
-  .diff-btn.active { background: #2b3244; color: #fff; border-color: #fbbf24; }
-  .diff-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .diff-btn.active { background: #293247; color: #fff; border-color: #fbbf24; }
+  .diff-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-  .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #12151c; border: 1px solid #2f3646; border-radius: 12px; padding: 6px 10px; }
-  .step-btn { width: 26px; height: 26px; border-radius: 8px; border: 1px solid #3f475c; background: #222734; color: #fff; font-weight: bold; cursor: pointer; }
-  .bet-inp { background: transparent; border: none; color: #fff; font-size: 16px; font-weight: 800; width: 75px; text-align: center; outline: none; }
+  .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
+  .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #10141d; border: 1px solid #2d364a; border-radius: 12px; padding: 5px 10px; }
+  .step-btn { width: 26px; height: 26px; border-radius: 8px; border: 1px solid #3f4a63; background: #22293a; color: #fff; font-weight: bold; cursor: pointer; }
+  .bet-inp { background: transparent; border: none; color: #fff; font-size: 16px; font-weight: 800; width: 70px; text-align: center; outline: none; }
   .quick-chips { display: flex; gap: 5px; }
-  .q-chip { background: #252b3a; border: none; color: #cbd5e1; padding: 8px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .q-chip { background: #232a3b; border: none; color: #cbd5e1; padding: 8px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
   .action-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-  .action-grid.dual { grid-template-columns: 1fr 1.2fr; }
+  .action-grid.dual { grid-template-columns: 1fr 1.25fr; }
   .btn-play {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
-    background: linear-gradient(180deg, #28e04d, #159932);
+    width: 100%; padding: 13px; border: none; border-radius: 12px;
+    background: linear-gradient(180deg, #28e04d, #149630);
     color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
-    box-shadow: 0 4px 0 #0c5e1d; text-transform: uppercase;
+    box-shadow: 0 4px 0 #0b591b; text-transform: uppercase;
   }
   .btn-go {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    width: 100%; padding: 13px; border: none; border-radius: 12px;
     background: linear-gradient(180deg, #38bdf8, #0284c7);
     color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
     box-shadow: 0 4px 0 #075985;
   }
   .btn-cash {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    width: 100%; padding: 13px; border: none; border-radius: 12px;
     background: linear-gradient(180deg, #fbbf24, #d97706);
-    color: #000; font-size: 15px; font-weight: 900; cursor: pointer;
+    color: #000; font-size: 14px; font-weight: 900; cursor: pointer;
     box-shadow: 0 4px 0 #92400e;
   }
 
   /* Live Feed */
-  .feed-box { background: #1c202b; border: 1px solid #2b3142; border-radius: 14px; padding: 10px; }
-  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; padding-bottom: 8px; border-bottom: 1px solid #2b3142; margin-bottom: 6px; }
+  .feed-box { background: #1a202e; border: 1px solid #2c354a; border-radius: 14px; padding: 10px; }
+  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; padding-bottom: 7px; border-bottom: 1px solid #2c354a; margin-bottom: 6px; }
   .feed-row {
     display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 1.1fr; align-items: center;
-    background: #141720; padding: 7px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
+    background: #11151f; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
   }
   .feed-row.win { background: rgba(40, 224, 77, 0.12); border: 1px solid rgba(40, 224, 77, 0.35); }
   .feed-row.me { border-color: #fbbf24; }
-  .x-pill { background: #262c3a; color: #fbbf24; padding: 2px 6px; border-radius: 6px; font-weight: bold; width: fit-content; }
+  .x-pill { background: #232a3b; color: #fbbf24; padding: 2px 6px; border-radius: 6px; font-weight: bold; width: fit-content; }
 
   /* Bottom Navigation */
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1c202b; border-top: 1px solid #2b3142; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1a202e; border-top: 1px solid #2c354a; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
   .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 19px; display: block; }
@@ -222,22 +113,25 @@
   <div class="header">
     <div class="logo-title">
       <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
-      <span>🐔 CHICKEN ROAD</span>
+      <span>🐔 CHICKEN ROAD 3D</span>
     </div>
-    <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+    <div class="header-right">
+      <button type="button" class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊</button>
+      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+    </div>
   </div>
 
-  <!-- Road Arena -->
-  <div class="road-arena">
-    <div class="road-sky">
-      <span>⚡ Provably Fair Road</span>
-      <span id="modeBadge" style="color:#fbbf24; font-weight:bold;">MODE: EASY</span>
+  <!-- 3D Highway Canvas Arena -->
+  <div class="arena-3d">
+    <canvas id="road3dCanvas" width="420" height="265"></canvas>
+    <div class="hud-top">
+      <div class="hud-badge" id="modeBadge">MODE: EASY</div>
+      <div class="hud-mult" id="curMultBadge">1.00x</div>
     </div>
-    <div class="lanes-viewport" id="lanesViewport"></div>
   </div>
 
   <!-- Status Banner -->
-  <div class="game-banner" id="statusBanner">Difficulty chunein, Bet lagayein aur PLAY dabayein!</div>
+  <div class="game-banner" id="statusBanner">3D Highway cross karein! PLAY dabakar shuru karein.</div>
 
   <!-- Control Deck -->
   <div class="deck">
@@ -248,7 +142,7 @@
       <button type="button" class="diff-btn" onclick="setDifficulty('hardcore', this)">Hardcore</button>
     </div>
 
-    <div class="bet-row" id="betControlsRow">
+    <div class="bet-row">
       <div class="stepper">
         <button type="button" class="step-btn" onclick="adjBet(-10)">-</button>
         <input type="number" class="bet-inp" id="betInp" value="20">
@@ -261,23 +155,21 @@
       </div>
     </div>
 
-    <!-- Start Button -->
     <div class="action-grid" id="startBtnWrap">
-      <button type="button" class="btn-play" onclick="startChickenRun()">PLAY</button>
+      <button type="button" class="btn-play" onclick="startChickenRun()">PLAY 3D</button>
     </div>
 
-    <!-- Active Step / Cashout Buttons -->
     <div class="action-grid dual" id="activeBtnsWrap" style="display:none;">
       <button type="button" class="btn-cash" id="cashBtn" onclick="cashOutChicken()">CASH OUT ₹0</button>
-      <button type="button" class="btn-go" onclick="stepChickenForward()">GO NEXT 🐾</button>
+      <button type="button" class="btn-go" onclick="stepChickenForward()">JUMP NEXT 🐾</button>
     </div>
   </div>
 
-  <!-- Live Feed (Bots + Real Players) -->
+  <!-- Live Feed -->
   <div class="feed-box">
     <div class="feed-head">
-      <span>🔥 LIVE ROAD WINNERS</span>
-      <span style="color:#28e04d; font-weight:bold;" id="onlineTxt">● 184 Playing</span>
+      <span>🔥 LIVE 3D WINNERS</span>
+      <span style="color:#28e04d; font-weight:bold;" id="onlineTxt">● 212 Playing</span>
     </div>
     <div id="liveFeedList"></div>
   </div>
@@ -325,35 +217,153 @@
   }
   syncUser();
 
-  // Difficulty Multipliers & Risk Config
-  const MODES = {
-    easy: {
-      label: "EASY",
-      baseFail: 0.14,
-      mults: [1.05, 1.18, 1.32, 1.48, 1.66, 1.88, 2.15, 2.48, 2.90, 3.45, 4.15, 5.00]
-    },
-    medium: {
-      label: "MEDIUM",
-      baseFail: 0.24,
-      mults: [1.18, 1.45, 1.80, 2.25, 2.85, 3.60, 4.60, 5.90, 7.60, 10.00]
-    },
-    hard: {
-      label: "HARD",
-      baseFail: 0.36,
-      mults: [1.35, 1.90, 2.75, 4.00, 5.90, 8.80, 13.50, 21.00]
-    },
-    hardcore: {
-      label: "HARDCORE",
-      baseFail: 0.50,
-      mults: [1.65, 2.80, 4.90, 8.80, 16.50, 32.00]
+  // ==========================================
+  // REAL-TIME WEB AUDIO SOUND SYNTHESIZER
+  // ==========================================
+  let soundEnabled = true;
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
     }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById("soundToggleBtn").innerText = soundEnabled ? "🔊" : "🔇";
+  }
+
+  function playSound(type) {
+    if (!soundEnabled) return;
+    try {
+      ensureAudio();
+      const now = audioCtx.currentTime;
+
+      if (type === "jump") {
+        // Chicken hop + cluck chirp
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (type === "coin") {
+        // Golden multiplier chime
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1320, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === "horn") {
+        // Car horn whoosh
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.linearRampToValueAtTime(290, now + 0.22);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.24);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.24);
+      } else if (type === "crash") {
+        // Car horn + heavy crash thud
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = "sawtooth";
+        osc2.type = "square";
+        osc1.frequency.setValueAtTime(380, now);
+        osc1.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+        osc2.frequency.setValueAtTime(140, now);
+        osc2.frequency.exponentialRampToValueAtTime(35, now + 0.45);
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.48);
+        osc2.stop(now + 0.48);
+      } else if (type === "win") {
+        // Cashout victory fanfare
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.22, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.28);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.28);
+        });
+      }
+    } catch (e) {}
+  }
+
+  // ==========================================
+  // GAME CONFIG & STATE
+  // ==========================================
+  const MODES = {
+    easy: { label: "EASY", baseFail: 0.14, mults: [1.05, 1.18, 1.32, 1.48, 1.66, 1.88, 2.15, 2.48, 2.90, 3.45, 4.15, 5.00] },
+    medium: { label: "MEDIUM", baseFail: 0.24, mults: [1.18, 1.45, 1.80, 2.25, 2.85, 3.60, 4.60, 5.90, 7.60, 10.00] },
+    hard: { label: "HARD", baseFail: 0.36, mults: [1.35, 1.90, 2.75, 4.00, 5.90, 8.80, 13.50, 21.00] },
+    hardcore: { label: "HARDCORE", baseFail: 0.50, mults: [1.65, 2.80, 4.90, 8.80, 16.50, 32.00] }
   };
 
   let currentMode = "easy";
   let isGameActive = false;
-  let currentStep = 0; // 0 = start curb, 1..N = road lanes
+  let currentStep = 0;
+  let visualStep = 0;
+  let hopAnim = 0;
   let currentBet = 0;
-  let burnedLane = -1;
+  let crashedStep = -1;
+  let killerCar = null;
+
+  // Ambient 3D Traffic Cars running along the highway lanes
+  const CAR_TYPES = [
+    { body: "#ef4444", roof: "#fca5a5", type: "SPORTS" },
+    { body: "#3b82f6", roof: "#93c5fd", type: "SEDAN" },
+    { body: "#f59e0b", roof: "#fde68a", type: "TAXI" },
+    { body: "#10b981", roof: "#6ee7b7", type: "SUV" },
+    { body: "#a855f7", roof: "#e9d5ff", type: "VAN" }
+  ];
+  let ambientCars = [];
+
+  function spawnAmbientCar() {
+    const mults = MODES[currentMode].mults;
+    const laneIdx = Math.floor(Math.random() * mults.length) + 1;
+    // Do not spawn on chicken's current safe lane while active
+    if (isGameActive && laneIdx === currentStep) return;
+    // Avoid overlapping cars in same lane
+    if (ambientCars.some(c => c.lane === laneIdx && c.z < 0.35)) return;
+
+    const style = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
+    ambientCars.push({
+      lane: laneIdx,
+      z: -0.1, // 0 = far horizon, 1 = bottom foreground
+      speed: 0.011 + Math.random() * 0.008,
+      style
+    });
+  }
 
   function setDifficulty(mode, btn) {
     if (isGameActive) return;
@@ -361,9 +371,11 @@
     document.querySelectorAll(".diff-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("modeBadge").innerText = "MODE: " + MODES[mode].label;
-    burnedLane = -1;
+    crashedStep = -1;
+    killerCar = null;
     currentStep = 0;
-    renderRoad();
+    visualStep = 0;
+    ambientCars = [];
   }
 
   function adjBet(delta) {
@@ -376,64 +388,318 @@
     document.getElementById("betInp").value = val;
   }
 
-  function renderRoad() {
-    const vp = document.getElementById("lanesViewport");
+  // ==========================================
+  // 3D PERSPECTIVE HIGHWAY RENDERER (CANVAS)
+  // ==========================================
+  const canvas = document.getElementById("road3dCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // Project 3D world coordinates (laneOffset relative to camera, depth z: 0=far, 1=near) to 2D screen
+  function project3D(laneWorldX, z) {
+    const horizonY = 58;
+    const groundY = 252;
+    const persp = 0.36 + 0.64 * z; // Perspective scaling from horizon to foreground
+    const screenY = horizonY + (groundY - horizonY) * Math.pow(z, 1.15);
+    const laneScreenWidth = 92 * persp;
+    const cameraCenterScreenX = 115;
+    const screenX = cameraCenterScreenX + (laneWorldX - visualStep) * laneScreenWidth;
+    return { x: screenX, y: screenY, scale: persp, w: laneScreenWidth };
+  }
+
+  function draw3DCar(car, zOverride) {
+    const z = zOverride !== undefined ? zOverride : car.z;
+    const p = project3D(car.lane, z);
+    if (p.x < -80 || p.x > canvas.width + 80) return;
+
+    const w = 52 * p.scale;
+    const h = 36 * p.scale;
+    const x = p.x - w / 2;
+    const y = p.y - h;
+
+    ctx.save();
+    // Ground Shadow
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 2 * p.scale, w * 0.58, 7 * p.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lower Car Bumper / Chassis
+    ctx.fillStyle = car.style.body;
+    ctx.beginPath();
+    ctx.roundRect(x, y + h * 0.35, w, h * 0.55, 6 * p.scale);
+    ctx.fill();
+
+    // Cabin / Windshield
+    ctx.fillStyle = car.style.roof;
+    ctx.beginPath();
+    ctx.roundRect(x + w * 0.14, y + h * 0.05, w * 0.72, h * 0.38, 5 * p.scale);
+    ctx.fill();
+
+    // Dark Front Glass
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(x + w * 0.2, y + h * 0.12, w * 0.6, h * 0.24);
+
+    // Glowing Headlights + Light Beams
+    ctx.fillStyle = "#fef08a";
+    ctx.beginPath();
+    ctx.arc(x + w * 0.18, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.82, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Headlight Cone
+    const beamGrad = ctx.createLinearGradient(p.x, y + h * 0.62, p.x, p.y + 26 * p.scale);
+    beamGrad.addColorStop(0, "rgba(254, 240, 138, 0.38)");
+    beamGrad.addColorStop(1, "rgba(254, 240, 138, 0)");
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.1, y + h * 0.62);
+    ctx.lineTo(x + w * 0.9, y + h * 0.62);
+    ctx.lineTo(x + w * 1.15, p.y + 26 * p.scale);
+    ctx.lineTo(x - w * 0.15, p.y + 26 * p.scale);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = "#090a0d";
+    ctx.fillRect(x + 2 * p.scale, y + h * 0.78, 9 * p.scale, 8 * p.scale);
+    ctx.fillRect(x + w - 11 * p.scale, y + h * 0.78, 9 * p.scale, 8 * p.scale);
+    ctx.restore();
+  }
+
+  function draw3DChicken(stepX, jumpHeight, isSquashed) {
+    const z = 0.76;
+    const p = project3D(stepX, z);
+    const s = p.scale * 1.15;
+    const cx = p.x;
+    const cy = p.y - jumpHeight * s;
+
+    ctx.save();
+    // Shadow under chicken
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.beginPath();
+    ctx.ellipse(cx, p.y + 3 * s, 18 * s, 6 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isSquashed) {
+      ctx.font = `${Math.round(34 * s)}px Arial`;
+      ctx.textAlign = "center";
+      ctx.fillText("💥", cx, cy - 6 * s);
+      ctx.font = `${Math.round(26 * s)}px Arial`;
+      ctx.fillText("🍗", cx, cy + 4 * s);
+      ctx.restore();
+      return;
+    }
+
+    // 3D Layered Chicken Body
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 16 * s, 15 * s, 13 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Chicken Head
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(cx + 6 * s, cy - 29 * s, 9.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Red Comb on Top
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(cx + 4 * s, cy - 39 * s, 4 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 9 * s, cy - 38 * s, 3.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Yellow Beak
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.moveTo(cx + 14 * s, cy - 30 * s);
+    ctx.lineTo(cx + 22 * s, cy - 27 * s);
+    ctx.lineTo(cx + 14 * s, cy - 24 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(cx + 10 * s, cy - 30 * s, 2.2 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wing
+    ctx.fillStyle = "#e2e8f0";
+    ctx.beginPath();
+    ctx.ellipse(cx - 3 * s, cy - 15 * s, 8 * s, 5 * s, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Orange Feet
+    ctx.strokeStyle = "#f97316";
+    ctx.lineWidth = 2.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4 * s, cy - 4 * s);
+    ctx.lineTo(cx - 4 * s, cy + 2 * s);
+    ctx.moveTo(cx + 5 * s, cy - 4 * s);
+    ctx.lineTo(cx + 5 * s, cy + 2 * s);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function render3DScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Smooth camera follow
+    visualStep += (currentStep - visualStep) * 0.16;
+    if (hopAnim > 0) hopAnim = Math.max(0, hopAnim - 0.08);
+
+    const horizonY = 58;
+    const groundY = 265;
     const mults = MODES[currentMode].mults;
 
-    let html = `
-      <div class="start-zone">
-        <span class="start-tag">SAFE</span>
-        ${currentStep === 0 ? `<div class="chicken-sprite" id="chickSprite">🐔</div>` : `<div style="font-size:11px; color:#888;">START</div>`}
-      </div>
-    `;
+    // 1. Night City Skyline & Horizon Glow
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+    skyGrad.addColorStop(0, "#090d1a");
+    skyGrad.addColorStop(1, "#1e293b");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, horizonY);
 
-    mults.forEach((m, idx) => {
-      const stepNum = idx + 1;
-      let cls = "lane";
-      if (burnedLane === stepNum) cls += " burned";
-      else if (stepNum < currentStep) cls += " passed";
-      else if (stepNum === currentStep) cls += " current";
-      else if (isGameActive && stepNum === currentStep + 1) cls += " next-target";
+    // Distant City Buildings
+    ctx.fillStyle = "#0f172a";
+    for (let bx = 0; bx < canvas.width; bx += 34) {
+      const bh = 14 + ((bx * 7) % 24);
+      ctx.fillRect(bx, horizonY - bh, 28, bh);
+    }
 
-      const isHere = (currentStep === stepNum && burnedLane !== stepNum);
-      const isCrashHere = (burnedLane === stepNum);
+    // 2. Asphalt 3D Ground Plane
+    const roadGrad = ctx.createLinearGradient(0, horizonY, 0, groundY);
+    roadGrad.addColorStop(0, "#181c26");
+    roadGrad.addColorStop(1, "#262c3a");
+    ctx.fillStyle = roadGrad;
+    ctx.fillRect(0, horizonY, canvas.width, groundY - horizonY);
 
-      html += `
-        <div class="${cls}" id="lane_${stepNum}">
-          ${isCrashHere ? `<div class="car-hazard" style="top:18px;">🚘</div>` : `<div style="font-size:10px; color:#6b7280;">LANE ${stepNum}</div>`}
-          <div class="manhole">${isCrashHere ? "💥" : m.toFixed(2) + "x"}</div>
-          <div style="height:40px; display:flex; align-items:center; justify-content:center;">
-            ${isHere ? `<div class="chicken-sprite" id="chickSprite">🐔</div>` : (isCrashHere ? `<div style="font-size:28px;">🍗</div>` : "")}
-          </div>
-        </div>
-      `;
+    // 3. Draw Safe Start Sidewalk (Lane 0) & Road Lanes (1..N)
+    for (let i = 0; i <= mults.length + 1; i++) {
+      const farLeft = project3D(i - 0.5, 0);
+      const farRight = project3D(i + 0.5, 0);
+      const nearLeft = project3D(i - 0.5, 1);
+      const nearRight = project3D(i + 0.5, 1);
+
+      if (nearRight.x < -50 || nearLeft.x > canvas.width + 50) continue;
+
+      // Lane Surface Polygon
+      ctx.beginPath();
+      ctx.moveTo(farLeft.x, farLeft.y);
+      ctx.lineTo(farRight.x, farRight.y);
+      ctx.lineTo(nearRight.x, nearRight.y);
+      ctx.lineTo(nearLeft.x, nearLeft.y);
+      ctx.closePath();
+
+      if (i === 0) {
+        ctx.fillStyle = "#2d3548"; // Safe curb
+      } else if (i === mults.length + 1) {
+        ctx.fillStyle = "#713f12"; // Golden Finish Zone
+      } else if (crashedStep === i) {
+        ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
+      } else if (i <= currentStep) {
+        ctx.fillStyle = "rgba(40, 224, 77, 0.14)";
+      } else {
+        ctx.fillStyle = (i % 2 === 0) ? "#1f2430" : "#242a38";
+      }
+      ctx.fill();
+
+      // Perspective Dashed Lane Divider
+      ctx.strokeStyle = i === 0 ? "#fbbf24" : "rgba(255, 255, 255, 0.25)";
+      ctx.lineWidth = i === 0 ? 2.5 : 1.5;
+      ctx.setLineDash(i === 0 ? [] : [8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(farRight.x, farRight.y);
+      ctx.lineTo(nearRight.x, nearRight.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 3D Perspective Manhole Multiplier Coin on the Road
+      if (i >= 1 && i <= mults.length) {
+        const coinPos = project3D(i, 0.76);
+        const rx = 25 * coinPos.scale;
+        const ry = 13 * coinPos.scale;
+
+        ctx.save();
+        // 3D Coin Thickness Rim
+        ctx.fillStyle = i <= currentStep ? "#15803d" : (i === currentStep + 1 && isGameActive ? "#b45309" : "#334155");
+        ctx.beginPath();
+        ctx.ellipse(coinPos.x, coinPos.y + 4 * coinPos.scale, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Coin Top Face
+        ctx.fillStyle = crashedStep === i ? "#991b1b" : (i <= currentStep ? "#166534" : (i === currentStep + 1 && isGameActive ? "#451a03" : "#1e293b"));
+        ctx.strokeStyle = crashedStep === i ? "#ef4444" : (i <= currentStep ? "#4ade80" : (i === currentStep + 1 && isGameActive ? "#fbbf24" : "#64748b"));
+        ctx.lineWidth = 2 * coinPos.scale;
+        ctx.beginPath();
+        ctx.ellipse(coinPos.x, coinPos.y, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Multiplier Text
+        ctx.fillStyle = i <= currentStep ? "#bbf7d0" : "#fde047";
+        ctx.font = `bold ${Math.max(9, Math.round(11 * coinPos.scale))}px Segoe UI`;
+        ctx.textAlign = "center";
+        ctx.fillText(mults[i - 1].toFixed(2) + "x", coinPos.x, coinPos.y + 3 * coinPos.scale);
+        ctx.restore();
+      } else if (i === mults.length + 1) {
+        const finPos = project3D(i, 0.72);
+        ctx.font = `${Math.round(28 * finPos.scale)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText("🏆", finPos.x, finPos.y);
+      }
+    }
+
+    // 4. Update & Draw 3D Traffic Cars (Sorted Back-to-Front by depth Z)
+    if (Math.random() < 0.045) spawnAmbientCar();
+    ambientCars.forEach(c => {
+      c.z += c.speed;
+      // Play subtle passing horn when car zooms close to player
+      if (!c.honked && c.z > 0.65 && Math.abs(c.lane - currentStep) <= 1) {
+        c.honked = true;
+        if (Math.random() < 0.35) playSound("horn");
+      }
+    });
+    ambientCars = ambientCars.filter(c => c.z < 1.25);
+
+    const renderQueue = [];
+    ambientCars.forEach(c => renderQueue.push({ type: "car", z: c.z, obj: c }));
+    if (killerCar) renderQueue.push({ type: "killer", z: killerCar.z, obj: killerCar });
+    renderQueue.push({ type: "chicken", z: 0.76 });
+
+    renderQueue.sort((a, b) => a.z - b.z);
+
+    renderQueue.forEach(item => {
+      if (item.type === "car") {
+        draw3DCar(item.obj);
+      } else if (item.type === "killer") {
+        if (item.obj.z < 0.78) item.obj.z += 0.065;
+        draw3DCar(item.obj, item.obj.z);
+      } else if (item.type === "chicken") {
+        const jumpArc = Math.sin(hopAnim * Math.PI) * 34;
+        draw3DChicken(visualStep, jumpArc, crashedStep !== -1);
+      }
     });
 
-    html += `
-      <div class="finish-zone">
-        <div style="font-size:32px;">🏆</div>
-        <div style="font-size:11px; font-weight:bold; color:#ffd700;">MAX WIN</div>
-      </div>
-    `;
-
-    vp.innerHTML = html;
-
-    // Auto-scroll road to keep chicken centered
-    if (currentStep > 1) {
-      const targetScroll = (currentStep - 1) * 86;
-      vp.scrollLeft = targetScroll;
-    } else {
-      vp.scrollLeft = 0;
-    }
+    requestAnimationFrame(render3DScene);
   }
-  renderRoad();
+  requestAnimationFrame(render3DScene);
 
+  // ==========================================
+  // GAMEPLAY ACTIONS
+  // ==========================================
   async function startChickenRun() {
+    ensureAudio();
     const bet = parseInt(document.getElementById("betInp").value);
     if (!bet || bet < 10) return alert("Minimum bet ₹10 hai!");
     if (bet > getTotalBal()) return alert("Aapke wallet mein itna balance nahi hai!");
 
-    // Deduct balance (Deposit first, then Winning)
+    playSound("jump");
+
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0);
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0);
     if (dBal >= bet) {
@@ -445,7 +711,7 @@
     }
 
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({ type: `Chicken Road Bet (${MODES[currentMode].label})`, amt: "-₹" + bet, date: new Date().toLocaleString() });
+    txns.unshift({ type: `Chicken 3D Bet (${MODES[currentMode].label})`, amt: "-₹" + bet, date: new Date().toLocaleString() });
 
     userData.depositBal = dBal;
     userData.winningBal = wBal;
@@ -461,55 +727,62 @@
 
     currentBet = bet;
     currentStep = 0;
-    burnedLane = -1;
+    visualStep = 0;
+    crashedStep = -1;
+    killerCar = null;
     isGameActive = true;
 
     document.querySelectorAll(".diff-btn").forEach(b => b.disabled = true);
     document.getElementById("startBtnWrap").style.display = "none";
     document.getElementById("activeBtnsWrap").style.display = "grid";
+    document.getElementById("curMultBadge").innerText = "1.00x";
     document.getElementById("cashBtn").innerText = `CASH OUT ₹${bet}`;
-    document.getElementById("statusBanner").innerText = "🐾 GO NEXT dabakar pehli lane cross karein!";
-    renderRoad();
+    document.getElementById("statusBanner").innerText = "🐾 JUMP NEXT dabakar saamne wali lane par koodein!";
   }
 
   function stepChickenForward() {
     if (!isGameActive) return;
+    ensureAudio();
     const mults = MODES[currentMode].mults;
     const nextStep = currentStep + 1;
     if (nextStep > mults.length) return;
 
-    // Adjust fail chance using Admin winRate setting
+    // Clear ambient cars from target lane so crash animation is clean
+    ambientCars = ambientCars.filter(c => c.lane !== nextStep);
+
     const baseFail = MODES[currentMode].baseFail;
-    const adminFactor = (100 - winRateSetting) / 65; // higher when winRate is low
+    const adminFactor = (100 - winRateSetting) / 65;
     const failProb = Math.min(0.75, Math.max(0.08, baseFail * adminFactor));
 
     if (Math.random() < failProb) {
-      // Hit by car!
-      burnedLane = nextStep;
+      // Speeding 3D Car hits chicken!
       currentStep = nextStep;
+      hopAnim = 1.0;
+      crashedStep = nextStep;
       isGameActive = false;
-      renderRoad();
-
-      document.getElementById("statusBanner").innerHTML = `<span style="color:#ff4d6d;">💥 CRASH! Car ne takkar maar di. Bet ₹${currentBet} lost!</span>`;
+      killerCar = {
+        lane: nextStep,
+        z: 0.15,
+        style: { body: "#ef4444", roof: "#fca5a5" }
+      };
+      playSound("crash");
+      document.getElementById("statusBanner").innerHTML = `<span style="color:#ff4d6d;">💥 CRASH! Speeding car ne takkar maar di. ₹${currentBet} lost!</span>`;
       resetDeckUI();
       return;
     }
 
-    // Safe step!
+    // Safe Jump!
     currentStep = nextStep;
-    renderRoad();
-    const sprite = document.getElementById("chickSprite");
-    if (sprite) {
-      sprite.classList.add("chicken-hop");
-      setTimeout(() => sprite.classList.remove("chicken-hop"), 200);
-    }
+    hopAnim = 1.0;
+    playSound("jump");
+    setTimeout(() => playSound("coin"), 110);
 
     const curMult = mults[currentStep - 1];
     const curWin = Math.floor(currentBet * curMult);
+    document.getElementById("curMultBadge").innerText = curMult.toFixed(2) + "x";
     document.getElementById("cashBtn").innerText = `CASH OUT ₹${curWin}`;
-    document.getElementById("statusBanner").innerText = `🔥 Step ${currentStep} Clear! Current Win: ₹${curWin} (${curMult.toFixed(2)}x)`;
+    document.getElementById("statusBanner").innerText = `🔥 Lane ${currentStep} Clear! Win: ₹${curWin} (${curMult.toFixed(2)}x)`;
 
-    // Auto-cashout if reached final golden trophy
     if (currentStep === mults.length) {
       cashOutChicken();
     }
@@ -518,6 +791,9 @@
   async function cashOutChicken() {
     if (!isGameActive) return;
     if (currentStep === 0) return alert("Pehle kam se kam 1 lane cross karein!");
+
+    ensureAudio();
+    playSound("win");
 
     const mults = MODES[currentMode].mults;
     const curMult = mults[currentStep - 1];
@@ -529,7 +805,7 @@
     const newWinBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) + winAmt;
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({
-      type: `Chicken Road Win (${curMult.toFixed(2)}x)`,
+      type: `Chicken 3D Win (${curMult.toFixed(2)}x)`,
       amt: "+₹" + winAmt,
       date: new Date().toLocaleString()
     });
@@ -541,7 +817,6 @@
 
     document.getElementById("statusBanner").innerHTML = `<span style="color:#28e04d;">🎉 CASHED OUT! Aapne ₹${winAmt} (${curMult.toFixed(2)}x) jeete!</span>`;
 
-    // Add my win to live feed & broadcast to Firebase
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
     liveFeedData.unshift({
       name: maskedMe + " (You)",
@@ -599,7 +874,6 @@
   }
   renderFeed();
 
-  // Periodic live bot & real player sync
   setInterval(async () => {
     const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
     const bBet = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
@@ -611,7 +885,7 @@
       win: Math.floor(bBet * Number(bMult)),
       isMe: false
     });
-    document.getElementById("onlineTxt").innerText = "● " + (Math.floor(Math.random() * 45) + 160) + " Playing";
+    document.getElementById("onlineTxt").innerText = "● " + (Math.floor(Math.random() * 45) + 190) + " Playing";
 
     try {
       const res = await fetch(`${DB_URL}/chickenLiveFeed.json?t=${Date.now()}`);
