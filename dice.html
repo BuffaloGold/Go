@@ -202,6 +202,7 @@
   <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
 </div>
+
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
   const mobile = localStorage.getItem("activeUser");
@@ -242,9 +243,6 @@
   }
   syncUser();
 
-  // ==========================================
-  // WEB AUDIO 3D DICE SOUND EFFECTS
-  // ==========================================
   let soundOn = true;
   let audioCtx = null;
 
@@ -322,13 +320,10 @@
     } catch (e) {}
   }
 
-  // ==========================================
-  // SLIDER & BET CONTROLS
-  // ==========================================
   let rollMode = "UNDER";
   let targetVal = 50;
   let rollHistory = [34.2, 78.5, 19.8, 45.1, 88.4, 22.6, 61.9];
-  let activeBet = null; // { roundId, amt, mode, target, mult }
+  let activeBet = null;
 
   function setRollMode(mode) {
     if (activeBet) return;
@@ -448,114 +443,8 @@
       btn.innerText = "🎲 PLACE BET FOR ROUND";
     }
   }
-
-  // ==========================================
-  // TRUE 3D ROTATING TWIN DICE ENGINE
-  // ==========================================
-  const canvas = document.getElementById("dice3dCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const CUBE_VERTS = [
-    [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
-    [-1, -1,  1], [1, -1,  1], [1, 1,  1], [-1, 1,  1]
-  ];
-  const CUBE_FACES = [
-    { verts: [4, 5, 6, 7], pips: 1 },
-    { verts: [1, 0, 3, 2], pips: 6 },
-    { verts: [5, 1, 2, 6], pips: 3 },
-    { verts: [0, 4, 7, 3], pips: 4 },
-    { verts: [0, 1, 5, 4], pips: 2 },
-    { verts: [3, 2, 6, 7], pips: 5 }
-  ];
-  const PIP_COORDS = {
-    1: [[0, 0]],
-    2: [[-0.45, -0.45], [0.45, 0.45]],
-    3: [[-0.45, -0.45], [0, 0], [0.45, 0.45]],
-    4: [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]],
-    5: [[-0.45, -0.45], [0.45, -0.45], [0, 0], [-0.45, 0.45], [0.45, 0.45]],
-    6: [[-0.45, -0.5], [0.45, -0.5], [-0.45, 0], [0.45, 0], [-0.45, 0.5], [0.45, 0.5]]
-  };
-
-  let dice1 = { rx: 0.45, ry: 0.65, rz: 0.1, vrx: 0.015, vry: 0.02, vrz: 0.008, bounceY: 0 };
-  let dice2 = { rx: -0.35, ry: 0.85, rz: -0.15, vrx: -0.018, vry: 0.016, vrz: -0.01, bounceY: 0 };
-
-  function rotatePoint3D(p, rx, ry, rz) {
-    let [x, y, z] = p;
-    let y1 = y * Math.cos(rx) - z * Math.sin(rx);
-    let z1 = y * Math.sin(rx) + z * Math.cos(rx);
-    y = y1; z = z1;
-    let x2 = x * Math.cos(ry) + z * Math.sin(ry);
-    let z2 = -x * Math.sin(ry) + z * Math.cos(ry);
-    x = x2; z = z2;
-    let x3 = x * Math.cos(rz) - y * Math.sin(rz);
-    let y3 = x * Math.sin(rz) + y * Math.cos(rz);
-    return [x3, y3, z];
-  }
-
-  function projectCubeVert(v, cx, cy, size) {
-    const fov = 4.2;
-    const scale = fov / (fov + v[2]);
-    return { x: cx + v[0] * size * scale, y: cy + v[1] * size * scale, z: v[2] };
-  }
-
-  function draw3DDie(die, cx, cy, size, accentColor) {
-    const transformed = CUBE_VERTS.map(v => rotatePoint3D(v, die.rx, die.ry, die.rz));
-    const projected = transformed.map(v => projectCubeVert(v, cx, cy - die.bounceY, size));
-
-    ctx.save();
-    const shadowScale = Math.max(0.55, 1 - die.bounceY / 90);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + size * 1.45, size * 1.15 * shadowScale, size * 0.35 * shadowScale, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const visibleFaces = CUBE_FACES.map(f => {
-      const p0 = projected[f.verts[0]];
-      const p1 = projected[f.verts[1]];
-      const p2 = projected[f.verts[2]];
-      const cross = (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x);
-      const avgZ = f.verts.reduce((acc, idx) => acc + transformed[idx][2], 0) / 4;
-      return { face: f, cross, avgZ };
-    }).filter(item => item.cross > 0).sort((a, b) => b.avgZ - a.avgZ);
-
-    visibleFaces.forEach(({ face, avgZ }) => {
-      const pts = face.verts.map(idx => projected[idx]);
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      ctx.lineTo(pts[1].x, pts[1].y);
-      ctx.lineTo(pts[2].x, pts[2].y);
-      ctx.lineTo(pts[3].x, pts[3].y);
-      ctx.closePath();
-
-      ctx.fillStyle = avgZ < -0.3 ? "#ffffff" : (avgZ < 0.2 ? "#e2e8f0" : "#cbd5e1");
-      ctx.fill();
-      ctx.strokeStyle = "#64748b";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      PIP_COORDS[face.pips].forEach(([u, v]) => {
-        const s = (u + 1) / 2;
-        const t = (v + 1) / 2;
-        const topX = pts[0].x + (pts[1].x - pts[0].x) * s;
-        const topY = pts[0].y + (pts[1].y - pts[0].y) * s;
-        const botX = pts[3].x + (pts[2].x - pts[3].x) * s;
-        const botY = pts[3].y + (pts[2].y - pts[3].y) * s;
-        const px = topX + (botX - topX) * t;
-        const py = topY + (botY - topY) * t;
-
-        ctx.fillStyle = (face.pips === 1 || face.pips === 4) ? "#dc2626" : accentColor;
-        ctx.beginPath();
-        ctx.arc(px, py, size * 0.13, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    });
-    ctx.restore();
-  }
-
-  function render3DDiceLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // ==========================================
-  // SOLID GLOSSY 3D TWIN DICE ENGINE (NO OPEN FACES)
+   // ==========================================
+  // SOLID GLOSSY 3D TWIN DICE ENGINE
   // ==========================================
   const canvas = document.getElementById("dice3dCanvas");
   const ctx = canvas.getContext("2d");
@@ -565,7 +454,6 @@
     [-1, -1,  1], [1, -1,  1], [1, 1,  1], [-1, 1,  1]
   ];
 
-  // Properly ordered outward-facing quads (vertices + outward normal)
   const CUBE_FACES = [
     { verts: [4, 5, 6, 7], norm: [ 0,  0,  1], pips: 1 },
     { verts: [1, 0, 3, 2], norm: [ 0,  0, -1], pips: 6 },
@@ -614,7 +502,6 @@
 
     ctx.save();
 
-    // 1. Soft 3D Table Shadow
     const shadowScale = Math.max(0.55, 1 - die.bounceY / 95);
     const shGrad = ctx.createRadialGradient(cx, cy + size * 1.48, 2, cx, cy + size * 1.48, size * 1.3 * shadowScale);
     shGrad.addColorStop(0, "rgba(0, 0, 0, 0.75)");
@@ -624,18 +511,14 @@
     ctx.ellipse(cx, cy + size * 1.48, size * 1.3 * shadowScale, size * 0.4 * shadowScale, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Solid Dark Core (Guarantees zero gaps/openings between beveled edges)
     ctx.fillStyle = "#1e293b";
     ctx.beginPath();
     ctx.arc(cx, cy - die.bounceY, size * 1.02, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3. Sort all 6 faces strictly back-to-front by Z-depth & draw only front-facing ones
     const sortedFaces = CUBE_FACES.map(f => {
       const rNorm = rotatePoint3D(f.norm, die.rx, die.ry, die.rz);
-      const center3D = [rNorm[0], rNorm[1], rNorm[2]];
-      // Vector from face center to camera at (0, 0, -4.6)
-      const dotCamera = center3D[0] * (-center3D[0]) + center3D[1] * (-center3D[1]) + center3D[2] * (-4.6 - center3D[2]);
+      const dotCamera = (-rNorm[0] * rNorm[0]) + (-rNorm[1] * rNorm[1]) + (rNorm[2] * (-4.6 - rNorm[2]));
       return { face: f, rNorm, dotCamera };
     })
     .filter(item => item.dotCamera > 0)
@@ -643,10 +526,6 @@
 
     sortedFaces.forEach(({ face, rNorm }) => {
       const pts = face.verts.map(idx => projected[idx]);
-      const fcx = (pts[0].x + pts[1].x + pts[2].x + pts[3].x) / 4;
-      const fcy = (pts[0].y + pts[1].y + pts[2].y + pts[3].y) / 4;
-
-      // Directional 3D Studio Lighting (top-left bright, bottom-right shaded)
       const light = Math.max(0.45, Math.min(1, 0.78 - rNorm[1] * 0.28 - rNorm[0] * 0.16 - rNorm[2] * 0.22));
       const cTop = Math.round(255 * light);
       const cBot = Math.round(218 * light);
@@ -655,7 +534,6 @@
       faceGrad.addColorStop(0, `rgb(${cTop}, ${cTop}, ${Math.min(255, cTop + 8)})`);
       faceGrad.addColorStop(1, `rgb(${cBot}, ${cBot}, ${Math.min(255, cBot + 14)})`);
 
-      // Draw Rounded Beveled 3D Face
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
       ctx.lineTo(pts[1].x, pts[1].y);
@@ -670,12 +548,10 @@
       ctx.fillStyle = faceGrad;
       ctx.fill();
 
-      // Inner Gloss Rim Highlight
       ctx.lineWidth = 1.2;
       ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
       ctx.stroke();
 
-      // 4. Draw 3D Engraved Pips with Inner Shadow & Specular Dot
       PIP_COORDS[face.pips].forEach(([u, v]) => {
         const s = (u + 1) / 2;
         const t = (v + 1) / 2;
@@ -689,13 +565,11 @@
         const pipR = size * (face.pips === 1 ? 0.18 : 0.135) * (1 - rNorm[2] * 0.12);
         const pipCol = (face.pips === 1 || face.pips === 4) ? "#dc2626" : accentColor;
 
-        // Pip Engraved Socket
         ctx.fillStyle = pipCol;
         ctx.beginPath();
         ctx.arc(px, py, Math.max(2.5, pipR), 0, Math.PI * 2);
         ctx.fill();
 
-        // Subtle White Shine inside Pip
         ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
         ctx.beginPath();
         ctx.arc(px - pipR * 0.25, py - pipR * 0.25, Math.max(1, pipR * 0.32), 0, Math.PI * 2);
@@ -709,7 +583,6 @@
   function render3DDiceLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 3D Neon Table Ring
     ctx.save();
     const ringGrad = ctx.createRadialGradient(canvas.width / 2, 156, 20, canvas.width / 2, 156, 175);
     ringGrad.addColorStop(0, "rgba(56, 189, 248, 0.18)");
@@ -732,9 +605,9 @@
     requestAnimationFrame(render3DDiceLoop);
   }
   requestAnimationFrame(render3DDiceLoop);
-     
+
   // ==========================================
-  // SHARED MULTIPLAYER ROOM SYNC (SAME ROLL FOR ALL USERS)
+  // SHARED MULTIPLAYER ROOM SYNC
   // ==========================================
   const BET_MS = 9000;
   const ROLL_MS = 2200;
@@ -755,7 +628,6 @@
   };
 
   function generateSynchronizedRoll() {
-    // Biased by Admin dice winRateSetting (low rate favors extreme edges <15 or >85 so standard 50% bets lose more often)
     const favorHouse = (Math.random() * 100) > winRateSetting;
     if (favorHouse && Math.random() < 0.5) {
       return Number((Math.random() < 0.5 ? (52 + Math.random() * 46) : (1 + Math.random() * 47)).toFixed(2));
