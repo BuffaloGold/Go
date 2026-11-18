@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+7<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
@@ -295,7 +295,8 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-        fetch(`${DB_URL}/settings/winRate.json?t=${Date.now()}`)
+              fetch(`${DB_URL}/settings/rates/aviator.json?t=${Date.now()}`)
+       
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
