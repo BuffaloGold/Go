@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviator - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 80px; }
+  .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 15px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #260636; padding: 10px 14px; border-radius: 12px; border: 1px solid #75229e; }
+  .box { background: #260636; padding: 16px; border-radius: 14px; border: 1px solid #5c197d; margin-bottom: 15px; text-align: center; }
+  input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 15px; }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
+  .btn-add { background: linear-gradient(180deg, #28e04d, #118a28); color: #fff; }
+  .btn-wd { background: linear-gradient(180deg, #ff9900, #cc5200); color: #fff; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
+  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  .nav-item.active { color: #ffd700; font-weight: bold; }
+  .nav-icon { font-size: 20px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="top-bar">
+    <h3 style="color:#ffd700;">✈️ Aviator Crash</h3>
+    <div>Winning Bal: <strong style="color:#28e04d;" id="winBal">₹0</strong></div>
+  </div>
+
+  <div class="box">
+    <div style="font-size:42px; margin:10px 0;">🚀</div>
+    <div id="multiplierDisplay" style="font-size:40px; color:#28e04d; font-weight:bold; margin:10px 0;">1.00x</div>
+    <div style="font-size:12px; color:#aaa;" id="gameStatus">Bet lagayein aur plane udne par cash out karein!</div>
+    
+    <input type="number" id="betInput" placeholder="Enter Bet Amount (Min ₹10)">
+    <button type="button" class="btn btn-add" id="playBtn" onclick="startAviator()">PLACE BET</button>
+    <button type="button" class="btn btn-wd" id="cashOutBtn" onclick="cashOut()" style="display:none;">CASH OUT</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+</div>
+
+<script type="module">
+  import { db, ref, get, update } from "./firebase-config.js";
+
+  const mobile = localStorage.getItem("activeUser");
+  if (!mobile) window.location.replace("index.html");
+
+  const userRef = ref(db, "users/" + mobile);
+  let userData = null;
+
+  async function fetchUser() {
+    const snap = await get(userRef);
+    if (snap.exists()) {
+      userData = snap.val();
+      document.getElementById("winBal").innerText = "₹" + (userData.winningBal || 0);
+    }
+  }
+  fetchUser();
+
+  window.isPlaying = false;
+  window.currentMultiplier = 1.00;
+  window.crashPoint = 1.00;
+  window.interval = null;
+  window.currentBet = 0;
+
+  window.startAviator = async function() {
+    const bet = parseInt(document.getElementById("betInput").value);
+    if (!bet || bet < 10) return alert("Minimum bet ₹10 hai!");
+    
+    await fetchUser();
+    const totalAvail = Number(userData.depositBal || 0) + Number(userData.winningBal || 0);
+    if (bet > totalAvail) return alert("Aapke wallet mein itna balance nahi hai!");
+
+    // Deduct balance (Priority: Deposit then Winning)
+    let dBal = Number(userData.depositBal || 0);
+    let wBal = Number(userData.winningBal || 0);
+    if (dBal >= bet) {
+      dBal -= bet;
+    } else {
+      let rem = bet - dBal;
+      dBal = 0;
+      wBal -= rem;
+    }
+
+    let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: "Aviator Bet", amt: "-₹" + bet, date: new Date().toLocaleString() });
+
+    await update(userRef, { depositBal: dBal, winningBal: wBal, txns: txns.slice(0, 30) });
+    userData.depositBal = dBal;
+    userData.winningBal = wBal;
+    document.getElementById("winBal").innerText = "₹" + wBal;
+
+    window.currentBet = bet;
+    window.isPlaying = true;
+    window.currentMultiplier = 1.00;
+    window.crashPoint = Number((Math.random() * 4 + 1.1).toFixed(2));
+
+    document.getElementById("playBtn").style.display = "none";
+    document.getElementById("cashOutBtn").style.display = "block";
+    document.getElementById("gameStatus").innerText = "Plane udd raha hai...";
+
+    window.interval = setInterval(() => {
+      window.currentMultiplier += 0.05;
+      document.getElementById("multiplierDisplay").innerText = window.currentMultiplier.toFixed(2) + "x";
+
+      if (window.currentMultiplier >= window.crashPoint) {
+        clearInterval(window.interval);
+        window.isPlaying = false;
+        document.getElementById("gameStatus").innerText = "💥 Plane Crashed at " + window.crashPoint + "x! Aap haar gaye.";
+        document.getElementById("playBtn").style.display = "block";
+        document.getElementById("cashOutBtn").style.display = "none";
+      }
+    }, 100);
+  };
+
+  window.cashOut = async function() {
+    if (!window.isPlaying) return;
+    clearInterval(window.interval);
+    window.isPlaying = false;
+
+    const winAmt = Math.floor(window.currentBet * window.currentMultiplier);
+    const newWinBal = Number(userData.winningBal || 0) + winAmt;
+
+    let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: "Aviator Win (" + window.currentMultiplier.toFixed(2) + "x)", amt: "+₹" + winAmt, date: new Date().toLocaleString() });
+
+    await update(userRef, { winningBal: newWinBal, txns: txns.slice(0, 30) });
+    userData.winningBal = newWinBal;
+    document.getElementById("winBal").innerText = "₹" + newWinBal;
+
+    alert(`🎉 Cash Out Successful! Aapne jeete: ₹${winAmt}`);
+    document.getElementById("gameStatus").innerText = "Jeet gaye: ₹" + winAmt;
+    document.getElementById("playBtn").style.display = "block";
+    document.getElementById("cashOutBtn").style.display = "none";
+  };
+</script>
+</body>
+</html>
