@@ -287,7 +287,7 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-        fetch(`${DB_URL}/settings/winRate.json?t=${Date.now()}`)
+        fetch(`${DB_URL}/settings/rates/color.json?t=${Date.now()}`)
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
@@ -410,7 +410,7 @@
   let pendingLabel = "";
   let baseAmt = 10;
   let qty = 1;
-  let activeRoundBets = []; // [{ period, target, label, amt }]
+  let activeRoundBets = [];
   let myBetHistory = [];
   let pastResults = [
     { period: "20261118099", num: 7 },
@@ -543,7 +543,6 @@
     const spinSpeed = isLocked ? 0.008 : 0.0018;
     const baseAngle = now * spinSpeed;
 
-    // 1. Glowing 3D Ring Orbit
     ctx.save();
     ctx.strokeStyle = isLocked ? "rgba(251, 191, 36, 0.45)" : "rgba(56, 189, 248, 0.25)";
     ctx.lineWidth = 2;
@@ -551,26 +550,21 @@
     ctx.ellipse(cx, cy + 4, 155, 46, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 2. Orbiting 3D Number Spheres (0 to 9) sorted back-to-front by Z depth
     const spheres = [];
     for (let i = 0; i < 10; i++) {
       const a = baseAngle + (i / 10) * Math.PI * 2;
       const x = cx + Math.cos(a) * 150;
       const y = cy + 4 + Math.sin(a) * 44;
-      const depth = Math.sin(a); // -1 back, +1 front
+      const depth = Math.sin(a);
       spheres.push({ num: i, x, y, depth });
     }
     spheres.sort((a, b) => a.depth - b.depth);
 
-    // Draw Back Spheres first
     spheres.filter(s => s.depth < 0).forEach(s => draw3DSphere(s.num, s.x, s.y, s.depth));
 
-    // 3. Central 3D Result Crystal Sphere
-    const mainInfo = getNumInfo(revealedBall);
     const pulse = isLocked ? Math.sin(now / 70) * 3 : 0;
     const mainR = 38 + pulse;
 
-    // Outer Aura
     const aura = ctx.createRadialGradient(cx, cy, 10, cx, cy, mainR + 22);
     aura.addColorStop(0, isLocked ? "rgba(251, 191, 36, 0.55)" : "rgba(56, 189, 248, 0.35)");
     aura.addColorStop(1, "rgba(0,0,0,0)");
@@ -579,7 +573,6 @@
     ctx.arc(cx, cy, mainR + 22, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3D Sphere Gradient
     const mainColor = revealedBall === 0 || [2, 4, 6, 8].includes(revealedBall) ? "#ef4444" : "#22c55e";
     const sGrad = ctx.createRadialGradient(cx - 12, cy - 12, 4, cx, cy, mainR);
     sGrad.addColorStop(0, "#ffffff");
@@ -594,7 +587,6 @@
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Center Number / Spinning Question
     ctx.fillStyle = "#fff";
     ctx.font = "900 30px Segoe UI";
     ctx.textAlign = "center";
@@ -602,7 +594,6 @@
     const displayDigit = isLocked ? Math.floor((now / 60) % 10) : revealedBall;
     ctx.fillText(displayDigit, cx, cy + 2);
 
-    // Draw Front Spheres over center crystal
     spheres.filter(s => s.depth >= 0).forEach(s => draw3DSphere(s.num, s.x, s.y, s.depth));
 
     ctx.restore();
@@ -641,11 +632,27 @@
   let lastBeepSec = -1;
   let settledPeriodId = "";
 
-  // Deterministic outcome from period index so all online players see exact same result
   function getResultForPeriod(pIndex) {
     const x = Math.sin(pIndex * 9973) * 10000;
     const frac = x - Math.floor(x);
-    return Math.floor(frac * 10);
+    let num = Math.floor(frac * 10);
+
+    if (activeRoundBets.length > 0 && (Math.random() * 100) > winRateSetting) {
+      const betTargets = activeRoundBets.map(b => b.target);
+      for (let tryN = 0; tryN < 10; tryN++) {
+        const cand = (num + tryN) % 10;
+        const info = getNumInfo(cand);
+        const userWins =
+          (betTargets.includes("GREEN") && info.colors.includes("GREEN")) ||
+          (betTargets.includes("RED") && info.colors.includes("RED")) ||
+          (betTargets.includes("VIOLET") && info.colors.includes("VIOLET")) ||
+          (betTargets.includes("BIG") && info.isBig) ||
+          (betTargets.includes("SMALL") && !info.isBig) ||
+          betTargets.includes("NUM_" + cand);
+        if (!userWins) return cand;
+      }
+    }
+    return num;
   }
 
   async function settlePeriod(pId, winNum) {
@@ -659,7 +666,6 @@
     renderRecentBalls();
     renderTabContent();
 
-    // Check user's active bets for this period
     const myBetsInPeriod = activeRoundBets.filter(b => b.period === pId);
     activeRoundBets = [];
     renderActiveBets();
