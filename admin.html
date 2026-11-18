@@ -105,6 +105,7 @@
     </div>
   </div>
 </div>
+
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
 
@@ -177,11 +178,11 @@
 
   function getUserTotalDep(u) {
     if (!u) return 0;
-    if (typeof u.totalDeposited === "number") return u.totalDeposited;
+    if (typeof u.totalDeposited === "number" && u.totalDeposited > 0) return u.totalDeposited;
     let sum = 0;
     if (Array.isArray(u.txns)) {
       u.txns.forEach(t => {
-        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && String(t.type).toLowerCase().includes("deposit")) {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && String(t.type).toLowerCase().includes("auto-deposit")) {
           const v = parseInt(String(t.amt).replace("+₹", ""));
           if (!isNaN(v)) sum += v;
         }
@@ -219,8 +220,8 @@
       const userRec = allUsers[w.mobile] || {};
       const totalDep = getUserTotalDep(userRec);
       const hasDepBadge = (totalDep >= 300 || userRec.hasDeposited)
-        ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep}</span>`
-        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300)</span>`;
+        ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep} | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`
+        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300) | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`;
 
       const safeName = String(w.name || "User").replace(/['"\\]/g, "");
       const safeUpi = String(w.upi || "").replace(/['"\\]/g, "");
@@ -254,8 +255,8 @@
             </div>
             <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
             <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid</button>
-              <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject & Refund</button>
+              <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid & Deduct Bal</button>
+              <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject Request</button>
             </div>
           ` : ""}
         </div>
@@ -332,7 +333,6 @@
 
   async function forceLoadAll() {
     try {
-      // Agar admin kisi QR code ko khol kar dekh raha hai ya reply type kar raha hai to बीच में refresh na kare
       const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
       const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
       if (anyQrOpen || isTypingReply) return;
@@ -370,30 +370,54 @@
     try {
       const w = allWithdrawals[reqId];
       if (!w || w.status !== "PENDING") return;
-      await dbPatch("withdrawals/" + reqId, { status: newStatus });
 
       if (allUsers[w.mobile]) {
         const u = allUsers[w.mobile];
-        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
-        txns = txns.map(t => (t && t.orderId === (w.reqId || reqId)) ? { ...t, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED" } : t);
+        const currentWinBal = Number(u.winningBal ?? u.winningBalance ?? 0);
+        const wdAmt = Number(w.amount || 0);
 
-        if (newStatus === "REJECTED") {
+        if (newStatus === "APPROVED" && currentWinBal < wdAmt) {
+          if (!confirm(`⚠️ Dhyan dein: User ke Winning Wallet mein abhi sirf ₹${currentWinBal} bacha hai (Request ₹${wdAmt} ki thi). Kya phir bhi Paid mark karke balance ₹0 kar dein?`)) {
+            return;
+          }
+        }
+
+        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
+        let foundInTxns = false;
+
+        txns = txns.map(t => {
+          if (t && t.orderId === (w.reqId || reqId)) {
+            foundInTxns = true;
+            return {
+              ...t,
+              type: newStatus === "APPROVED" ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`,
+              refId: newStatus === "APPROVED" ? "PAID" : "REJECTED",
+              amt: newStatus === "APPROVED" ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt)
+            };
+          }
+          return t;
+        });
+
+        if (!foundInTxns) {
           txns.unshift({
-            type: "Withdraw Refunded",
+            type: newStatus === "APPROVED" ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`,
             orderId: w.reqId || reqId,
-            refId: "REFUND",
-            amt: "+₹" + w.amount,
+            refId: newStatus === "APPROVED" ? "PAID" : "REJECTED",
+            amt: newStatus === "APPROVED" ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt),
             date: new Date().toLocaleString()
           });
-          await dbPatch("users/" + w.mobile, {
-            winningBal: Number(u.winningBal || 0) + Number(w.amount),
-            txns: txns.slice(0, 30)
-          });
-        } else {
-          await dbPatch("users/" + w.mobile, { txns: txns.slice(0, 30) });
         }
+
+        const updatedFields = { txns: txns.slice(0, 30) };
+        if (newStatus === "APPROVED") {
+          updatedFields.winningBal = Math.max(0, currentWinBal - wdAmt);
+        }
+
+        await dbPatch("users/" + w.mobile, updatedFields);
       }
-      alert("✅ Withdrawal " + newStatus + " ho gaya!");
+
+      await dbPatch("withdrawals/" + reqId, { status: newStatus });
+      alert(newStatus === "APPROVED" ? "✅ Withdrawal PAID mark ho gaya aur user ke Winning Balance se minus ho gaya!" : "❌ Withdrawal REJECT kar diya gaya!");
       forceLoadAll();
     } catch (err) {
       alert("❌ Error: " + err.message);
@@ -421,6 +445,8 @@
       const u = allUsers[k] || {};
       const isMaster = String(k) === "9794408205";
       const displayName = u.name ? `👤 ${u.name}` : `⚠️ Unidentified`;
+      const depBal = u.depositBal ?? u.depositBalance ?? 0;
+      const winBal = u.winningBal ?? u.winningBalance ?? 0;
       const totalDep = getUserTotalDep(u);
       return `
         <div class="card">
@@ -429,8 +455,8 @@
             <span style="font-size:12px; color:#ccc;">📱 ${k}</span>
           </div>
           <div style="font-size:13px; margin:6px 0;">
-            Deposit: <strong style="color:#ffd700;">₹${u.depositBal || 0}</strong> | 
-            Winning: <strong style="color:#28e04d;">₹${u.winningBal || 0}</strong> |
+            Deposit: <strong style="color:#ffd700;">₹${depBal}</strong> | 
+            Winning: <strong style="color:#28e04d;">₹${winBal}</strong> |
             Total Dep: <strong style="color:#ffae00;">₹${totalDep}</strong>
           </div>
           <div style="display:flex; gap:6px; margin-top:8px;">
@@ -446,7 +472,8 @@
   async function editUserBal(mob, delta) {
     const u = allUsers[mob];
     if (!u || !u.name) return alert("Valid user nahi hai!");
-    const newBal = Math.max(0, Number(u.depositBal || 0) + delta);
+    const currentDep = Number(u.depositBal ?? u.depositBalance ?? 0);
+    const newBal = Math.max(0, currentDep + delta);
     const txns = Array.isArray(u.txns) ? [...u.txns] : [];
     txns.unshift({
       type: delta > 0 ? "Admin Bonus Added" : "Admin Deduction",
@@ -466,7 +493,6 @@
     forceLoadAll();
   }
 
-  // Page khulte hi turant data load karein aur har 10 second mein auto-sync karein
   forceLoadAll();
   setInterval(forceLoadAll, 10000);
 </script>
