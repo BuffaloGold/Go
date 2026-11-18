@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Color Trading - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+  body { background: #080a0f; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
+  .app { width: 100%; max-width: 440px; background: #10141f; min-height: 100vh; padding: 10px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #181e2e; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2b354f; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #38bdf8; }
+  .sync-pill { font-size: 9px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 6px; border-radius: 8px; font-weight: bold; }
+  .hdr-right { display: flex; align-items: center; gap: 8px; }
+  .snd-btn { background: #232b40; border: 1px solid #3a4666; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #232b40; border: 1px solid #3a4666; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
+
+  /* 3D Sphere & Period Arena */
+  .arena-3d {
+    position: relative;
+    width: 100%;
+    height: 215px;
+    border-radius: 16px;
+    border: 2px solid #2d3854;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #172554 0%, #0b101d 75%, #060911 100%);
+    margin-bottom: 8px;
+    box-shadow: inset 0 0 35px rgba(0,0,0,0.85);
+  }
+  canvas { width: 100%; height: 100%; display: block; }
+  .hud-top-row {
+    position: absolute; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none;
+  }
+  .period-box {
+    background: rgba(15, 23, 42, 0.88); border: 1px solid #334155;
+    padding: 4px 10px; border-radius: 10px; font-size: 11px; color: #cbd5e1;
+  }
+  .period-box strong { color: #ffd700; font-size: 12px; display: block; }
+  .timer-box {
+    background: rgba(15, 23, 42, 0.88); border: 1px solid #38bdf8;
+    padding: 4px 12px; border-radius: 10px; text-align: right;
+  }
+  .timer-box span { font-size: 9px; color: #94a3b8; display: block; font-weight: bold; }
+  .timer-digits { font-size: 20px; font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
+  .timer-digits.urgent { color: #ef4444; }
+
+  .recent-balls {
+    position: absolute; bottom: 8px; left: 10px; right: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    pointer-events: none;
+  }
+  .r-ball {
+    width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 900; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset -2px -2px 5px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.6);
+  }
+
+  /* Betting Board */
+  .board { background: #181e2e; border: 1px solid #2b354f; border-radius: 16px; padding: 10px; margin-bottom: 10px; position: relative; }
+  .lock-overlay {
+    display: none; position: absolute; inset: 0; background: rgba(8, 10, 15, 0.82);
+    border-radius: 16px; z-index: 20; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  .lock-overlay.show { display: flex; }
+  .lock-count { font-size: 48px; font-weight: 900; color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.6); }
+
+  /* Color Buttons (Green / Violet / Red) */
+  .color-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .c-btn {
+    border: none; border-radius: 12px; padding: 11px 4px; color: #fff; font-weight: 900;
+    font-size: 13px; cursor: pointer; text-align: center; box-shadow: 0 3px 0 rgba(0,0,0,0.45);
+    transition: transform 0.1s;
+  }
+  .c-btn:active { transform: scale(0.96); }
+  .c-btn small { display: block; font-size: 10px; opacity: 0.88; font-weight: 700; margin-top: 2px; }
+  .btn-green { background: linear-gradient(180deg, #22c55e, #15803d); }
+  .btn-violet { background: linear-gradient(180deg, #a855f7, #7e22ce); }
+  .btn-red { background: linear-gradient(180deg, #ef4444, #b91c1c); }
+
+  /* 0-9 3D Number Balls Grid */
+  .num-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; background: #10141f; padding: 10px; border-radius: 12px; margin-bottom: 10px; }
+  .num-ball {
+    aspect-ratio: 1; border-radius: 50%; border: none; color: #fff; font-size: 16px; font-weight: 900;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: inset -3px -3px 8px rgba(0,0,0,0.55), inset 2px 2px 6px rgba(255,255,255,0.35), 0 3px 6px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+  }
+  .num-ball:active { transform: scale(0.92); }
+  .nb-green { background: radial-gradient(circle at 30% 30%, #4ade80, #15803d); }
+  .nb-red { background: radial-gradient(circle at 30% 30%, #f87171, #b91c1c); }
+  .nb-gv { background: linear-gradient(135deg, #22c55e 50%, #a855f7 50%); }
+  .nb-rv { background: linear-gradient(135deg, #ef4444 50%, #a855f7 50%); }
+
+  /* Big / Small Row */
+  .bs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bs-btn {
+    border: none; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: 900;
+    color: #fff; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.45);
+  }
+  .bs-big { background: linear-gradient(180deg, #f59e0b, #b45309); }
+  .bs-small { background: linear-gradient(180deg, #3b82f6, #1d4ed8); }
+
+  /* Active Bets Strip */
+  .active-bets-box { background: #181e2e; border: 1px solid #2b354f; border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px; }
+  .ab-tag { display: inline-block; background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 8px; font-weight: bold; margin: 3px 4px 0 0; }
+
+  /* Live Feed */
+  .feed-box { background: #181e2e; border: 1px solid #2b354f; border-radius: 14px; padding: 10px; }
+  .feed-tabs { display: flex; background: #10141f; border-radius: 12px; padding: 3px; margin-bottom: 8px; }
+  .f-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 10px; color: #94a3b8; font-weight: bold; cursor: pointer; }
+  .f-tab.active { background: #29334d; color: #fff; }
+  .feed-row {
+    display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1fr; align-items: center;
+    background: #10141f; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
+  }
+  .feed-row.me { border: 1px solid #ffd700; }
+
+  /* Bet Slip Modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: flex-end; justify-content: center; }
+  .modal-bg.show { display: flex; }
+  .bet-sheet {
+    width: 100%; max-width: 440px; background: #181e2e; border-top: 2px solid #ffd700;
+    border-radius: 20px 20px 0 0; padding: 16px; animation: slideUp 0.2s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-head { text-align: center; padding: 8px; border-radius: 10px; font-weight: 900; font-size: 15px; margin-bottom: 12px; }
+  .amt-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+  .a-chip { background: #242d42; border: 1px solid #3a4766; color: #fff; padding: 8px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  .a-chip.active { background: #ffd700; color: #000; border-color: #fff; }
+  .mult-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 12px; }
+  .m-chip { background: #10141f; border: 1px solid #334155; color: #cbd5e1; padding: 7px 2px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .m-chip.active { background: #28e04d; color: #000; border-color: #28e04d; }
+  .sheet-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+  .btn-cancel { background: #2b354f; border: none; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+  .btn-confirm { background: linear-gradient(180deg, #28e04d, #15803d); border: none; color: #fff; padding: 12px; border-radius: 10px; font-weight: 900; font-size: 14px; cursor: pointer; }
+
+  /* Bottom Navigation */
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #181e2e; border-top: 1px solid #2b354f; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
+  .nav-item.active { color: #ffd700; font-weight: bold; }
+  .nav-icon { font-size: 19px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-title">
+      <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
+      <span>🎨 3D COLOR TRADING</span>
+      <span class="sync-pill">● WINGO 30S</span>
+    </div>
+    <div class="hdr-right">
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
+      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+    </div>
+  </div>
+
+  <!-- 3D Sphere & Countdown Arena -->
+  <div class="arena-3d">
+    <canvas id="color3dCanvas" width="420" height="215"></canvas>
+    <div class="hud-top-row">
+      <div class="period-box">
+        <span>PERIOD ID</span>
+        <strong id="periodIdTxt">20261118001</strong>
+      </div>
+      <div class="timer-box">
+        <span>TIME REMAINING</span>
+        <div class="timer-digits" id="timerTxt">00:30</div>
+      </div>
+    </div>
+    <div class="recent-balls" id="recentBallsBar"></div>
+  </div>
+
+  <!-- Betting Controls Board -->
+  <div class="board">
+    <div class="lock-overlay" id="lockOverlay">
+      <div style="font-size:13px; font-weight:bold; color:#fde047; margin-bottom:4px;">BETS LOCKED • DRAWING 3D BALL</div>
+      <div class="lock-count" id="lockCountTxt">5</div>
+    </div>
+
+    <div class="color-row">
+      <button type="button" class="c-btn btn-green" onclick="openBetSheet('GREEN', 'Join Green (2x)', '#16a34a')">GREEN<small>2x Payout</small></button>
+      <button type="button" class="c-btn btn-violet" onclick="openBetSheet('VIOLET', 'Join Violet (4.5x)', '#7e22ce')">VIOLET<small>4.5x Payout</small></button>
+      <button type="button" class="c-btn btn-red" onclick="openBetSheet('RED', 'Join Red (2x)', '#dc2626')">RED<small>2x Payout</small></button>
+    </div>
+
+    <div class="num-grid">
+      <button type="button" class="num-ball nb-rv" onclick="openBetSheet('NUM_0', 'Select Number 0 (9x)', '#dc2626')">0</button>
+      <button type="button" class="num-ball nb-green" onclick="openBetSheet('NUM_1', 'Select Number 1 (9x)', '#16a34a')">1</button>
+      <button type="button" class="num-ball nb-red" onclick="openBetSheet('NUM_2', 'Select Number 2 (9x)', '#dc2626')">2</button>
+      <button type="button" class="num-ball nb-green" onclick="openBetSheet('NUM_3', 'Select Number 3 (9x)', '#16a34a')">3</button>
+      <button type="button" class="num-ball nb-red" onclick="openBetSheet('NUM_4', 'Select Number 4 (9x)', '#dc2626')">4</button>
+      <button type="button" class="num-ball nb-gv" onclick="openBetSheet('NUM_5', 'Select Number 5 (9x)', '#16a34a')">5</button>
+      <button type="button" class="num-ball nb-red" onclick="openBetSheet('NUM_6', 'Select Number 6 (9x)', '#dc2626')">6</button>
+      <button type="button" class="num-ball nb-green" onclick="openBetSheet('NUM_7', 'Select Number 7 (9x)', '#16a34a')">7</button>
+      <button type="button" class="num-ball nb-red" onclick="openBetSheet('NUM_8', 'Select Number 8 (9x)', '#dc2626')">8</button>
+      <button type="button" class="num-ball nb-green" onclick="openBetSheet('NUM_9', 'Select Number 9 (9x)', '#16a34a')">9</button>
+    </div>
+
+    <div class="bs-row">
+      <button type="button" class="bs-btn bs-big" onclick="openBetSheet('BIG', 'Select BIG 5-9 (2x)', '#d97706')">BIG (5-9) • 2x</button>
+      <button type="button" class="bs-btn bs-small" onclick="openBetSheet('SMALL', 'Select SMALL 0-4 (2x)', '#2563eb')">SMALL (0-4) • 2x</button>
+    </div>
+  </div>
+
+  <!-- Current Round Active Bets -->
+  <div class="active-bets-box" id="activeBetsBox" style="display:none;">
+    <div style="color:#94a3b8; font-weight:bold;">🎯 Your Active Bets This Period:</div>
+    <div id="activeBetsTags"></div>
+  </div>
+
+  <!-- Live Feed & History -->
+  <div class="feed-box">
+    <div class="feed-tabs">
+      <div class="f-tab active" onclick="switchTab('live', this)">🔥 Live Winners</div>
+      <div class="f-tab" onclick="switchTab('history', this)">📊 Game History</div>
+      <div class="f-tab" onclick="switchTab('my', this)">🧾 My Bets</div>
+    </div>
+    <div id="feedContent"></div>
+  </div>
+</div>
+
+<!-- Bet Amount Bottom Sheet -->
+<div class="modal-bg" id="betModal">
+  <div class="bet-sheet">
+    <div class="sheet-head" id="sheetTitle" style="background:#16a34a;">Join Green</div>
+    <div style="font-size:12px; color:#cbd5e1; margin-bottom:6px;">Select Base Amount:</div>
+    <div class="amt-chips">
+      <button type="button" class="a-chip active" onclick="setBaseAmt(10, this)">₹10</button>
+      <button type="button" class="a-chip" onclick="setBaseAmt(100, this)">₹100</button>
+      <button type="button" class="a-chip" onclick="setBaseAmt(500, this)">₹500</button>
+      <button type="button" class="a-chip" onclick="setBaseAmt(1000, this)">₹1000</button>
+    </div>
+    <div style="font-size:12px; color:#cbd5e1; margin-bottom:6px;">Multiplier Quantity:</div>
+    <div class="mult-chips">
+      <button type="button" class="m-chip active" onclick="setQty(1, this)">X1</button>
+      <button type="button" class="m-chip" onclick="setQty(2, this)">X2</button>
+      <button type="button" class="m-chip" onclick="setQty(5, this)">X5</button>
+      <button type="button" class="m-chip" onclick="setQty(10, this)">X10</button>
+      <button type="button" class="m-chip" onclick="setQty(20, this)">X20</button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn-cancel" onclick="closeBetSheet()">Cancel</button>
+      <button type="button" class="btn-confirm" id="confirmBetBtn" onclick="confirmColorBet()">Total Bet ₹10</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+</div>
+
+<script>
+  const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const mobile = localStorage.getItem("activeUser");
+  if (!mobile) window.location.replace("index.html");
+
+  let userData = {};
+  try {
+    userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  } catch (e) {}
+  let winRateSetting = 35;
+
+  function getTotalBal() {
+    const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    return dep + win;
+  }
+
+  function updateHeaderBal() {
+    document.getElementById("balDisplay").innerText = getTotalBal().toFixed(2);
+  }
+  updateHeaderBal();
+
+  async function syncUser() {
+    try {
+      const [uRes, rRes] = await Promise.all([
+        fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
+        fetch(`${DB_URL}/settings/winRate.json?t=${Date.now()}`)
+      ]);
+      const u = await uRes.json();
+      const r = await rRes.json();
+      if (u && typeof u === "object") {
+        userData = { ...userData, ...u };
+        localStorage.setItem("cachedUser", JSON.stringify(userData));
+        updateHeaderBal();
+      }
+      if (typeof r === "number") winRateSetting = r;
+    } catch (e) {}
+  }
+  syncUser();
+
+  // ==========================================
+  // WEB AUDIO 3D COLOR TRADING SOUNDS
+  // ==========================================
+  let soundOn = true;
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function toggleSound() {
+    soundOn = !soundOn;
+    document.getElementById("sndBtn").innerText = soundOn ? "🔊" : "🔇";
+  }
+
+  function playColorSound(type) {
+    if (!soundOn) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      if (type === "click") {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(680, now);
+        osc.frequency.exponentialRampToValueAtTime(1020, now + 0.06);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      } else if (type === "beep") {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.09);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === "reveal") {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(760, now + 0.25);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      } else if (type === "win") {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.28);
+        });
+      }
+    } catch (e) {}
+  }
+
+  // ==========================================
+  // NUMBER COLOR & SIZE HELPERS
+  // ==========================================
+  function getNumInfo(n) {
+    const num = Number(n);
+    const isBig = num >= 5;
+    let colors = [];
+    let bg = "#16a34a";
+    if (num === 0) {
+      colors = ["RED", "VIOLET"];
+      bg = "linear-gradient(135deg, #ef4444 50%, #a855f7 50%)";
+    } else if (num === 5) {
+      colors = ["GREEN", "VIOLET"];
+      bg = "linear-gradient(135deg, #22c55e 50%, #a855f7 50%)";
+    } else if ([1, 3, 7, 9].includes(num)) {
+      colors = ["GREEN"];
+      bg = "#16a34a";
+    } else {
+      colors = ["RED"];
+      bg = "#dc2626";
+    }
+    return { num, isBig, colors, bg };
+  }
+
+// ==========================================
+  // BET SLIP LOGIC
+  // ==========================================
+  let pendingSelection = "";
+  let pendingLabel = "";
+  let baseAmt = 10;
+  let qty = 1;
+  let activeRoundBets = []; // [{ period, target, label, amt }]
+  let myBetHistory = [];
+  let pastResults = [
+    { period: "20261118099", num: 7 },
+    { period: "20261118098", num: 2 },
+    { period: "20261118097", num: 5 },
+    { period: "20261118096", num: 8 },
+    { period: "20261118095", num: 1 },
+    { period: "20261118094", num: 0 },
+    { period: "20261118093", num: 9 },
+    { period: "20261118092", num: 4 }
+  ];
+
+  function openBetSheet(target, title, colorHex) {
+    initAudio();
+    if (isLocked) return;
+    playColorSound("click");
+    pendingSelection = target;
+    pendingLabel = title.split("(")[0].trim();
+    document.getElementById("sheetTitle").innerText = title;
+    document.getElementById("sheetTitle").style.background = colorHex;
+    updateConfirmBtn();
+    document.getElementById("betModal").classList.add("show");
+  }
+
+  function closeBetSheet() {
+    document.getElementById("betModal").classList.remove("show");
+  }
+
+  function setBaseAmt(val, el) {
+    playColorSound("click");
+    baseAmt = val;
+    document.querySelectorAll(".a-chip").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+    updateConfirmBtn();
+  }
+
+  function setQty(q, el) {
+    playColorSound("click");
+    qty = q;
+    document.querySelectorAll(".m-chip").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+    updateConfirmBtn();
+  }
+
+  function updateConfirmBtn() {
+    document.getElementById("confirmBetBtn").innerText = `Total Bet ₹${baseAmt * qty}`;
+  }
+
+  async function confirmColorBet() {
+    if (isLocked) {
+      closeBetSheet();
+      return alert("Time up! Agle round mein bet lagayein.");
+    }
+    const totalBet = baseAmt * qty;
+    if (totalBet > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
+
+    playColorSound("click");
+    closeBetSheet();
+
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    if (dBal >= totalBet) {
+      dBal -= totalBet;
+    } else {
+      const rem = totalBet - dBal;
+      dBal = 0;
+      wBal -= rem;
+    }
+
+    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({
+      type: `Color Trade (${pendingLabel})`,
+      amt: "-₹" + totalBet,
+      date: new Date().toLocaleString()
+    });
+
+    userData.depositBal = dBal;
+    userData.winningBal = wBal;
+    userData.txns = txns.slice(0, 30);
+    localStorage.setItem("cachedUser", JSON.stringify(userData));
+    updateHeaderBal();
+
+    activeRoundBets.push({
+      period: currentPeriodId,
+      target: pendingSelection,
+      label: pendingLabel,
+      amt: totalBet
+    });
+    renderActiveBets();
+
+    fetch(`${DB_URL}/users/${mobile}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
+    });
+  }
+
+  function renderActiveBets() {
+    const box = document.getElementById("activeBetsBox");
+    const tags = document.getElementById("activeBetsTags");
+    if (activeRoundBets.length === 0) {
+      box.style.display = "none";
+      return;
+    }
+    box.style.display = "block";
+    tags.innerHTML = activeRoundBets.map(b => `<span class="ab-tag">${b.label}: ₹${b.amt}</span>`).join("");
+  }
+
+  function renderRecentBalls() {
+    document.getElementById("recentBallsBar").innerHTML = pastResults.slice(0, 10).map(r => {
+      const info = getNumInfo(r.num);
+      return `<div class="r-ball" style="background:${info.bg};">${r.num}</div>`;
+    }).join("");
+  }
+  renderRecentBalls();
+
+  // ==========================================
+  // 3D ORBITING SPHERES & CRYSTAL CORE CANVAS
+  // ==========================================
+  const canvas = document.getElementById("color3dCanvas");
+  const ctx = canvas.getContext("2d");
+  let revealedBall = 7;
+
+  function draw3DColorArena() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const cx = canvas.width / 2;
+    const cy = 110;
+    const now = Date.now();
+    const spinSpeed = isLocked ? 0.008 : 0.0018;
+    const baseAngle = now * spinSpeed;
+
+    // 1. Glowing 3D Ring Orbit
+    ctx.save();
+    ctx.strokeStyle = isLocked ? "rgba(251, 191, 36, 0.45)" : "rgba(56, 189, 248, 0.25)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 4, 155, 46, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 2. Orbiting 3D Number Spheres (0 to 9) sorted back-to-front by Z depth
+    const spheres = [];
+    for (let i = 0; i < 10; i++) {
+      const a = baseAngle + (i / 10) * Math.PI * 2;
+      const x = cx + Math.cos(a) * 150;
+      const y = cy + 4 + Math.sin(a) * 44;
+      const depth = Math.sin(a); // -1 back, +1 front
+      spheres.push({ num: i, x, y, depth });
+    }
+    spheres.sort((a, b) => a.depth - b.depth);
+
+    // Draw Back Spheres first
+    spheres.filter(s => s.depth < 0).forEach(s => draw3DSphere(s.num, s.x, s.y, s.depth));
+
+    // 3. Central 3D Result Crystal Sphere
+    const mainInfo = getNumInfo(revealedBall);
+    const pulse = isLocked ? Math.sin(now / 70) * 3 : 0;
+    const mainR = 38 + pulse;
+
+    // Outer Aura
+    const aura = ctx.createRadialGradient(cx, cy, 10, cx, cy, mainR + 22);
+    aura.addColorStop(0, isLocked ? "rgba(251, 191, 36, 0.55)" : "rgba(56, 189, 248, 0.35)");
+    aura.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(cx, cy, mainR + 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3D Sphere Gradient
+    const mainColor = revealedBall === 0 || [2, 4, 6, 8].includes(revealedBall) ? "#ef4444" : "#22c55e";
+    const sGrad = ctx.createRadialGradient(cx - 12, cy - 12, 4, cx, cy, mainR);
+    sGrad.addColorStop(0, "#ffffff");
+    sGrad.addColorStop(0.28, isLocked ? "#fbbf24" : mainColor);
+    sGrad.addColorStop(1, "#090d16");
+
+    ctx.fillStyle = sGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, mainR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Center Number / Spinning Question
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 30px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const displayDigit = isLocked ? Math.floor((now / 60) % 10) : revealedBall;
+    ctx.fillText(displayDigit, cx, cy + 2);
+
+    // Draw Front Spheres over center crystal
+    spheres.filter(s => s.depth >= 0).forEach(s => draw3DSphere(s.num, s.x, s.y, s.depth));
+
+    ctx.restore();
+    requestAnimationFrame(draw3DColorArena);
+  }
+
+  function draw3DSphere(num, x, y, depth) {
+    const scale = 0.72 + ((depth + 1) / 2) * 0.45;
+    const r = 14 * scale;
+    const baseCol = (num === 0 || num === 5) ? "#a855f7" : ([1, 3, 7, 9].includes(num) ? "#22c55e" : "#ef4444");
+
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 1, x, y, r);
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(0.35, baseCol);
+    g.addColorStop(1, "#090d16");
+
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#fff";
+    ctx.font = `bold ${Math.round(11 * scale)}px Segoe UI`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(num, x, y + 1);
+  }
+  requestAnimationFrame(draw3DColorArena);
+
+  // ==========================================
+  // SYNCHRONIZED 30-SECOND WINGO LOOP
+  // ==========================================
+  const PERIOD_SEC = 30;
+  let currentPeriodId = "";
+  let isLocked = false;
+  let lastBeepSec = -1;
+  let settledPeriodId = "";
+
+  // Deterministic outcome from period index so all online players see exact same result
+  function getResultForPeriod(pIndex) {
+    const x = Math.sin(pIndex * 9973) * 10000;
+    const frac = x - Math.floor(x);
+    return Math.floor(frac * 10);
+  }
+
+  async function settlePeriod(pId, winNum) {
+    if (settledPeriodId === pId) return;
+    settledPeriodId = pId;
+    revealedBall = winNum;
+    playColorSound("reveal");
+
+    pastResults.unshift({ period: pId, num: winNum });
+    pastResults = pastResults.slice(0, 15);
+    renderRecentBalls();
+    renderTabContent();
+
+    // Check user's active bets for this period
+    const myBetsInPeriod = activeRoundBets.filter(b => b.period === pId);
+    activeRoundBets = [];
+    renderActiveBets();
+
+    if (myBetsInPeriod.length === 0) return;
+
+    const info = getNumInfo(winNum);
+    let totalWon = 0;
+
+    myBetsInPeriod.forEach(b => {
+      let mult = 0;
+      if (b.target === "GREEN" && info.colors.includes("GREEN")) {
+        mult = (winNum === 5) ? 1.5 : 2;
+      } else if (b.target === "RED" && info.colors.includes("RED")) {
+        mult = (winNum === 0) ? 1.5 : 2;
+      } else if (b.target === "VIOLET" && info.colors.includes("VIOLET")) {
+        mult = 4.5;
+      } else if (b.target === "BIG" && info.isBig) {
+        mult = 2;
+      } else if (b.target === "SMALL" && !info.isBig) {
+        mult = 2;
+      } else if (b.target === "NUM_" + winNum) {
+        mult = 9;
+      }
+
+      const wonAmt = Math.floor(b.amt * mult);
+      totalWon += wonAmt;
+      myBetHistory.unshift({
+        period: pId.slice(-4),
+        target: b.label,
+        bet: b.amt,
+        win: wonAmt,
+        resultNum: winNum
+      });
+    });
+
+    if (totalWon > 0) {
+      playColorSound("win");
+      const newWinBal = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + totalWon;
+      const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+      txns.unshift({
+        type: `Color Trade Win (#${winNum})`,
+        amt: "+₹" + totalWon,
+        date: new Date().toLocaleString()
+      });
+      userData.winningBal = newWinBal;
+      userData.txns = txns.slice(0, 30);
+      localStorage.setItem("cachedUser", JSON.stringify(userData));
+      updateHeaderBal();
+
+      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+      liveWinners.unshift({
+        name: maskedMe + " (You)",
+        pick: `#${winNum} (${info.isBig ? 'BIG' : 'SMALL'})`,
+        win: totalWon,
+        isMe: true
+      });
+      renderTabContent();
+
+      fetch(`${DB_URL}/users/${mobile}.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ winningBal: newWinBal, txns: userData.txns })
+      });
+
+      fetch(`${DB_URL}/colorLiveFeed/${mobile}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: maskedMe,
+          pick: `#${winNum} (${info.isBig ? 'BIG' : 'SMALL'})`,
+          win: totalWon,
+          ts: Date.now()
+        })
+      });
+    }
+  }
+
+  function tickColorClock() {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const periodIndex = Math.floor(nowSec / PERIOD_SEC);
+    const secElapsed = nowSec % PERIOD_SEC;
+    const remSec = PERIOD_SEC - secElapsed;
+
+    const newPeriodId = "2026" + String(periodIndex).slice(-7);
+    if (currentPeriodId && currentPeriodId !== newPeriodId) {
+      const prevIdx = periodIndex - 1;
+      const winNum = getResultForPeriod(prevIdx);
+      settlePeriod(currentPeriodId, winNum);
+    }
+    currentPeriodId = newPeriodId;
+    document.getElementById("periodIdTxt").innerText = currentPeriodId;
+
+    const timerEl = document.getElementById("timerTxt");
+    timerEl.innerText = "00:" + String(remSec).padStart(2, "0");
+
+    if (remSec <= 5) {
+      isLocked = true;
+      timerEl.classList.add("urgent");
+      document.getElementById("lockOverlay").classList.add("show");
+      document.getElementById("lockCountTxt").innerText = remSec;
+      if (lastBeepSec !== remSec) {
+        lastBeepSec = remSec;
+        playColorSound("beep");
+      }
+    } else {
+      isLocked = false;
+      timerEl.classList.remove("urgent");
+      document.getElementById("lockOverlay").classList.remove("show");
+    }
+  }
+
+  // ==========================================
+  // HYBRID LIVE FEED & HISTORY TABS
+  // ==========================================
+  const BOTS = ["a***4", "r***9", "k***2", "s***7", "v***1", "m***8", "p***3", "d***5", "n***6", "t***0"];
+  let liveWinners = [
+    { name: "r***9", pick: "GREEN (2x)", win: 1000, isMe: false },
+    { name: "a***4", pick: "NUM #7 (9x)", win: 4500, isMe: false },
+    { name: "s***7", pick: "BIG (2x)", win: 600, isMe: false },
+    { name: "v***1", pick: "VIOLET (4.5x)", win: 2250, isMe: false },
+    { name: "m***8", pick: "RED (2x)", win: 400, isMe: false }
+  ];
+  let currentTab = "live";
+
+  function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active"));
+    el.classList.add("active");
+    renderTabContent();
+  }
+
+  function renderTabContent() {
+    const box = document.getElementById("feedContent");
+    if (currentTab === "live") {
+      box.innerHTML = liveWinners.slice(0, 10).map(w => `
+        <div class="feed-row ${w.isMe ? 'me' : ''}">
+          <div style="font-weight:bold; color:#e2e8f0;">🎨 ${w.name}</div>
+          <div style="color:#38bdf8; font-weight:bold;">${w.pick}</div>
+          <div style="color:#94a3b8;">Win</div>
+          <div style="text-align:right; font-weight:bold; color:#28e04d;">+₹${w.win}</div>
+        </div>
+      `).join("");
+    } else if (currentTab === "history") {
+      box.innerHTML = pastResults.slice(0, 10).map(r => {
+        const info = getNumInfo(r.num);
+        return `
+          <div class="feed-row">
+            <div style="color:#cbd5e1;">#${r.period.slice(-4)}</div>
+            <div style="font-weight:bold; color:#ffd700;">${info.isBig ? 'BIG' : 'SMALL'}</div>
+            <div><span class="r-ball" style="width:20px; height:20px; font-size:10px; background:${info.bg};">${r.num}</span></div>
+            <div style="text-align:right; font-weight:bold; color:${info.colors.includes('GREEN') ? '#28e04d' : '#f87171'};">${info.colors.join('+')}</div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      box.innerHTML = myBetHistory.slice(0, 10).map(m => `
+        <div class="feed-row me">
+          <div>#${m.period} • ${m.target}</div>
+          <div style="color:#94a3b8;">Bet ₹${m.bet}</div>
+          <div style="color:#ffd700;">Ball #${m.resultNum}</div>
+          <div style="text-align:right; font-weight:bold; color:${m.win > 0 ? '#28e04d' : '#ef4444'};">${m.win > 0 ? '+₹' + m.win : 'Lost'}</div>
+        </div>
+      `).join("") || "<div style='text-align:center; color:#64748b; padding:12px; font-size:12px;'>Abhi tak koi bet nahi lagi hai</div>";
+    }
+  }
+  renderTabContent();
+
+  setInterval(async () => {
+    const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
+    const picks = [
+      { p: "GREEN (2x)", m: 2 },
+      { p: "RED (2x)", m: 2 },
+      { p: "BIG (2x)", m: 2 },
+      { p: "SMALL (2x)", m: 2 },
+      { p: "VIOLET (4.5x)", m: 4.5 },
+      { p: "NUM #7 (9x)", m: 9 }
+    ];
+    const pk = picks[Math.floor(Math.random() * picks.length)];
+    const amt = [50, 100, 200, 500][Math.floor(Math.random() * 4)];
+    liveWinners.unshift({ name: bName, pick: pk.p, win: Math.floor(amt * pk.m), isMe: false });
+
+    try {
+      const res = await fetch(`${DB_URL}/colorLiveFeed.json?t=${Date.now()}`);
+      const real = await res.json();
+      if (real) {
+        Object.keys(real).forEach(k => {
+          const r = real[k];
+          if (r && (Date.now() - r.ts) < 25000 && k !== mobile) {
+            liveWinners.unshift({ name: r.name, pick: r.pick, win: r.win, isMe: false });
+          }
+        });
+      }
+    } catch (e) {}
+
+    if (currentTab === "live") renderTabContent();
+  }, 4500);
+
+  tickColorClock();
+  setInterval(tickColorClock, 250);
+</script>
+</body>
+</html>
