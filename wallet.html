@@ -37,7 +37,6 @@
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 20px; display: block; }
 
-  /* Success Receipt Modal CSS */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
   .modal-box { background: #1f042e; border: 2px solid #28e04d; border-radius: 18px; padding: 22px 18px; text-align: center; width: 100%; max-width: 350px; box-shadow: 0 0 25px rgba(40, 224, 77, 0.4); animation: popIn 0.25s ease-out; }
   @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -83,7 +82,7 @@
 
   <div class="box">
     <h4 style="color:#ffae00;">- WITHDRAW WINNINGS</h4>
-    <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw kiya ja sakta hai (Min ₹100).</p>
+    <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw kiya ja sakta hai (Min ₹100). Payment successful hone par hi balance minus hoga.</p>
     
     <div id="wdLockMsg" class="lock-notice">
       🔒 <strong>Withdrawal Locked:</strong> Withdrawal unlock karne ke liye total <strong>₹300 deposit</strong> zaroori hai.<br>
@@ -131,8 +130,8 @@
   try {
     const cached = JSON.parse(localStorage.getItem("cachedUser") || "null");
     if (cached && cached.name) {
-      document.getElementById("depBal").innerText = cached.depositBal || 0;
-      document.getElementById("winBal").innerText = cached.winningBal || 0;
+      document.getElementById("depBal").innerText = cached.depositBal ?? cached.depositBalance ?? 0;
+      document.getElementById("winBal").innerText = cached.winningBal ?? cached.winningBalance ?? 0;
     }
   } catch (e) {}
 </script>
@@ -140,7 +139,7 @@
 <script type="module">
   import { db, ref, set, get, update, onValue } from "./firebase-config.js";
 
-  const MERCHANT_UPI = "paytmqrmk2f9izxa@paytm";
+  const MERCHANT_UPI = "paytmqrqmk2f9izxa@paytm";
   const MERCHANT_NAME = "Buffalo Gold";
   document.getElementById("merchantUpiText").innerText = MERCHANT_UPI;
 
@@ -152,14 +151,13 @@
   let isCrediting = false;
   const userRef = ref(db, "users/" + mobile);
 
-  // Total deposit calculate karne ka helper (totalDeposited field ya txns history se)
   function getCalculatedTotalDeposit(uData) {
     if (!uData) return 0;
-    if (typeof uData.totalDeposited === "number") return uData.totalDeposited;
+    if (typeof uData.totalDeposited === "number" && uData.totalDeposited > 0) return uData.totalDeposited;
     let sum = 0;
     if (Array.isArray(uData.txns)) {
       uData.txns.forEach(t => {
-        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && t.type.toLowerCase().includes("deposit")) {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && t.type.toLowerCase().includes("auto-deposit")) {
           const val = parseInt(String(t.amt).replace("+₹", ""));
           if (!isNaN(val)) sum += val;
         }
@@ -176,11 +174,15 @@
       return;
     }
     userData = snapshot.val();
+    // Purane signup field `depositBalance` ko `depositBal` me auto-sync karein
+    if (userData.depositBal === undefined && userData.depositBalance !== undefined) {
+      userData.depositBal = Number(userData.depositBalance);
+      update(userRef, { depositBal: userData.depositBal });
+    }
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     document.getElementById("depBal").innerText = userData.depositBal || 0;
     document.getElementById("winBal").innerText = userData.winningBal || 0;
 
-    // Sirf tabhi unlock hoga jab total deposit >= 300 ho
     const totalDep = getCalculatedTotalDeposit(userData);
     const isUnlocked = totalDep >= 300;
     const remAmt = Math.max(0, 300 - totalDep);
@@ -196,16 +198,20 @@
     document.getElementById("wdBtn").innerText = isUnlocked ? "REQUEST WITHDRAWAL" : `🔒 DEPOSIT ₹${remAmt} MORE TO UNLOCK`;
 
     const txns = Array.isArray(userData.txns) ? userData.txns : [];
-    document.getElementById("txnList").innerHTML = txns.map(t => `
-      <div class="txn-item">
-        <div>
-          <strong>${t.type}</strong>
-          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} | Order: ${t.orderId || '-'}</div>` : ''}
-          <div class="txn-date">${t.date}</div>
+    document.getElementById("txnList").innerHTML = txns.map(t => {
+      const amtStr = String(t.amt || "");
+      const color = amtStr.startsWith("+") ? "#28e04d" : (amtStr.startsWith("-") ? "#ff5252" : "#ffae00");
+      return `
+        <div class="txn-item">
+          <div>
+            <strong>${t.type}</strong>
+            ${t.refId ? `<div class="txn-sub">Status/Ref: ${t.refId} | ID: ${t.orderId || '-'}</div>` : ''}
+            <div class="txn-date">${t.date}</div>
+          </div>
+          <div style="font-weight:bold; font-size:15px; color:${color};">${amtStr}</div>
         </div>
-        <div style="font-weight:bold; font-size:15px; color:${t.amt.startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
-      </div>
-    `).join("") || "No transactions yet.";
+      `;
+    }).join("") || "No transactions yet.";
   }, (error) => {
     document.getElementById("txnList").innerHTML = "<span style='color:#ff5252;'>Firebase Error: " + error.message + "</span>";
   });
@@ -285,13 +291,11 @@
               txns: txns.slice(0, 30)
             });
 
-            // 1. QR Box hide karein
             document.getElementById("qrBox").style.display = "none";
             document.getElementById("qrImage").src = "";
             document.getElementById("depInput").value = "";
             currentAmtKey = null;
 
-            // 2. Receipt Modal mein saari details bhar kar dikhayein
             document.getElementById("modalAddedAmt").innerText = baseAmt;
             document.getElementById("mOrderId").innerText = depId;
             document.getElementById("mUtrId").innerText = refUtr;
@@ -320,6 +324,13 @@
       return alert(`Withdrawal unlock karne ke liye total ₹300 deposit zaroori hai! Aapne abhi tak ₹${totalDep} deposit kiya hai.`);
     }
 
+    // Check karein ki pehle se koi withdrawal PENDING to nahi hai
+    const existingTxns = Array.isArray(userData.txns) ? userData.txns : [];
+    const hasPendingWd = existingTxns.some(t => t && t.refId === "PENDING" && String(t.orderId || "").startsWith("WD"));
+    if (hasPendingWd) {
+      return alert("⏳ Aapki ek withdrawal request pehle se PENDING hai! Uske complete hone ke baad agli request dalein.");
+    }
+
     let amt = parseInt(document.getElementById("wdInput").value);
     let upi = document.getElementById("upiId").value.trim();
 
@@ -330,17 +341,17 @@
     const wdId = "WD" + Date.now().toString().slice(-8);
     const nowStr = new Date().toLocaleString();
 
-    let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    // Balance ABHI NAHI KATEGA - sirf request history mein PENDING dikhegi
+    let txns = [...existingTxns];
     txns.unshift({
-      type: "Withdraw (" + upi + ")",
+      type: "Withdraw Request (" + upi + ")",
       orderId: wdId,
       refId: "PENDING",
-      amt: "-₹" + amt,
+      amt: "⏳ ₹" + amt,
       date: nowStr
     });
 
     await update(userRef, {
-      winningBal: Number(userData.winningBal || 0) - amt,
       txns: txns.slice(0, 30)
     });
 
@@ -349,7 +360,7 @@
     });
 
     document.getElementById("wdInput").value = "";
-    alert("⏳ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") bhej diya gaya!");
+    alert("✅ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") lag gaya hai! Admin dwara payment karte hi aapke Winning Balance se amount minus ho jayega.");
   });
 </script>
 </body>
