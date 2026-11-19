@@ -56,72 +56,20 @@
   .left-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
   .stepper { display: flex; align-items: center; justify-content: space-between; background: #121318; border: 1px solid #323442; border-radius: 20px; padding: 4px 10px; }
   .step-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #555; background: transparent; color: #fff; font-weight: bold; cursor: pointer; }
-  .bet-inp { background: transparent; border: none; color: #fff; font-size: 15px; font-weight: bold; width: 65px; text-align: center; outline: none; }
-  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .q-btn { background: #252732; border: none; color: #ccc; padding: 4px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
-
-  .action-btn {
-    flex: 1.15; border: none; border-radius: 14px; font-weight: 900; font-size: 15px; color: #fff;
-    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-transform: uppercase; box-shadow: 0 4px 0 rgba(0,0,0,0.4); transition: transform 0.1s;
-  }
-  .action-btn:active { transform: scale(0.97); }
-  .btn-green { background: linear-gradient(180deg, #28e04d, #16a332); }
-  .btn-orange { background: linear-gradient(180deg, #ff9f1c, #e67700); }
-  .btn-red { background: linear-gradient(180deg, #ff2e4c, #c91832); }
-  .btn-queued { background: linear-gradient(180deg, #0284c7, #0369a1); }
-  .action-sub { font-size: 11px; font-weight: normal; margin-top: 2px; }
-
-  /* Auto-Bet & Auto-Cashout Safety Bar */
-  .auto-row {
-    display: flex; justify-content: space-between; align-items: center; gap: 6px;
-    margin-top: 8px; padding-top: 8px; border-top: 1px solid #2a2c38; font-size: 11px; color: #bbb;
-  }
-  .auto-group { display: flex; align-items: center; gap: 5px; }
-  .auto-toggle {
-    padding: 4px 9px; border-radius: 12px; border: 1px solid #3f4254; background: #121318;
-    color: #9ca3af; font-size: 10px; font-weight: bold; cursor: pointer;
-  }
-  .auto-toggle.on { background: rgba(40, 224, 77, 0.18); border-color: #28e04d; color: #28e04d; }
-  .auto-mult-inp {
-    width: 48px; background: #121318; border: 1px solid #3f4254; color: #ffd700;
-    border-radius: 8px; padding: 3px 4px; text-align: center; font-weight: bold; font-size: 11px; outline: none;
-  }
-
-  /* Live Feed */
-  .feed-box { background: #1c1d24; border: 1px solid #2d2f3b; border-radius: 16px; padding: 10px; margin-top: 10px; }
-  .feed-tabs { display: flex; background: #121318; border-radius: 20px; padding: 3px; margin-bottom: 8px; }
-  .f-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 16px; color: #999; font-weight: bold; cursor: pointer; }
-  .f-tab.active { background: #2c2e3b; color: #fff; }
-  .feed-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; padding: 4px 6px 8px; border-bottom: 1px solid #2a2c38; }
-  .feed-row {
-    display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1.1fr; align-items: center;
-    background: #14151a; padding: 7px 8px; border-radius: 8px; margin-top: 5px; font-size: 11px;
-  }
-  .feed-row.won { background: rgba(40, 224, 77, 0.14); border: 1px solid rgba(40, 224, 77, 0.45); }
-  .feed-row.me { border-color: #ffd700; }
-  .mult-badge { background: #262833; color: #c084fc; padding: 2px 6px; border-radius: 6px; font-weight: bold; text-align: center; width: fit-content; }
-
-  /* Bottom Navigation */
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1c1d24; border-top: 1px solid #2d2f3b; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
-  .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
-  .nav-item.active { color: #ffd700; font-weight: bold; }
-  .nav-icon { font-size: 19px; display: block; }
-</style>
-</head>
-<body>
+  .bet-inp { background: transparent; border: none; color: #fff; font-size: 15px; font-weight: bold; width: 
+            <body>
 
 <div class="app">
   <!-- Top Header -->
   <div class="header">
     <div class="logo-title">
-      <span onclick="location.href='game.html'" style="cursor:pointer; color:#aaa; font-style:normal; font-size:16px;">⬅</span>
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#aaa; font-style:normal; font-size:16px;">⬅</span>
       <span>Aviator</span>
       <span class="sync-pill">● LIVE SYNC</span>
     </div>
     <div class="hdr-right">
       <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()" title="Sound On/Off">🔊</button>
-      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span> INR</div>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span> INR</div>
     </div>
   </div>
 
@@ -239,10 +187,10 @@
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
 </div>
 
 <script>
@@ -446,31 +394,28 @@
       const winNow = (p.amount * currentMult).toFixed(2);
       btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${winNow} INR</span>`;
     }
-  }
+            }
    // ==========================================
-  // STRICT HOUSE-PROFIT CRASH FORMULA
+  // STRICT 20% & TIGHT 35% CRASH FORMULA
   // ==========================================
   function generateCrashPoint() {
     const r = Math.random() * 100;
     if (winRateSetting <= 25) {
-      // 20% Mode: 68% rounds 1.00x-1.35x par hi crash honge
       if (r < 68) return Number((1.00 + Math.random() * 0.35).toFixed(2));
       if (r < 92) return Number((1.36 + Math.random() * 0.60).toFixed(2));
       return Number((2.00 + Math.random() * 2.50).toFixed(2));
     } else if (winRateSetting <= 40) {
-      // 35% Balanced Mode
-      if (r < 45) return Number((1.00 + Math.random() * 0.45).toFixed(2));
-      if (r < 80) return Number((1.46 + Math.random() * 1.10).toFixed(2));
-      return Number((2.56 + Math.random() * 4.50).toFixed(2));
+      if (r < 55) return Number((1.00 + Math.random() * 0.42).toFixed(2));
+      if (r < 88) return Number((1.43 + Math.random() * 0.65).toFixed(2));
+      return Number((2.10 + Math.random() * 2.90).toFixed(2));
     } else {
-      // 50% / 75% Promo Mode
       if (r < 25) return Number((1.02 + Math.random() * 0.50).toFixed(2));
       return Number((1.60 + Math.random() * 6.50).toFixed(2));
     }
   }
 
   // ==========================================
-  // SHARED MULTIPLAYER ROOM SYNC (FIREBASE)
+  // SHARED MULTIPLAYER ROOM SYNC
   // ==========================================
   const WAIT_MS = 5000;
   const CRASH_PAUSE_MS = 2800;
@@ -561,9 +506,6 @@
     } catch (e) {}
   }
 
-  // ==========================================
-  // BETTING, AUTO-BET & CASHOUT LOGIC
-  // ==========================================
   async function placePanelBetNow(idx, isAuto = false) {
     const val = parseInt(document.getElementById(`betInp${idx}`).value);
     if (!val || val < 10) {
@@ -658,9 +600,7 @@
       return;
     }
 
-    if (p.state === "PLACED") {
-      return;
-    }
+    if (p.state === "PLACED") return;
 
     if (p.state === "ACTIVE" && gameState === "FLYING") {
       const cashMult = currentMult;
@@ -702,9 +642,6 @@
     }
   }
 
-  // ==========================================
-  // MASTER SYNCHRONIZED RENDER & STATE ENGINE
-  // ==========================================
   const canvas = document.getElementById("aviatorCanvas");
   const ctx = canvas.getContext("2d");
   let planeX = 35, planeY = 180;
@@ -866,9 +803,6 @@
     }
   }
 
-  // ==========================================
-  // HYBRID LIVE FEED (BOTS + REAL MULTIPLAYER)
-  // ==========================================
   const BOT_NAMES = ["d***4", "a***9", "r***2", "s***7", "v***1", "k***8", "m***3", "p***5", "n***6", "t***0", "g***4", "b***2"];
   let liveBetsData = [];
   let myBetsHistory = [];
@@ -958,46 +892,27 @@
     `).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
   }
 
-  syncRoomFromFirebase();
-  setInterval(syncRoomFromFirebase, 1500);
-  setInterval(tickSynchronizedEngine, 60);
-   // ==========================================
+  // ==========================================
   // SAFE EXIT & BACK BUTTON CONFIRMATION
   // ==========================================
   function hasRunningBet() {
-    // Aviator check
-    if (typeof panels !== "undefined" && Array.isArray(panels)) {
-      if (panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED")) return true;
-    }
-    // Chicken Road check
-    if (typeof isPlaying !== "undefined" && isPlaying) return true;
-    // Car Roulette check
-    if (typeof myBets !== "undefined" && Object.values(myBets).some(v => v > 0)) return true;
-    // Color Trading check
-    if (typeof activeRoundBets !== "undefined" && activeRoundBets.length > 0) return true;
-    // Lucky Dice check
-    if (typeof activeBet !== "undefined" && activeBet !== null) return true;
-    // Buffalo Gold Slot check
-    if (typeof isSpinning !== "undefined" && isSpinning) return true;
-
-    return false;
+    return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED");
   }
 
   function safeExitTo(url) {
     const msg = hasRunningBet()
       ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
-      : "Kya aap game se bahar nikalna chahte hain?";
+      : "Kya aap Aviator game se bahar nikalna chahte hain?";
     if (confirm(msg)) {
       window.location.href = url;
     }
   }
 
-  // Mobile Back Button Intercept
   history.pushState(null, "", location.href);
   window.addEventListener("popstate", function () {
     const msg = hasRunningBet()
       ? "⚠️ Aapki bet abhi chal rahi hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
-      : "Kya aap game se bahar nikalna chahte hain?";
+      : "Kya aap Aviator game se bahar nikalna chahte hain?";
     if (confirm(msg)) {
       window.location.href = "game.html";
     } else {
@@ -1005,14 +920,17 @@
     }
   });
 
-  // Browser Tab Close / Refresh Warning (Jab Bet Lagi Ho)
   window.addEventListener("beforeunload", function (e) {
     if (hasRunningBet()) {
       e.preventDefault();
       e.returnValue = "";
     }
   });
- 
+
+  syncRoomFromFirebase();
+  setInterval(syncRoomFromFirebase, 1500);
+  setInterval(tickSynchronizedEngine, 60);
 </script>
 </body>
 </html>
+ 
