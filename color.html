@@ -152,13 +152,13 @@
   <!-- Header -->
   <div class="header">
     <div class="logo-title">
-      <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
       <span>🎨 3D COLOR TRADING</span>
       <span class="sync-pill">● WINGO 30S</span>
     </div>
     <div class="hdr-right">
       <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
-      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span></div>
     </div>
   </div>
 
@@ -255,10 +255,10 @@
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
 </div>
 
 <script>
@@ -378,8 +378,7 @@
       }
     } catch (e) {}
   }
-
-  // ==========================================
+   // ==========================================
   // NUMBER COLOR & SIZE HELPERS
   // ==========================================
   function getNumInfo(n) {
@@ -403,7 +402,7 @@
     return { num, isBig, colors, bg };
   }
 
-// ==========================================
+  // ==========================================
   // BET SLIP LOGIC
   // ==========================================
   let pendingSelection = "";
@@ -863,6 +862,41 @@
 
     if (currentTab === "live") renderTabContent();
   }, 4500);
+
+  // ==========================================
+  // SAFE EXIT & BACK BUTTON CONFIRMATION
+  // ==========================================
+  function hasRunningBet() {
+    return activeRoundBets.length > 0;
+  }
+
+  function safeExitTo(url) {
+    const msg = hasRunningBet()
+      ? "⚠️ Is period mein aapki Color Trading bet lagi hui hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
+      : "Kya aap Color Trading game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = url;
+    }
+  }
+
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet()
+      ? "⚠️ Is period mein aapki Color Trading bet lagi hui hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
+      : "Kya aap Color Trading game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = "game.html";
+    } else {
+      history.pushState(null, "", location.href);
+    }
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (hasRunningBet()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
 
   tickColorClock();
   setInterval(tickColorClock, 250);
