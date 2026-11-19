@@ -8,34 +8,19 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
   body { background: #0b0b0e; color: #fff; display: flex; justify-content: center; padding-bottom: 72px; }
   .app { width: 100%; max-width: 440px; background: #14151a; min-height: 100vh; padding: 10px; }
-
-  /* Header */
   .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1c1d24; border-radius: 12px; margin-bottom: 8px; }
   .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 17px; color: #ff2e4c; font-style: italic; }
   .sync-pill { font-size: 9px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 6px; border-radius: 8px; font-style: normal; font-weight: bold; }
   .hdr-right { display: flex; align-items: center; gap: 8px; }
   .snd-btn { background: #262833; border: 1px solid #3c3f4f; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .bal-pill { background: #262833; border: 1px solid #3c3f4f; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
-
-  /* History Bar */
   .history-bar { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
   .history-bar::-webkit-scrollbar { display: none; }
   .hist-pill { padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: bold; background: #22242e; flex-shrink: 0; }
   .c-blue { color: #38bdf8; }
   .c-purple { color: #c084fc; }
   .c-pink { color: #f472b6; }
-
-  /* Canvas Arena */
-  .arena {
-    position: relative;
-    width: 100%;
-    height: 215px;
-    border-radius: 16px;
-    border: 1px solid #2b2d3a;
-    overflow: hidden;
-    background: radial-gradient(circle at 20% 80%, #3a0b19 0%, #14151a 65%, #0d0e12 100%);
-    margin-bottom: 10px;
-  }
+  .arena { position: relative; width: 100%; height: 215px; border-radius: 16px; border: 1px solid #2b2d3a; overflow: hidden; background: radial-gradient(circle at 20% 80%, #3a0b19 0%, #14151a 65%, #0d0e12 100%); margin-bottom: 10px; }
   canvas { width: 100%; height: 100%; display: block; }
   .center-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 90%; }
   .mult-text { font-size: 46px; font-weight: 900; color: #fff; text-shadow: 0 2px 15px rgba(0,0,0,0.85); }
@@ -44,23 +29,45 @@
   .wait-bar-wrap { width: 170px; height: 6px; background: #2c2e3b; border-radius: 6px; margin: 10px auto 0; overflow: hidden; }
   .wait-bar-fill { height: 100%; background: #ff2e4c; width: 100%; transition: width 0.1s linear; }
   .live-users-tag { position: absolute; bottom: 8px; right: 10px; background: rgba(0,0,0,0.65); padding: 3px 8px; border-radius: 10px; font-size: 10px; color: #ccc; }
-
-  /* Dual Bet Panels */
   .bet-card { background: #1c1d24; border: 1px solid #2d2f3b; border-radius: 16px; padding: 10px; margin-bottom: 8px; }
   .card-top-tabs { display: flex; justify-content: center; margin-bottom: 8px; }
   .mode-pills { display: flex; background: #121318; border-radius: 20px; padding: 2px; border: 1px solid #2c2e3b; }
   .m-pill { padding: 4px 16px; font-size: 11px; border-radius: 18px; cursor: pointer; color: #999; font-weight: bold; }
   .m-pill.active { background: #2c2e3b; color: #fff; }
-
   .bet-controls { display: flex; gap: 8px; align-items: stretch; }
   .left-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
   .stepper { display: flex; align-items: center; justify-content: space-between; background: #121318; border: 1px solid #323442; border-radius: 20px; padding: 4px 10px; }
   .step-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #555; background: transparent; color: #fff; font-weight: bold; cursor: pointer; }
-  .bet-inp { background: transparent; border: none; color: #fff; font-size: 15px; font-weight: bold; width: 
-            <body>
-
+  .bet-inp { background: transparent; border: none; color: #fff; font-size: 15px; font-weight: bold; width: 65px; text-align: center; outline: none; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .q-btn { background: #252732; border: none; color: #ccc; padding: 4px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .action-btn { flex: 1.15; border: none; border-radius: 14px; font-weight: 900; font-size: 15px; color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+  .btn-green { background: linear-gradient(180deg, #28e04d, #16a332); }
+  .btn-orange { background: linear-gradient(180deg, #ff9f1c, #e67700); }
+  .btn-queued { background: linear-gradient(180deg, #0284c7, #0369a1); }
+  .action-sub { font-size: 11px; font-weight: normal; margin-top: 2px; }
+  .auto-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #2a2c38; font-size: 11px; color: #bbb; }
+  .auto-group { display: flex; align-items: center; gap: 5px; }
+  .auto-toggle { padding: 4px 9px; border-radius: 12px; border: 1px solid #3f4254; background: #121318; color: #9ca3af; font-size: 10px; font-weight: bold; cursor: pointer; }
+  .auto-toggle.on { background: rgba(40, 224, 77, 0.18); border-color: #28e04d; color: #28e04d; }
+  .auto-mult-inp { width: 48px; background: #121318; border: 1px solid #3f4254; color: #ffd700; border-radius: 8px; padding: 3px 4px; text-align: center; font-weight: bold; font-size: 11px; outline: none; }
+  .feed-box { background: #1c1d24; border: 1px solid #2d2f3b; border-radius: 16px; padding: 10px; margin-top: 10px; }
+  .feed-tabs { display: flex; background: #121318; border-radius: 20px; padding: 3px; margin-bottom: 8px; }
+  .f-tab { flex: 1; text-align: center; font-size: 11px; padding: 5px; border-radius: 16px; color: #999; font-weight: bold; cursor: pointer; }
+  .f-tab.active { background: #2c2e3b; color: #fff; }
+  .feed-header { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; padding: 4px 6px 8px; border-bottom: 1px solid #2a2c38; }
+  .feed-row { display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1.1fr; align-items: center; background: #14151a; padding: 7px 8px; border-radius: 8px; margin-top: 5px; font-size: 11px; }
+  .feed-row.won { background: rgba(40, 224, 77, 0.14); border: 1px solid rgba(40, 224, 77, 0.45); }
+  .feed-row.me { border-color: #ffd700; }
+  .mult-badge { background: #262833; color: #c084fc; padding: 2px 6px; border-radius: 6px; font-weight: bold; text-align: center; width: fit-content; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1c1d24; border-top: 1px solid #2d2f3b; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
+  .nav-item.active { color: #ffd700; font-weight: bold; }
+  .nav-icon { font-size: 19px; display: block; }
+</style>
+</head>
+<body>
 <div class="app">
-  <!-- Top Header -->
   <div class="header">
     <div class="logo-title">
       <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#aaa; font-style:normal; font-size:16px;">⬅</span>
@@ -68,15 +75,13 @@
       <span class="sync-pill">● LIVE SYNC</span>
     </div>
     <div class="hdr-right">
-      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()" title="Sound On/Off">🔊</button>
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
       <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span> INR</div>
     </div>
   </div>
 
-  <!-- Recent Multipliers Bar -->
   <div class="history-bar" id="historyBar"></div>
 
-  <!-- Plane Canvas Arena -->
   <div class="arena">
     <canvas id="aviatorCanvas" width="420" height="215"></canvas>
     <div class="center-overlay">
@@ -87,7 +92,6 @@
     <div class="live-users-tag">🟢 <span id="onlinePlayers">248</span></div>
   </div>
 
-  <!-- Bet Panel 1 -->
   <div class="bet-card">
     <div class="card-top-tabs">
       <div class="mode-pills">
@@ -115,19 +119,11 @@
       </button>
     </div>
     <div class="auto-row" id="autoRow0" style="display:none;">
-      <div class="auto-group">
-        <span>Auto Bet:</span>
-        <button type="button" class="auto-toggle" id="autoBetToggle0" onclick="toggleAutoBet(0)">OFF</button>
-      </div>
-      <div class="auto-group">
-        <span>Auto Cashout:</span>
-        <button type="button" class="auto-toggle" id="autoCashToggle0" onclick="toggleAutoCash(0)">OFF</button>
-        <input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal0" value="2.00">x
-      </div>
+      <div class="auto-group"><span>Auto Bet:</span><button type="button" class="auto-toggle" id="autoBetToggle0" onclick="toggleAutoBet(0)">OFF</button></div>
+      <div class="auto-group"><span>Auto Cashout:</span><button type="button" class="auto-toggle" id="autoCashToggle0" onclick="toggleAutoCash(0)">OFF</button><input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal0" value="2.00">x</div>
     </div>
   </div>
 
-  <!-- Bet Panel 2 -->
   <div class="bet-card">
     <div class="card-top-tabs">
       <div class="mode-pills">
@@ -155,19 +151,11 @@
       </button>
     </div>
     <div class="auto-row" id="autoRow1" style="display:none;">
-      <div class="auto-group">
-        <span>Auto Bet:</span>
-        <button type="button" class="auto-toggle" id="autoBetToggle1" onclick="toggleAutoBet(1)">OFF</button>
-      </div>
-      <div class="auto-group">
-        <span>Auto Cashout:</span>
-        <button type="button" class="auto-toggle" id="autoCashToggle1" onclick="toggleAutoCash(1)">OFF</button>
-        <input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal1" value="2.00">x
-      </div>
+      <div class="auto-group"><span>Auto Bet:</span><button type="button" class="auto-toggle" id="autoBetToggle1" onclick="toggleAutoBet(1)">OFF</button></div>
+      <div class="auto-group"><span>Auto Cashout:</span><button type="button" class="auto-toggle" id="autoCashToggle1" onclick="toggleAutoCash(1)">OFF</button><input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal1" value="2.00">x</div>
     </div>
   </div>
 
-  <!-- Live Bets Feed -->
   <div class="feed-box">
     <div class="feed-tabs">
       <div class="f-tab active" onclick="switchFeedTab('all', this)">All Bets</div>
@@ -185,7 +173,119 @@
   </div>
 </div>
 
-<!-- Bottom Navigation -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
+</div>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo-title">
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#aaa; font-style:normal; font-size:16px;">⬅</span>
+      <span>Aviator</span>
+      <span class="sync-pill">● LIVE SYNC</span>
+    </div>
+    <div class="hdr-right">
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span> INR</div>
+    </div>
+  </div>
+
+  <div class="history-bar" id="historyBar"></div>
+
+  <div class="arena">
+    <canvas id="aviatorCanvas" width="420" height="215"></canvas>
+    <div class="center-overlay">
+      <div class="mult-text" id="multDisplay">1.00x</div>
+      <div class="status-badge" id="statusText">WAITING FOR NEXT ROUND</div>
+      <div class="wait-bar-wrap" id="waitBarWrap"><div class="wait-bar-fill" id="waitBar"></div></div>
+    </div>
+    <div class="live-users-tag">🟢 <span id="onlinePlayers">248</span></div>
+  </div>
+
+  <div class="bet-card">
+    <div class="card-top-tabs">
+      <div class="mode-pills">
+        <div class="m-pill active" id="tabMode0_bet" onclick="switchCardMode(0, 'bet')">Bet</div>
+        <div class="m-pill" id="tabMode0_auto" onclick="switchCardMode(0, 'auto')">Auto</div>
+      </div>
+    </div>
+    <div class="bet-controls">
+      <div class="left-inputs">
+        <div class="stepper">
+          <button type="button" class="step-btn" onclick="adjBet(0, -10)">-</button>
+          <input type="number" class="bet-inp" id="betInp0" value="20" oninput="onBetInputChange(0)">
+          <button type="button" class="step-btn" onclick="adjBet(0, 10)">+</button>
+        </div>
+        <div class="quick-grid">
+          <button type="button" class="q-btn" onclick="setBet(0, 100)">100</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 200)">200</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 500)">500</button>
+          <button type="button" class="q-btn" onclick="setBet(0, 1000)">1,000</button>
+        </div>
+      </div>
+      <button type="button" class="action-btn btn-green" id="betBtn0" onclick="handleBetBtn(0)">
+        <span>BET</span>
+        <span class="action-sub" id="betSub0">20.00 INR</span>
+      </button>
+    </div>
+    <div class="auto-row" id="autoRow0" style="display:none;">
+      <div class="auto-group"><span>Auto Bet:</span><button type="button" class="auto-toggle" id="autoBetToggle0" onclick="toggleAutoBet(0)">OFF</button></div>
+      <div class="auto-group"><span>Auto Cashout:</span><button type="button" class="auto-toggle" id="autoCashToggle0" onclick="toggleAutoCash(0)">OFF</button><input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal0" value="2.00">x</div>
+    </div>
+  </div>
+
+  <div class="bet-card">
+    <div class="card-top-tabs">
+      <div class="mode-pills">
+        <div class="m-pill active" id="tabMode1_bet" onclick="switchCardMode(1, 'bet')">Bet</div>
+        <div class="m-pill" id="tabMode1_auto" onclick="switchCardMode(1, 'auto')">Auto</div>
+      </div>
+    </div>
+    <div class="bet-controls">
+      <div class="left-inputs">
+        <div class="stepper">
+          <button type="button" class="step-btn" onclick="adjBet(1, -10)">-</button>
+          <input type="number" class="bet-inp" id="betInp1" value="50" oninput="onBetInputChange(1)">
+          <button type="button" class="step-btn" onclick="adjBet(1, 10)">+</button>
+        </div>
+        <div class="quick-grid">
+          <button type="button" class="q-btn" onclick="setBet(1, 100)">100</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 200)">200</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 500)">500</button>
+          <button type="button" class="q-btn" onclick="setBet(1, 1000)">1,000</button>
+        </div>
+      </div>
+      <button type="button" class="action-btn btn-green" id="betBtn1" onclick="handleBetBtn(1)">
+        <span>BET</span>
+        <span class="action-sub" id="betSub1">50.00 INR</span>
+      </button>
+    </div>
+    <div class="auto-row" id="autoRow1" style="display:none;">
+      <div class="auto-group"><span>Auto Bet:</span><button type="button" class="auto-toggle" id="autoBetToggle1" onclick="toggleAutoBet(1)">OFF</button></div>
+      <div class="auto-group"><span>Auto Cashout:</span><button type="button" class="auto-toggle" id="autoCashToggle1" onclick="toggleAutoCash(1)">OFF</button><input type="number" step="0.1" min="1.1" class="auto-mult-inp" id="autoCashVal1" value="2.00">x</div>
+    </div>
+  </div>
+
+  <div class="feed-box">
+    <div class="feed-tabs">
+      <div class="f-tab active" onclick="switchFeedTab('all', this)">All Bets</div>
+      <div class="f-tab" onclick="switchFeedTab('my', this)">My Bets</div>
+      <div class="f-tab" onclick="switchFeedTab('top', this)">Top Wins</div>
+    </div>
+    <div class="feed-header">
+      <span id="totalBetsCount">0/25 Bets</span>
+      <span style="color:#28e04d; font-weight:bold;">Total win INR: <span id="totalWinSum">0.00</span></span>
+    </div>
+    <div style="display:grid; grid-template-columns:1.3fr 1fr 0.8fr 1.1fr; font-size:10px; color:#777; padding:4px 8px;">
+      <span>Player</span><span>Bet INR</span><span>X</span><span style="text-align:right;">Win INR</span>
+    </div>
+    <div id="liveBetsList"></div>
+  </div>
+</div>
+
 <div class="bottom-nav">
   <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
   <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
@@ -199,17 +299,12 @@
   if (!mobile) window.location.replace("index.html");
 
   let userData = {};
-  try {
-    userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
-  } catch (e) {}
+  try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
   let winRateSetting = 20;
 
   function getTotalBal() {
-    const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
-    const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-    return dep + win;
+    return (Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0) + (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0);
   }
-
   function updateHeaderBal() {
     document.getElementById("balDisplay").innerText = getTotalBal().toFixed(2);
   }
@@ -233,92 +328,54 @@
   }
   syncUserFromDB();
 
-  let soundEnabled = true;
-  let audioCtx = null;
-
+  let soundEnabled = true, audioCtx = null;
   function initAudio() {
     if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) audioCtx = new AudioContextClass();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
     }
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
-
   function toggleSound() {
     soundEnabled = !soundEnabled;
     document.getElementById("sndBtn").innerText = soundEnabled ? "🔊" : "🔇";
   }
-
   function playAviatorSound(type) {
     if (!soundEnabled) return;
     try {
       initAudio();
       if (!audioCtx) return;
       const now = audioCtx.currentTime;
-
       if (type === "bet") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(620, now);
-        osc.frequency.exponentialRampToValueAtTime(920, now + 0.08);
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.09);
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = "sine"; osc.frequency.setValueAtTime(620, now); osc.frequency.exponentialRampToValueAtTime(920, now + 0.08);
+        gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 0.09);
       } else if (type === "takeoff") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(420, now + 0.55);
-        gain.gain.setValueAtTime(0.16, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.6);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.6);
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = "triangle"; osc.frequency.setValueAtTime(140, now); osc.frequency.exponentialRampToValueAtTime(420, now + 0.55);
+        gain.gain.setValueAtTime(0.16, now); gain.gain.exponentialRampToValueAtTime(0.005, now + 0.6);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 0.6);
       } else if (type === "cashout") {
         [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
-          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now + idx * 0.07);
-          osc.stop(now + idx * 0.07 + 0.28);
+          const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+          osc.type = "triangle"; osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07); gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
+          osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now + idx * 0.07); osc.stop(now + idx * 0.07 + 0.28);
         });
       } else if (type === "crash") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-        gain.gain.setValueAtTime(0.24, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.48);
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = "sawtooth"; osc.frequency.setValueAtTime(340, now); osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+        gain.gain.setValueAtTime(0.24, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 0.48);
       }
     } catch (e) {}
   }
 
-  let gameState = "WAITING";
-  let currentMult = 1.00;
-  let crashPoint = 1.25;
-  let historyList = [1.14, 1.32, 1.08, 2.15, 1.21, 1.04, 1.48, 1.19];
-
+  let gameState = "WAITING", currentMult = 1.00, historyList = [1.14, 1.32, 1.08, 2.15, 1.21, 1.04, 1.48, 1.19];
   const panels = [
-    { state: "IDLE", amount: 20, autoBet: false, autoCash: false, targetMult: 2.00 },
-    { state: "IDLE", amount: 50, autoBet: false, autoCash: false, targetMult: 2.00 }
+    { state: "IDLE", amount: 20, autoBet: false, autoCash: false },
+    { state: "IDLE", amount: 50, autoBet: false, autoCash: false }
   ];
 
   function switchCardMode(idx, mode) {
@@ -326,26 +383,17 @@
     document.getElementById(`tabMode${idx}_auto`).classList.toggle("active", mode === "auto");
     document.getElementById(`autoRow${idx}`).style.display = mode === "auto" ? "flex" : "none";
   }
-
   function toggleAutoBet(idx) {
     initAudio();
     panels[idx].autoBet = !panels[idx].autoBet;
     const btn = document.getElementById(`autoBetToggle${idx}`);
     btn.innerText = panels[idx].autoBet ? "ON" : "OFF";
     btn.classList.toggle("on", panels[idx].autoBet);
-
     if (panels[idx].autoBet && panels[idx].state === "IDLE") {
-      if (gameState === "WAITING") {
-        placePanelBetNow(idx, true);
-      } else {
-        const val = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
-        panels[idx].amount = val;
-        panels[idx].state = "QUEUED";
-        updatePanelBtn(idx);
-      }
+      if (gameState === "WAITING") placePanelBetNow(idx, true);
+      else { panels[idx].amount = parseInt(document.getElementById(`betInp${idx}`).value) || 20; panels[idx].state = "QUEUED"; updatePanelBtn(idx); }
     }
   }
-
   function toggleAutoCash(idx) {
     initAudio();
     panels[idx].autoCash = !panels[idx].autoCash;
@@ -353,52 +401,31 @@
     btn.innerText = panels[idx].autoCash ? "ON" : "OFF";
     btn.classList.toggle("on", panels[idx].autoCash);
   }
-
   function onBetInputChange(idx) {
     const val = parseInt(document.getElementById(`betInp${idx}`).value) || 10;
-    if (panels[idx].state === "IDLE") {
-      document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
-    }
+    if (panels[idx].state === "IDLE") document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-
   function adjBet(idx, delta) {
     if (panels[idx].state !== "IDLE") return;
     const inp = document.getElementById(`betInp${idx}`);
-    let val = Math.max(10, (parseInt(inp.value) || 10) + delta);
+    const val = Math.max(10, (parseInt(inp.value) || 10) + delta);
     inp.value = val;
     document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-
   function setBet(idx, val) {
     if (panels[idx].state !== "IDLE") return;
     document.getElementById(`betInp${idx}`).value = val;
     document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-
   function updatePanelBtn(idx) {
-    const btn = document.getElementById(`betBtn${idx}`);
-    const p = panels[idx];
+    const btn = document.getElementById(`betBtn${idx}`), p = panels[idx];
     const inpVal = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
-
-    if (p.state === "IDLE") {
-      btn.className = "action-btn btn-green";
-      btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`;
-    } else if (p.state === "QUEUED") {
-      btn.className = "action-btn btn-queued";
-      btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`;
-    } else if (p.state === "PLACED") {
-      btn.className = "action-btn btn-queued";
-      btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`;
-    } else if (p.state === "ACTIVE") {
-      btn.className = "action-btn btn-orange";
-      const winNow = (p.amount * currentMult).toFixed(2);
-      btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${winNow} INR</span>`;
-    }
-            }
-   // ==========================================
-  // STRICT 20% & TIGHT 35% CRASH FORMULA
-  // ==========================================
-  function generateCrashPoint() {
+    if (p.state === "IDLE") { btn.className = "action-btn btn-green"; btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`; }
+    else if (p.state === "QUEUED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`; }
+    else if (p.state === "PLACED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`; }
+    else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
+  }
+   function generateCrashPoint() {
     const r = Math.random() * 100;
     if (winRateSetting <= 25) {
       if (r < 68) return Number((1.00 + Math.random() * 0.35).toFixed(2));
@@ -414,242 +441,105 @@
     }
   }
 
-  // ==========================================
-  // SHARED MULTIPLAYER ROOM SYNC
-  // ==========================================
-  const WAIT_MS = 5000;
-  const CRASH_PAUSE_MS = 2800;
-  let lastHandledRoundId = null;
-  let roundCrashHandled = false;
-  let roundTakeoffHandled = false;
-  let isCreatingRound = false;
-
+  const WAIT_MS = 5000, CRASH_PAUSE_MS = 2800;
+  let lastHandledRoundId = null, roundCrashHandled = false, roundTakeoffHandled = false, isCreatingRound = false;
   const bootNow = Date.now();
-  let roomState = {
-    roundId: "R" + bootNow,
-    waitStart: bootNow,
-    flyStart: bootNow + WAIT_MS,
-    crashAt: 1.24,
-    history: historyList
-  };
+  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 1.24, history: historyList };
 
-  function calcMultAtElapsed(sec) {
-    return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2));
-  }
-
-  function calcDurationToCrash(targetMult) {
-    if (targetMult <= 1.00) return 0.15;
-    return Math.log(targetMult) / 0.135;
-  }
+  function calcMultAtElapsed(sec) { return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2)); }
+  function calcDurationToCrash(targetMult) { return targetMult <= 1.00 ? 0.15 : Math.log(targetMult) / 0.135; }
 
   async function publishNewRound(prevCrashedMult) {
     if (isCreatingRound) return;
     isCreatingRound = true;
-
-    const now = Date.now();
-    const nextCrash = generateCrashPoint();
+    const now = Date.now(), nextCrash = generateCrashPoint();
     let newHist = [...historyList];
-    if (prevCrashedMult && !isNaN(prevCrashedMult)) {
-      newHist.unshift(Number(prevCrashedMult));
-      newHist = newHist.slice(0, 12);
-    }
-
-    const newRoom = {
-      roundId: "R" + now,
-      waitStart: now,
-      flyStart: now + WAIT_MS,
-      crashAt: nextCrash,
-      history: newHist
-    };
-
-    roomState = newRoom;
-    historyList = newHist;
-    renderHistory();
-
-    try {
-      await fetch(`${DB_URL}/aviatorRoom.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newRoom)
-      });
-    } catch (e) {
-    } finally {
-      isCreatingRound = false;
-    }
+    if (prevCrashedMult && !isNaN(prevCrashedMult)) { newHist.unshift(Number(prevCrashedMult)); newHist = newHist.slice(0, 12); }
+    const newRoom = { roundId: "R" + now, waitStart: now, flyStart: now + WAIT_MS, crashAt: nextCrash, history: newHist };
+    roomState = newRoom; historyList = newHist; renderHistory();
+    try { await fetch(`${DB_URL}/aviatorRoom.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newRoom) }); }
+    catch (e) {} finally { isCreatingRound = false; }
   }
 
   async function syncRoomFromFirebase() {
     try {
       const res = await fetch(`${DB_URL}/aviatorRoom.json?t=${Date.now()}`);
       if (!res.ok) return;
-      const data = await res.json();
-      const now = Date.now();
-
-      if (!data || !data.roundId || !data.flyStart || !data.crashAt) {
-        await publishNewRound(null);
-        return;
-      }
-
-      const flyDurMs = calcDurationToCrash(Number(data.crashAt)) * 1000;
-      const roundEndMs = Number(data.flyStart) + flyDurMs + CRASH_PAUSE_MS;
-
-      if (now >= roundEndMs + 300) {
-        await publishNewRound(Number(data.crashAt));
-        return;
-      }
-
+      const data = await res.json(), now = Date.now();
+      if (!data || !data.roundId || !data.flyStart || !data.crashAt) { await publishNewRound(null); return; }
+      const roundEndMs = Number(data.flyStart) + calcDurationToCrash(Number(data.crashAt)) * 1000 + CRASH_PAUSE_MS;
+      if (now >= roundEndMs + 300) { await publishNewRound(Number(data.crashAt)); return; }
       roomState = data;
-      if (Array.isArray(data.history) && data.history.length > 0) {
-        historyList = data.history;
-        renderHistory();
-      }
+      if (Array.isArray(data.history) && data.history.length > 0) { historyList = data.history; renderHistory(); }
     } catch (e) {}
   }
 
   async function placePanelBetNow(idx, isAuto = false) {
     const val = parseInt(document.getElementById(`betInp${idx}`).value);
     if (!val || val < 10) {
-      if (isAuto) {
-        panels[idx].autoBet = false;
-        document.getElementById(`autoBetToggle${idx}`).innerText = "OFF";
-        document.getElementById(`autoBetToggle${idx}`).classList.remove("on");
-      } else {
-        alert("Minimum bet ₹10 hai!");
-      }
+      if (isAuto) { panels[idx].autoBet = false; document.getElementById(`autoBetToggle${idx}`).innerText = "OFF"; document.getElementById(`autoBetToggle${idx}`).classList.remove("on"); }
+      else alert("Minimum bet ₹10 hai!");
       return false;
     }
-
     if (val > getTotalBal()) {
-      if (isAuto) {
-        panels[idx].autoBet = false;
-        document.getElementById(`autoBetToggle${idx}`).innerText = "OFF";
-        document.getElementById(`autoBetToggle${idx}`).classList.remove("on");
-        alert(`Panel ${idx + 1}: Balance kam hone ke kaaran Auto-Bet band kar diya gaya!`);
-      } else {
-        alert("Wallet mein itna balance nahi hai!");
-      }
+      if (isAuto) { panels[idx].autoBet = false; document.getElementById(`autoBetToggle${idx}`).innerText = "OFF"; document.getElementById(`autoBetToggle${idx}`).classList.remove("on"); alert(`Panel ${idx + 1}: Balance kam hone par Auto-Bet band kar diya gaya!`); }
+      else alert("Wallet mein itna balance nahi hai!");
       return false;
     }
-
     playAviatorSound("bet");
-
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-    if (dBal >= val) {
-      dBal -= val;
-    } else {
-      const rem = val - dBal;
-      dBal = 0;
-      wBal -= rem;
-    }
-
+    if (dBal >= val) dBal -= val; else { const rem = val - dBal; dBal = 0; wBal -= rem; }
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({ type: "Aviator Bet", amt: "-₹" + val, date: new Date().toLocaleString() });
-
-    userData.depositBal = dBal;
-    userData.winningBal = wBal;
-    userData.txns = txns.slice(0, 30);
+    userData.depositBal = dBal; userData.winningBal = wBal; userData.txns = txns.slice(0, 30);
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
-
-    panels[idx].amount = val;
-    panels[idx].state = "PLACED";
-    updatePanelBtn(idx);
+    panels[idx].amount = val; panels[idx].state = "PLACED"; updatePanelBtn(idx);
 
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
     liveBetsData.unshift({ id: "me_" + idx, name: maskedMe + " (You)", bet: val, mult: null, win: 0, isMe: true });
     renderLiveFeed();
-
-    fetch(`${DB_URL}/users/${mobile}.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
-    });
-
-    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: maskedMe, bet: val, mult: null, win: 0, ts: Date.now() })
-    });
-
+    fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns }) });
+    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: val, mult: null, win: 0, ts: Date.now() }) });
     return true;
   }
 
   async function handleBetBtn(idx) {
     initAudio();
     const p = panels[idx];
-
     if (p.state === "IDLE") {
-      if (gameState === "WAITING") {
-        await placePanelBetNow(idx, false);
-      } else {
+      if (gameState === "WAITING") await placePanelBetNow(idx, false);
+      else {
         const val = parseInt(document.getElementById(`betInp${idx}`).value);
         if (!val || val < 10) return alert("Minimum bet ₹10 hai!");
         if (val > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
-        playAviatorSound("bet");
-        p.amount = val;
-        p.state = "QUEUED";
-        updatePanelBtn(idx);
+        playAviatorSound("bet"); p.amount = val; p.state = "QUEUED"; updatePanelBtn(idx);
       }
-      return;
-    }
-
-    if (p.state === "QUEUED") {
-      p.state = "IDLE";
-      updatePanelBtn(idx);
-      return;
-    }
-
-    if (p.state === "PLACED") return;
-
-    if (p.state === "ACTIVE" && gameState === "FLYING") {
-      const cashMult = currentMult;
-      const winAmt = Number((p.amount * cashMult).toFixed(2));
-      p.state = "IDLE";
-      updatePanelBtn(idx);
-      playAviatorSound("cashout");
-
-      const currentWin = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-      const newWin = Number((currentWin + winAmt).toFixed(2));
+    } else if (p.state === "QUEUED") { p.state = "IDLE"; updatePanelBtn(idx); }
+    else if (p.state === "ACTIVE" && gameState === "FLYING") {
+      const cashMult = currentMult, winAmt = Number((p.amount * cashMult).toFixed(2));
+      p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
+      const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
       const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
       txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
-
-      userData.winningBal = newWin;
-      userData.txns = txns.slice(0, 30);
+      userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
       localStorage.setItem("cachedUser", JSON.stringify(userData));
       updateHeaderBal();
-
       const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
       const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
-      if (myRow) {
-        myRow.mult = cashMult.toFixed(2) + "x";
-        myRow.win = winAmt;
-      }
+      if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = winAmt; }
       myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
       renderLiveFeed();
-
-      fetch(`${DB_URL}/users/${mobile}.json`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ winningBal: newWin, txns: userData.txns })
-      });
-
-      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: Date.now() })
-      });
+      fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
+      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: Date.now() }) });
     }
   }
 
-  const canvas = document.getElementById("aviatorCanvas");
-  const ctx = canvas.getContext("2d");
-  let planeX = 35, planeY = 180;
-
+  const canvas = document.getElementById("aviatorCanvas"), ctx = canvas.getContext("2d");
   function renderHistory() {
     document.getElementById("historyBar").innerHTML = historyList.slice(0, 12).map(m => {
-      const val = Number(m);
-      const cls = val < 2 ? "c-blue" : (val < 10 ? "c-purple" : "c-pink");
+      const val = Number(m), cls = val < 2 ? "c-blue" : (val < 10 ? "c-purple" : "c-pink");
       return `<span class="hist-pill ${cls}">${val.toFixed(2)}x</span>`;
     }).join("");
   }
@@ -657,190 +547,104 @@
 
   function drawCanvas(progress = 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.04)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 35) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
     for (let j = 0; j < canvas.height; j += 35) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
-
     if (gameState === "FLYING") {
-      const targetX = Math.min(345, 35 + progress * 310);
-      const targetY = Math.max(42, 185 - Math.pow(progress, 0.85) * 140 + Math.sin(Date.now() / 160) * 5);
-      planeX = targetX;
-      planeY = targetY;
-
-      ctx.beginPath();
-      ctx.moveTo(25, 195);
-      ctx.quadraticCurveTo(planeX * 0.55, 192, planeX, planeY);
-      ctx.lineTo(planeX, 195);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(255, 46, 76, 0.25)";
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(25, 195);
-      ctx.quadraticCurveTo(planeX * 0.55, 192, planeX, planeY);
-      ctx.strokeStyle = "#ff2e4c";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      drawPlaneIcon(planeX, planeY);
-    } else if (gameState === "WAITING") {
-      drawPlaneIcon(38, 182);
-    }
+      const px = Math.min(345, 35 + progress * 310), py = Math.max(42, 185 - Math.pow(progress, 0.85) * 140 + Math.sin(Date.now() / 160) * 5);
+      ctx.beginPath(); ctx.moveTo(25, 195); ctx.quadraticCurveTo(px * 0.55, 192, px, py); ctx.lineTo(px, 195); ctx.closePath();
+      ctx.fillStyle = "rgba(255, 46, 76, 0.25)"; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(25, 195); ctx.quadraticCurveTo(px * 0.55, 192, px, py); ctx.strokeStyle = "#ff2e4c"; ctx.lineWidth = 4; ctx.stroke();
+      drawPlaneIcon(px, py);
+    } else if (gameState === "WAITING") drawPlaneIcon(38, 182);
   }
-
   function drawPlaneIcon(x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(-0.18);
-    ctx.fillStyle = "#ff2e4c";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 22, 7, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-18, -2); ctx.lineTo(-24, -12); ctx.lineTo(-12, -2); ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(8, -2, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffbe0b";
-    ctx.beginPath();
-    ctx.arc(-25, 0, 4 + Math.random() * 4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.18);
+    ctx.fillStyle = "#ff2e4c"; ctx.beginPath(); ctx.ellipse(0, 0, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-18, -2); ctx.lineTo(-24, -12); ctx.lineTo(-12, -2); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(8, -2, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffbe0b"; ctx.beginPath(); ctx.arc(-25, 0, 4 + Math.random() * 4, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
   function tickSynchronizedEngine() {
     if (!roomState) return;
-    const now = Date.now();
-    const waitStart = Number(roomState.waitStart);
-    const flyStart = Number(roomState.flyStart);
-    const targetCrash = Number(roomState.crashAt);
-    const flyDurMs = calcDurationToCrash(targetCrash) * 1000;
-    const crashTimeMs = flyStart + flyDurMs;
-    const nextRoundTimeMs = crashTimeMs + CRASH_PAUSE_MS;
+    const now = Date.now(), flyStart = Number(roomState.flyStart), targetCrash = Number(roomState.crashAt);
+    const crashTimeMs = flyStart + calcDurationToCrash(targetCrash) * 1000, nextRoundTimeMs = crashTimeMs + CRASH_PAUSE_MS;
 
     if (lastHandledRoundId !== roomState.roundId) {
-      lastHandledRoundId = roomState.roundId;
-      roundCrashHandled = false;
-      roundTakeoffHandled = false;
-
+      lastHandledRoundId = roomState.roundId; roundCrashHandled = false; roundTakeoffHandled = false;
       [0, 1].forEach(idx => {
-        if (panels[idx].state === "QUEUED") {
-          placePanelBetNow(idx, false);
-        } else if (panels[idx].autoBet && panels[idx].state === "IDLE") {
-          placePanelBetNow(idx, true);
-        }
+        if (panels[idx].state === "QUEUED") placePanelBetNow(idx, false);
+        else if (panels[idx].autoBet && panels[idx].state === "IDLE") placePanelBetNow(idx, true);
       });
     }
 
     if (now < flyStart) {
-      gameState = "WAITING";
-      currentMult = 1.00;
+      gameState = "WAITING"; currentMult = 1.00;
       document.getElementById("multDisplay").innerText = "1.00x";
       document.getElementById("multDisplay").classList.remove("crashed");
       document.getElementById("statusText").innerText = "PLACE YOUR BETS";
       document.getElementById("waitBarWrap").style.display = "block";
-      const pct = Math.max(0, Math.min(100, ((flyStart - now) / WAIT_MS) * 100));
-      document.getElementById("waitBar").style.width = pct + "%";
+      document.getElementById("waitBar").style.width = Math.max(0, Math.min(100, ((flyStart - now) / WAIT_MS) * 100)) + "%";
       drawCanvas(0);
     } else if (now >= flyStart && now < crashTimeMs) {
       gameState = "FLYING";
       if (!roundTakeoffHandled) {
-        roundTakeoffHandled = true;
-        playAviatorSound("takeoff");
-        [0, 1].forEach(idx => {
-          if (panels[idx].state === "PLACED") {
-            panels[idx].state = "ACTIVE";
-            updatePanelBtn(idx);
-          }
-        });
+        roundTakeoffHandled = true; playAviatorSound("takeoff");
+        [0, 1].forEach(idx => { if (panels[idx].state === "PLACED") { panels[idx].state = "ACTIVE"; updatePanelBtn(idx); } });
       }
-
       const elapsedSec = (now - flyStart) / 1000;
       currentMult = Math.min(targetCrash, calcMultAtElapsed(elapsedSec));
       document.getElementById("multDisplay").innerText = currentMult.toFixed(2) + "x";
       document.getElementById("multDisplay").classList.remove("crashed");
       document.getElementById("statusText").innerText = "";
       document.getElementById("waitBarWrap").style.display = "none";
-
       [0, 1].forEach(idx => {
         if (panels[idx].state === "ACTIVE") {
           updatePanelBtn(idx);
           const autoTarget = parseFloat(document.getElementById(`autoCashVal${idx}`).value) || 2.00;
-          if (panels[idx].autoCash && currentMult >= autoTarget) {
-            handleBetBtn(idx);
-          }
+          if (panels[idx].autoCash && currentMult >= autoTarget) handleBetBtn(idx);
         }
       });
-
-      const progress = Math.min(1, elapsedSec / 7.5);
-      drawCanvas(progress);
+      drawCanvas(Math.min(1, elapsedSec / 7.5));
     } else if (now >= crashTimeMs && now < nextRoundTimeMs) {
-      gameState = "CRASHED";
-      currentMult = targetCrash;
+      gameState = "CRASHED"; currentMult = targetCrash;
       document.getElementById("multDisplay").innerText = targetCrash.toFixed(2) + "x";
       document.getElementById("multDisplay").classList.add("crashed");
       document.getElementById("statusText").innerText = "FLEW AWAY!";
       document.getElementById("waitBarWrap").style.display = "none";
       drawCanvas(1);
-
       if (!roundCrashHandled) {
-        roundCrashHandled = true;
-        playAviatorSound("crash");
+        roundCrashHandled = true; playAviatorSound("crash");
         [0, 1].forEach(idx => {
           if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED") {
             myBetsHistory.unshift({ bet: panels[idx].amount, mult: "0.00x", win: 0 });
-            panels[idx].state = "IDLE";
-            updatePanelBtn(idx);
+            panels[idx].state = "IDLE"; updatePanelBtn(idx);
           }
         });
         renderLiveFeed();
       }
-    } else {
-      publishNewRound(targetCrash);
-    }
+    } else publishNewRound(targetCrash);
   }
 
-  const BOT_NAMES = ["d***4", "a***9", "r***2", "s***7", "v***1", "k***8", "m***3", "p***5", "n***6", "t***0", "g***4", "b***2"];
-  let liveBetsData = [];
-  let myBetsHistory = [];
-  let activeFeedTab = "all";
-
+  const BOT_NAMES = ["d***4", "a***9", "r***2", "s***7", "v***1", "k***8", "m***3", "p***5", "n***6", "t***0"];
+  let liveBetsData = [], myBetsHistory = [], activeFeedTab = "all";
   function seedBots() {
     liveBetsData = [];
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 16; i++) {
       const bAmt = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
-      liveBetsData.push({
-        id: "bot_" + i,
-        name: BOT_NAMES[i % BOT_NAMES.length],
-        bet: bAmt,
-        mult: null,
-        win: 0,
-        isMe: false,
-        targetBotCash: Number((1.12 + Math.random() * 0.45).toFixed(2))
-      });
+      liveBetsData.push({ id: "bot_" + i, name: BOT_NAMES[i % BOT_NAMES.length], bet: bAmt, mult: null, win: 0, isMe: false, targetBotCash: Number((1.12 + Math.random() * 0.45).toFixed(2)) });
     }
     renderLiveFeed();
   }
   seedBots();
 
   setInterval(async () => {
-    if (gameState === "WAITING" && Math.random() < 0.35) {
-      seedBots();
-      document.getElementById("onlinePlayers").innerText = 215 + Math.floor(Math.random() * 65);
-    }
-
+    if (gameState === "WAITING" && Math.random() < 0.35) { seedBots(); document.getElementById("onlinePlayers").innerText = 215 + Math.floor(Math.random() * 65); }
     if (gameState === "FLYING") {
-      liveBetsData.forEach(b => {
-        if (!b.isMe && !b.mult && currentMult >= b.targetBotCash) {
-          b.mult = currentMult.toFixed(2) + "x";
-          b.win = Number((b.bet * currentMult).toFixed(2));
-        }
-      });
+      liveBetsData.forEach(b => { if (!b.isMe && !b.mult && currentMult >= b.targetBotCash) { b.mult = currentMult.toFixed(2) + "x"; b.win = Number((b.bet * currentMult).toFixed(2)); } });
     }
-
     try {
       const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
       const realFeed = await res.json();
@@ -849,83 +653,37 @@
         Object.keys(realFeed).forEach(k => {
           const item = realFeed[k];
           if (item && (now - item.ts) < 20000 && !k.startsWith(mobile)) {
-            const existing = liveBetsData.find(x => x.id === k);
-            if (existing) {
-              existing.mult = item.mult;
-              existing.win = item.win;
-            } else {
-              liveBetsData.unshift({ id: k, name: item.name, bet: item.bet, mult: item.mult, win: item.win, isMe: false });
-            }
+            const ex = liveBetsData.find(x => x.id === k);
+            if (ex) { ex.mult = item.mult; ex.win = item.win; }
+            else liveBetsData.unshift({ id: k, name: item.name, bet: item.bet, mult: item.mult, win: item.win, isMe: false });
           }
         });
       }
     } catch (e) {}
-
     renderLiveFeed();
   }, 1500);
 
-  function switchFeedTab(tab, el) {
-    activeFeedTab = tab;
-    document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active"));
-    el.classList.add("active");
-    renderLiveFeed();
-  }
-
+  function switchFeedTab(tab, el) { activeFeedTab = tab; document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active")); el.classList.add("active"); renderLiveFeed(); }
   function renderLiveFeed() {
     const listEl = document.getElementById("liveBetsList");
-    let rows = [];
-    if (activeFeedTab === "all") rows = liveBetsData.slice(0, 22);
-    else if (activeFeedTab === "my") rows = myBetsHistory.slice(0, 15).map(m => ({ name: "You", bet: m.bet, mult: m.mult, win: m.win, isMe: true }));
-    else rows = [...liveBetsData].filter(b => b.win > 0).sort((a, b) => b.win - a.win).slice(0, 15);
-
+    let rows = activeFeedTab === "all" ? liveBetsData.slice(0, 20) : (activeFeedTab === "my" ? myBetsHistory.slice(0, 15).map(m => ({ name: "You", bet: m.bet, mult: m.mult, win: m.win, isMe: true })) : [...liveBetsData].filter(b => b.win > 0).sort((a, b) => b.win - a.win).slice(0, 15));
     const totalWin = liveBetsData.reduce((acc, b) => acc + (Number(b.win) || 0), 0);
     document.getElementById("totalBetsCount").innerText = `${liveBetsData.length}/25 Bets`;
     document.getElementById("totalWinSum").innerText = totalWin.toFixed(2);
-
-    listEl.innerHTML = rows.map(r => `
-      <div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}">
-        <div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div>
-        <div>₹${Number(r.bet).toFixed(2)}</div>
-        <div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div>
-        <div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div>
-      </div>
-    `).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
+    listEl.innerHTML = rows.map(r => `<div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}"><div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div><div>₹${Number(r.bet).toFixed(2)}</div><div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div><div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div></div>`).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
   }
 
-  // ==========================================
-  // SAFE EXIT & BACK BUTTON CONFIRMATION
-  // ==========================================
-  function hasRunningBet() {
-    return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED");
-  }
-
+  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED"); }
   function safeExitTo(url) {
-    const msg = hasRunningBet()
-      ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
-      : "Kya aap Aviator game se bahar nikalna chahte hain?";
-    if (confirm(msg)) {
-      window.location.href = url;
-    }
+    const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
+    if (confirm(msg)) window.location.href = url;
   }
-
   history.pushState(null, "", location.href);
   window.addEventListener("popstate", function () {
-    const msg = hasRunningBet()
-      ? "⚠️ Aapki bet abhi chal rahi hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
-      : "Kya aap Aviator game se bahar nikalna chahte hain?";
-    if (confirm(msg)) {
-      window.location.href = "game.html";
-    } else {
-      history.pushState(null, "", location.href);
-    }
+    const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
+    if (confirm(msg)) window.location.href = "game.html"; else history.pushState(null, "", location.href);
   });
-
-  window.addEventListener("beforeunload", function (e) {
-    if (hasRunningBet()) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
-  });
+  window.addEventListener("beforeunload", function (e) { if (hasRunningBet()) { e.preventDefault(); e.returnValue = ""; } });
 
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 1500);
@@ -933,4 +691,3 @@
 </script>
 </body>
 </html>
- 
