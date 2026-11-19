@@ -6,101 +6,85 @@
 <title>3D Chicken Road - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-  body { background: #090b10; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
-  .app { width: 100%; max-width: 440px; background: #11151f; min-height: 100vh; padding: 10px; }
+  body { background: #0c0e14; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
+  .app { width: 100%; max-width: 440px; background: #141722; min-height: 100vh; padding: 10px; }
 
   /* Header */
-  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a202e; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2c354a; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1e2230; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2e3448; }
   .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #ffbe0b; }
-  .header-right { display: flex; align-items: center; gap: 8px; }
-  .sound-btn { background: #262e42; border: 1px solid #3d4966; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .bal-pill { background: #232a3b; border: 1px solid #3c4863; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
+  .hdr-right { display: flex; align-items: center; gap: 8px; }
+  .snd-btn { background: #292f42; border: 1px solid #404863; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #292f42; border: 1px solid #404863; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
 
-  /* 3D Canvas Arena */
-  .arena-3d {
+  /* Multiplier Step Ribbon */
+  .mult-ribbon { display: flex; gap: 5px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
+  .mult-ribbon::-webkit-scrollbar { display: none; }
+  .m-step {
+    padding: 4px 9px; border-radius: 10px; font-size: 11px; font-weight: 800;
+    background: #1f2433; color: #8c96b0; border: 1px solid #2e354a; flex-shrink: 0;
+  }
+  .m-step.passed { background: rgba(40, 224, 77, 0.2); color: #28e04d; border-color: #28e04d; }
+  .m-step.current { background: #ffbe0b; color: #000; border-color: #fff; transform: scale(1.06); }
+
+  /* 3D Road Canvas */
+  .road-arena {
     position: relative;
     width: 100%;
-    height: 270px;
+    height: 245px;
     border-radius: 16px;
-    border: 2px solid #2e384d;
+    border: 2px solid #2e3448;
     overflow: hidden;
-    background: #141923;
-    margin-bottom: 8px;
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.75);
+    background: linear-gradient(180deg, #1b2838 0%, #2a394a 100%);
+    margin-bottom: 10px;
+    box-shadow: inset 0 0 25px rgba(0,0,0,0.7);
   }
   canvas { width: 100%; height: 100%; display: block; }
-  .hud-top {
+  .hud-badge {
     position: absolute; top: 8px; left: 10px; right: 10px;
     display: flex; justify-content: space-between; align-items: center;
     pointer-events: none;
   }
-  .hud-badge {
-    background: rgba(15, 20, 32, 0.88); border: 1px solid #3b4661;
-    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; color: #fde047;
-  }
-  .hud-mult {
-    background: rgba(40, 224, 77, 0.22); border: 1px solid #28e04d;
-    padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 900; color: #4ade80;
-  }
+  .lane-tag { background: rgba(0,0,0,0.7); border: 1px solid #444; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; color: #ffbe0b; }
+  .win-tag { background: rgba(40, 224, 77, 0.22); border: 1px solid #28e04d; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 900; color: #28e04d; }
 
-  /* Status Banner */
-  .game-banner {
-    background: #1a202e; border: 1px solid #2d364a; border-radius: 10px;
-    padding: 7px 10px; text-align: center; font-size: 12px; font-weight: bold;
-    color: #fde047; margin-bottom: 8px;
-  }
-
-  /* Control Deck */
-  .deck { background: #1a202e; border: 1px solid #2c354a; border-radius: 16px; padding: 11px; margin-bottom: 10px; }
-  .diff-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 9px; }
+  /* Controls Card */
+  .controls-card { background: #1e2230; border: 1px solid #2e3448; border-radius: 16px; padding: 11px; margin-bottom: 10px; }
+  .diff-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
   .diff-btn {
-    background: #11151f; border: 1px solid #2d364a; color: #9ca3af;
-    padding: 7px 2px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer;
+    background: #141722; border: 1.5px solid #30374d; color: #aaa; padding: 7px 4px;
+    border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-align: center;
   }
-  .diff-btn.active { background: #293247; color: #fff; border-color: #fbbf24; }
-  .diff-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .diff-btn.active { background: #2c334a; color: #ffbe0b; border-color: #ffbe0b; }
 
-  .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
-  .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #10141d; border: 1px solid #2d364a; border-radius: 12px; padding: 5px 10px; }
-  .step-btn { width: 26px; height: 26px; border-radius: 8px; border: 1px solid #3f4a63; background: #22293a; color: #fff; font-weight: bold; cursor: pointer; }
+  .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #141722; border: 1px solid #30374d; border-radius: 12px; padding: 6px 10px; }
+  .step-btn { width: 26px; height: 26px; border-radius: 8px; border: 1px solid #4c5675; background: #242a3b; color: #fff; font-weight: bold; cursor: pointer; }
   .bet-inp { background: transparent; border: none; color: #fff; font-size: 16px; font-weight: 800; width: 70px; text-align: center; outline: none; }
   .quick-chips { display: flex; gap: 5px; }
-  .q-chip { background: #232a3b; border: none; color: #cbd5e1; padding: 8px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .q-chip { background: #272d3f; border: none; color: #ccc; padding: 8px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
-  .action-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-  .action-grid.dual { grid-template-columns: 1fr 1.25fr; }
-  .btn-play {
-    width: 100%; padding: 13px; border: none; border-radius: 12px;
-    background: linear-gradient(180deg, #28e04d, #149630);
-    color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
-    box-shadow: 0 4px 0 #0b591b; text-transform: uppercase;
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-main {
+    padding: 13px 8px; border: none; border-radius: 12px; font-size: 14px; font-weight: 900;
+    color: #fff; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 rgba(0,0,0,0.4);
   }
-  .btn-go {
-    width: 100%; padding: 13px; border: none; border-radius: 12px;
-    background: linear-gradient(180deg, #38bdf8, #0284c7);
-    color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
-    box-shadow: 0 4px 0 #075985;
-  }
-  .btn-cash {
-    width: 100%; padding: 13px; border: none; border-radius: 12px;
-    background: linear-gradient(180deg, #fbbf24, #d97706);
-    color: #000; font-size: 14px; font-weight: 900; cursor: pointer;
-    box-shadow: 0 4px 0 #92400e;
-  }
+  .btn-main:active { transform: scale(0.97); }
+  .btn-play { background: linear-gradient(180deg, #28e04d, #149630); grid-column: span 2; }
+  .btn-go { background: linear-gradient(180deg, #3b82f6, #1d4ed8); }
+  .btn-cash { background: linear-gradient(180deg, #ffbe0b, #e09600); color: #000; }
 
   /* Live Feed */
-  .feed-box { background: #1a202e; border: 1px solid #2c354a; border-radius: 14px; padding: 10px; }
-  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; padding-bottom: 7px; border-bottom: 1px solid #2c354a; margin-bottom: 6px; }
+  .feed-box { background: #1e2230; border: 1px solid #2e3448; border-radius: 14px; padding: 10px; }
+  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #ccc; padding-bottom: 7px; border-bottom: 1px solid #2e3448; margin-bottom: 6px; }
   .feed-row {
     display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 1.1fr; align-items: center;
-    background: #11151f; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
+    background: #141722; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
   }
   .feed-row.win { background: rgba(40, 224, 77, 0.12); border: 1px solid rgba(40, 224, 77, 0.35); }
-  .feed-row.me { border-color: #fbbf24; }
-  .x-pill { background: #232a3b; color: #fbbf24; padding: 2px 6px; border-radius: 6px; font-weight: bold; width: fit-content; }
+  .feed-row.me { border-color: #ffbe0b; }
 
   /* Bottom Navigation */
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1a202e; border-top: 1px solid #2c354a; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1e2230; border-top: 1px solid #2e3448; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
   .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 19px; display: block; }
@@ -112,34 +96,33 @@
   <!-- Header -->
   <div class="header">
     <div class="logo-title">
-      <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
-      <span>🐔 CHICKEN ROAD 3D</span>
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#aaa; font-size:16px;">⬅</span>
+      <span>🐔 3D CHICKEN ROAD</span>
     </div>
-    <div class="header-right">
-      <button type="button" class="sound-btn" id="soundToggleBtn" onclick="toggleSound()">🔊</button>
-      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+    <div class="hdr-right">
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span></div>
     </div>
   </div>
+
+  <!-- Multiplier Steps Ribbon -->
+  <div class="mult-ribbon" id="multRibbon"></div>
 
   <!-- 3D Highway Canvas Arena -->
-  <div class="arena-3d">
-    <canvas id="road3dCanvas" width="420" height="270"></canvas>
-    <div class="hud-top">
-      <div class="hud-badge" id="modeBadge">MODE: EASY</div>
-      <div class="hud-mult" id="curMultBadge">1.00x</div>
+  <div class="road-arena">
+    <canvas id="roadCanvas" width="420" height="245"></canvas>
+    <div class="hud-badge">
+      <div class="lane-tag" id="laneHud">LANE: 0 / 8</div>
+      <div class="win-tag" id="winHud">WIN: ₹0.00</div>
     </div>
   </div>
 
-  <!-- Status Banner -->
-  <div class="game-banner" id="statusBanner">3D Highway cross karein! PLAY dabakar shuru karein.</div>
-
-  <!-- Control Deck -->
-  <div class="deck">
+  <!-- Controls Deck -->
+  <div class="controls-card">
     <div class="diff-row">
-      <button type="button" class="diff-btn active" onclick="setDifficulty('easy', this)">Easy</button>
-      <button type="button" class="diff-btn" onclick="setDifficulty('medium', this)">Medium</button>
-      <button type="button" class="diff-btn" onclick="setDifficulty('hard', this)">Hard</button>
-      <button type="button" class="diff-btn" onclick="setDifficulty('hardcore', this)">Hardcore</button>
+      <button type="button" class="diff-btn active" onclick="setDiff('easy', this)">🟢 EASY (1.25x+)</button>
+      <button type="button" class="diff-btn" onclick="setDiff('med', this)">🟡 MEDIUM (1.55x+)</button>
+      <button type="button" class="diff-btn" onclick="setDiff('hard', this)">🔴 HARD (2.10x+)</button>
     </div>
 
     <div class="bet-row">
@@ -155,21 +138,16 @@
       </div>
     </div>
 
-    <div class="action-grid" id="startBtnWrap">
-      <button type="button" class="btn-play" onclick="startChickenRun()">PLAY 3D</button>
-    </div>
-
-    <div class="action-grid dual" id="activeBtnsWrap" style="display:none;">
-      <button type="button" class="btn-cash" id="cashBtn" onclick="cashOutChicken()">CASH OUT ₹0</button>
-      <button type="button" class="btn-go" onclick="stepChickenForward()">JUMP NEXT 🐾</button>
+    <div class="action-grid" id="actionGrid">
+      <button type="button" class="btn-main btn-play" onclick="startChickenGame()">▶ START CROSSING</button>
     </div>
   </div>
 
-  <!-- Live Feed -->
+  <!-- Live Hybrid Winners Feed -->
   <div class="feed-box">
     <div class="feed-head">
-      <span>🔥 LIVE 3D WINNERS</span>
-      <span style="color:#28e04d; font-weight:bold;" id="onlineTxt">● 212 Playing</span>
+      <span>🔥 LIVE ROAD CROSSERS</span>
+      <span style="color:#28e04d; font-weight:bold;" id="onlineCount">● 184 Playing</span>
     </div>
     <div id="liveFeedList"></div>
   </div>
@@ -177,10 +155,10 @@
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
 </div>
 
 <script>
@@ -188,12 +166,18 @@
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
-  let userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  let userData = {};
+  try {
+    userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  } catch (e) {}
   let winRateSetting = 35;
 
   function getTotalBal() {
-    return Number(userData.depositBal ?? userData.depositBalance ?? 0) + Number(userData.winningBal ?? userData.winningBalance ?? 0);
+    const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    return dep + win;
   }
+
   function updateHeaderBal() {
     document.getElementById("balDisplay").innerText = getTotalBal().toFixed(2);
   }
@@ -203,14 +187,13 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-              fetch(`${DB_URL}/settings/rates/chicken.json?t=${Date.now()}`)
-       
+        fetch(`${DB_URL}/settings/rates/chicken.json?t=${Date.now()}`)
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
-      if (u && u.name) {
-        userData = u;
-        localStorage.setItem("cachedUser", JSON.stringify(u));
+      if (u && typeof u === "object") {
+        userData = { ...userData, ...u };
+        localStorage.setItem("cachedUser", JSON.stringify(userData));
         updateHeaderBal();
       }
       if (typeof r === "number") winRateSetting = r;
@@ -219,497 +202,134 @@
   syncUser();
 
   // ==========================================
-  // WEB AUDIO SOUND EFFECTS
+  // WEB AUDIO 3D CHICKEN ROAD SOUNDS
   // ==========================================
-  let soundEnabled = true;
+  let soundOn = true;
   let audioCtx = null;
 
-  function ensureAudio() {
+  function initAudio() {
     if (!audioCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) audioCtx = new AudioContext();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
     }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
 
   function toggleSound() {
-    soundEnabled = !soundEnabled;
-    document.getElementById("soundToggleBtn").innerText = soundEnabled ? "🔊" : "🔇";
+    soundOn = !soundOn;
+    document.getElementById("sndBtn").innerText = soundOn ? "🔊" : "🔇";
   }
 
-  function playSound(type) {
-    if (!soundEnabled) return;
+  function playChickenSound(type) {
+    if (!soundOn) return;
     try {
-      ensureAudio();
+      initAudio();
       if (!audioCtx) return;
       const now = audioCtx.currentTime;
 
-      if (type === "jump") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(280, now);
-        osc.frequency.exponentialRampToValueAtTime(640, now + 0.14);
-        gain.gain.setValueAtTime(0.24, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.16);
-      } else if (type === "coin") {
+      if (type === "hop") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(920, now);
-        osc.frequency.setValueAtTime(1380, now + 0.08);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(760, now + 0.11);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.25);
+        osc.stop(now + 0.12);
       } else if (type === "horn") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.linearRampToValueAtTime(290, now + 0.2);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
+        osc.frequency.setValueAtTime(210, now);
+        osc.frequency.linearRampToValueAtTime(175, now + 0.35);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.22);
-      } else if (type === "crash") {
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc1.type = "sawtooth";
-        osc2.type = "square";
-        osc1.frequency.setValueAtTime(380, now);
-        osc1.frequency.exponentialRampToValueAtTime(55, now + 0.45);
-        osc2.frequency.setValueAtTime(140, now);
-        osc2.frequency.exponentialRampToValueAtTime(35, now + 0.45);
-        gain.gain.setValueAtTime(0.32, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.48);
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 0.48);
-        osc2.stop(now + 0.48);
-      } else if (type === "win") {
-        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        osc.stop(now + 0.38);
+      } else if (type === "cashout") {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
           osc.type = "triangle";
-          osc.frequency.setValueAtTime(freq, now + i * 0.08);
-          gain.gain.setValueAtTime(0.22, now + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.28);
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
-          osc.start(now + i * 0.08);
-          osc.stop(now + i * 0.08 + 0.28);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.28);
         });
       }
     } catch (e) {}
   }
-
+   // ==========================================
+  // GAME CONFIG & MULTIPLIER LADDERS
   // ==========================================
-  // GAME CONFIG & STATE
-  // ==========================================
-  const MODES = {
-    easy: { label: "EASY", baseFail: 0.14, mults: [1.05, 1.18, 1.32, 1.48, 1.66, 1.88, 2.15, 2.48, 2.90, 3.45, 4.15, 5.00] },
-    medium: { label: "MEDIUM", baseFail: 0.24, mults: [1.18, 1.45, 1.80, 2.25, 2.85, 3.60, 4.60, 5.90, 7.60, 10.00] },
-    hard: { label: "HARD", baseFail: 0.36, mults: [1.35, 1.90, 2.75, 4.00, 5.90, 8.80, 13.50, 21.00] },
-    hardcore: { label: "HARDCORE", baseFail: 0.50, mults: [1.65, 2.80, 4.90, 8.80, 16.50, 32.00] }
+  const LADDERS = {
+    easy: [1.25, 1.55, 1.95, 2.45, 3.10, 4.00, 5.20, 7.00],
+    med:  [1.55, 2.30, 3.40, 5.00, 7.50, 11.0, 16.5, 25.0],
+    hard: [2.10, 4.20, 8.50, 17.0, 34.0, 68.0, 120.0, 200.0]
   };
+  let difficulty = "easy";
+  let isPlaying = false;
+  let currentLane = 0;
+  let activeBet = 0;
+  let chickenX = 24;
+  let targetChickenX = 24;
+  let chickenHopPhase = 0;
+  let crashLane = -1;
+  let crashCarY = -80;
 
-  let currentMode = "easy";
-  let isGameActive = false;
-  let currentStep = 0;
-  let visualStep = 0;
-  let hopAnim = 0;
-  let currentBet = 0;
-  let crashedStep = -1;
-  let killerCar = null;
-
-  const CAR_TYPES = [
-    { body: "#ef4444", roof: "#fca5a5" },
-    { body: "#3b82f6", roof: "#93c5fd" },
-    { body: "#f59e0b", roof: "#fde68a" },
-    { body: "#10b981", roof: "#6ee7b7" },
-    { body: "#a855f7", roof: "#e9d5ff" }
-  ];
-  let ambientCars = [
-    { lane: 1, z: 0.22, speed: 0.013, style: CAR_TYPES[0] },
-    { lane: 3, z: 0.58, speed: 0.015, style: CAR_TYPES[2] },
-    { lane: 4, z: 0.10, speed: 0.012, style: CAR_TYPES[1] }
-  ];
-
-  function spawnAmbientCar() {
-    const mults = MODES[currentMode].mults;
-    const laneIdx = Math.floor(Math.random() * mults.length) + 1;
-    if (isGameActive && laneIdx === currentStep) return;
-    if (ambientCars.some(c => c.lane === laneIdx && c.z < 0.38)) return;
-
-    const style = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
-    ambientCars.push({
-      lane: laneIdx,
-      z: -0.05,
-      speed: 0.012 + Math.random() * 0.008,
-      style
-    });
-  }
-
-  function setDifficulty(mode, btn) {
-    if (isGameActive) return;
-    currentMode = mode;
+  function setDiff(mode, el) {
+    if (isPlaying) return;
+    difficulty = mode;
     document.querySelectorAll(".diff-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("modeBadge").innerText = "MODE: " + MODES[mode].label;
-    crashedStep = -1;
-    killerCar = null;
-    currentStep = 0;
-    visualStep = 0;
-    ambientCars = [
-      { lane: 1, z: 0.25, speed: 0.013, style: CAR_TYPES[0] },
-      { lane: 2, z: 0.62, speed: 0.015, style: CAR_TYPES[2] }
-    ];
+    el.classList.add("active");
+    renderRibbon();
   }
+
+  function renderRibbon() {
+    const arr = LADDERS[difficulty];
+    document.getElementById("multRibbon").innerHTML = arr.map((m, i) => {
+      const stepNum = i + 1;
+      let cls = "";
+      if (isPlaying && stepNum < currentLane) cls = "passed";
+      else if (isPlaying && stepNum === currentLane) cls = "current";
+      return `<div class="m-step ${cls}">L${stepNum}: ${m.toFixed(2)}x</div>`;
+    }).join("");
+  }
+  renderRibbon();
 
   function adjBet(delta) {
-    if (isGameActive) return;
+    if (isPlaying) return;
     const inp = document.getElementById("betInp");
     inp.value = Math.max(10, (parseInt(inp.value) || 10) + delta);
   }
   function setBet(val) {
-    if (isGameActive) return;
+    if (isPlaying) return;
     document.getElementById("betInp").value = val;
   }
 
-  // ==========================================
-  // 3D HIGHWAY RENDERER (100% COMPATIBLE)
-  // ==========================================
-  const canvas = document.getElementById("road3dCanvas");
-  const ctx = canvas.getContext("2d");
-
-  function drawRoundedBox(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
+  function getLaneCenterX(laneIdx) {
+    if (laneIdx <= 0) return 24;
+    if (laneIdx >= 9) return 396;
+    return 48 + (laneIdx - 0.5) * 40.5;
   }
 
-  function project3D(laneWorldX, z) {
-    const horizonY = 56;
-    const groundY = 258;
-    const persp = 0.36 + 0.64 * z;
-    const screenY = horizonY + (groundY - horizonY) * Math.pow(Math.max(0, z), 1.12);
-    const laneScreenWidth = 94 * persp;
-    const cameraCenterScreenX = 110;
-    const screenX = cameraCenterScreenX + (laneWorldX - visualStep) * laneScreenWidth;
-    return { x: screenX, y: screenY, scale: persp, w: laneScreenWidth };
-  }
-
-  function draw3DCar(car, zOverride) {
-    const z = zOverride !== undefined ? zOverride : car.z;
-    const p = project3D(car.lane, z);
-    if (p.x < -80 || p.x > canvas.width + 80) return;
-
-    const w = 54 * p.scale;
-    const h = 38 * p.scale;
-    const x = p.x - w / 2;
-    const y = p.y - h;
-
-    ctx.save();
-    // Shadow
-    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 2 * p.scale, w * 0.58, 7 * p.scale, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Car Body
-    ctx.fillStyle = car.style.body;
-    drawRoundedBox(x, y + h * 0.35, w, h * 0.55, 6 * p.scale);
-    ctx.fill();
-
-    // Car Roof
-    ctx.fillStyle = car.style.roof;
-    drawRoundedBox(x + w * 0.14, y + h * 0.05, w * 0.72, h * 0.38, 5 * p.scale);
-    ctx.fill();
-
-    // Windshield
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(x + w * 0.2, y + h * 0.12, w * 0.6, h * 0.24);
-
-    // Headlights
-    ctx.fillStyle = "#fef08a";
-    ctx.beginPath();
-    ctx.arc(x + w * 0.18, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
-    ctx.arc(x + w * 0.82, y + h * 0.62, 4.2 * p.scale, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Headlight Beam
-    const beamGrad = ctx.createLinearGradient(p.x, y + h * 0.62, p.x, p.y + 28 * p.scale);
-    beamGrad.addColorStop(0, "rgba(254, 240, 138, 0.42)");
-    beamGrad.addColorStop(1, "rgba(254, 240, 138, 0)");
-    ctx.fillStyle = beamGrad;
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.1, y + h * 0.62);
-    ctx.lineTo(x + w * 0.9, y + h * 0.62);
-    ctx.lineTo(x + w * 1.15, p.y + 28 * p.scale);
-    ctx.lineTo(x - w * 0.15, p.y + 28 * p.scale);
-    ctx.closePath();
-    ctx.fill();
-
-    // Wheels
-    ctx.fillStyle = "#090a0d";
-    ctx.fillRect(x + 2 * p.scale, y + h * 0.78, 9 * p.scale, 8 * p.scale);
-    ctx.fillRect(x + w - 11 * p.scale, y + h * 0.78, 9 * p.scale, 8 * p.scale);
-    ctx.restore();
-  }
-
-  function draw3DChicken(stepX, jumpHeight, isSquashed) {
-    const z = 0.76;
-    const p = project3D(stepX, z);
-    const s = p.scale * 1.28;
-    const cx = p.x;
-    const bob = Math.sin(Date.now() / 180) * 2.5;
-    const cy = p.y - jumpHeight * s + (isSquashed ? 0 : bob);
-
-    ctx.save();
-    // Ground Shadow
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.beginPath();
-    ctx.ellipse(cx, p.y + 4 * s, 20 * s, 7 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (isSquashed) {
-      ctx.font = `${Math.round(38 * s)}px Arial`;
-      ctx.textAlign = "center";
-      ctx.fillText("💥", cx, cy - 8 * s);
-      ctx.font = `${Math.round(30 * s)}px Arial`;
-      ctx.fillText("🍗", cx, cy + 6 * s);
-      ctx.restore();
-      return;
-    }
-
-    // Orange Feet
-    ctx.strokeStyle = "#f97316";
-    ctx.lineWidth = 3 * s;
-    ctx.beginPath();
-    ctx.moveTo(cx - 5 * s, cy - 5 * s);
-    ctx.lineTo(cx - 5 * s, cy + 3 * s);
-    ctx.moveTo(cx + 5 * s, cy - 5 * s);
-    ctx.lineTo(cx + 5 * s, cy + 3 * s);
-    ctx.stroke();
-
-    // Chicken Body
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - 18 * s, 17 * s, 14 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#94a3b8";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Chicken Head
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(cx + 7 * s, cy - 32 * s, 10.5 * s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Red Comb
-    ctx.fillStyle = "#ef4444";
-    ctx.beginPath();
-    ctx.arc(cx + 4 * s, cy - 43 * s, 4.5 * s, 0, Math.PI * 2);
-    ctx.arc(cx + 10 * s, cy - 42 * s, 4 * s, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Yellow Beak
-    ctx.fillStyle = "#f59e0b";
-    ctx.beginPath();
-    ctx.moveTo(cx + 16 * s, cy - 33 * s);
-    ctx.lineTo(cx + 25 * s, cy - 30 * s);
-    ctx.lineTo(cx + 16 * s, cy - 27 * s);
-    ctx.closePath();
-    ctx.fill();
-
-    // Eye
-    ctx.fillStyle = "#0f172a";
-    ctx.beginPath();
-    ctx.arc(cx + 11 * s, cy - 33 * s, 2.4 * s, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Wing
-    ctx.fillStyle = "#e2e8f0";
-    ctx.beginPath();
-    ctx.ellipse(cx - 3 * s, cy - 17 * s, 9 * s, 5.5 * s, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function render3DScene() {
-    try {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      visualStep += (currentStep - visualStep) * 0.18;
-      if (hopAnim > 0) hopAnim = Math.max(0, hopAnim - 0.08);
-
-      const horizonY = 56;
-      const groundY = 270;
-      const mults = MODES[currentMode].mults;
-
-      // 1. Sky & Buildings
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-      skyGrad.addColorStop(0, "#090d1a");
-      skyGrad.addColorStop(1, "#1e293b");
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, canvas.width, horizonY);
-
-      ctx.fillStyle = "#0f172a";
-      for (let bx = 0; bx < canvas.width; bx += 34) {
-        const bh = 14 + ((bx * 7) % 24);
-        ctx.fillRect(bx, horizonY - bh, 28, bh);
-      }
-
-      // 2. 3D Road Ground
-      const roadGrad = ctx.createLinearGradient(0, horizonY, 0, groundY);
-      roadGrad.addColorStop(0, "#181c26");
-      roadGrad.addColorStop(1, "#262c3a");
-      ctx.fillStyle = roadGrad;
-      ctx.fillRect(0, horizonY, canvas.width, groundY - horizonY);
-
-      // 3. Draw Lanes & Multiplier Coins
-      for (let i = 0; i <= mults.length + 1; i++) {
-        const farLeft = project3D(i - 0.5, 0);
-        const farRight = project3D(i + 0.5, 0);
-        const nearLeft = project3D(i - 0.5, 1);
-        const nearRight = project3D(i + 0.5, 1);
-
-        if (nearRight.x < -50 || nearLeft.x > canvas.width + 50) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(farLeft.x, farLeft.y);
-        ctx.lineTo(farRight.x, farRight.y);
-        ctx.lineTo(nearRight.x, nearRight.y);
-        ctx.lineTo(nearLeft.x, nearLeft.y);
-        ctx.closePath();
-
-        if (i === 0) {
-          ctx.fillStyle = "#2d3548";
-        } else if (i === mults.length + 1) {
-          ctx.fillStyle = "#713f12";
-        } else if (crashedStep === i) {
-          ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
-        } else if (i <= currentStep) {
-          ctx.fillStyle = "rgba(40, 224, 77, 0.16)";
-        } else {
-          ctx.fillStyle = (i % 2 === 0) ? "#1f2430" : "#242a38";
-        }
-        ctx.fill();
-
-        // Lane Divider Line
-        ctx.strokeStyle = i === 0 ? "#fbbf24" : "rgba(255, 255, 255, 0.28)";
-        ctx.lineWidth = i === 0 ? 2.5 : 1.5;
-        ctx.setLineDash(i === 0 ? [] : [8, 8]);
-        ctx.beginPath();
-        ctx.moveTo(farRight.x, farRight.y);
-        ctx.lineTo(nearRight.x, nearRight.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        if (i >= 1 && i <= mults.length) {
-          const coinPos = project3D(i, 0.76);
-          const rx = 26 * coinPos.scale;
-          const ry = 14 * coinPos.scale;
-
-          ctx.save();
-          ctx.fillStyle = i <= currentStep ? "#15803d" : (i === currentStep + 1 && isGameActive ? "#b45309" : "#334155");
-          ctx.beginPath();
-          ctx.ellipse(coinPos.x, coinPos.y + 4 * coinPos.scale, rx, ry, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = crashedStep === i ? "#991b1b" : (i <= currentStep ? "#166534" : (i === currentStep + 1 && isGameActive ? "#451a03" : "#1e293b"));
-          ctx.strokeStyle = crashedStep === i ? "#ef4444" : (i <= currentStep ? "#4ade80" : (i === currentStep + 1 && isGameActive ? "#fbbf24" : "#64748b"));
-          ctx.lineWidth = 2 * coinPos.scale;
-          ctx.beginPath();
-          ctx.ellipse(coinPos.x, coinPos.y, rx, ry, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.fillStyle = i <= currentStep ? "#bbf7d0" : "#fde047";
-          ctx.font = `bold ${Math.max(9, Math.round(11 * coinPos.scale))}px Segoe UI`;
-          ctx.textAlign = "center";
-          ctx.fillText(mults[i - 1].toFixed(2) + "x", coinPos.x, coinPos.y + 3 * coinPos.scale);
-          ctx.restore();
-        } else if (i === mults.length + 1) {
-          const finPos = project3D(i, 0.72);
-          ctx.font = `${Math.round(28 * finPos.scale)}px Arial`;
-          ctx.textAlign = "center";
-          ctx.fillText("🏆", finPos.x, finPos.y);
-        }
-      }
-
-      // 4. Update & Draw Cars + Chicken
-      if (Math.random() < 0.05) spawnAmbientCar();
-      ambientCars.forEach(c => {
-        c.z += c.speed;
-        if (!c.honked && c.z > 0.65 && Math.abs(c.lane - currentStep) <= 1) {
-          c.honked = true;
-          if (Math.random() < 0.35) playSound("horn");
-        }
-      });
-      ambientCars = ambientCars.filter(c => c.z < 1.25);
-
-      const renderQueue = [];
-      ambientCars.forEach(c => renderQueue.push({ type: "car", z: c.z, obj: c }));
-      if (killerCar) renderQueue.push({ type: "killer", z: killerCar.z, obj: killerCar });
-      renderQueue.push({ type: "chicken", z: 0.76 });
-
-      renderQueue.sort((a, b) => a.z - b.z);
-
-      renderQueue.forEach(item => {
-        if (item.type === "car") {
-          draw3DCar(item.obj);
-        } else if (item.type === "killer") {
-          if (item.obj.z < 0.78) item.obj.z += 0.065;
-          draw3DCar(item.obj, item.obj.z);
-        } else if (item.type === "chicken") {
-          const jumpArc = Math.sin(hopAnim * Math.PI) * 36;
-          draw3DChicken(visualStep, jumpArc, crashedStep !== -1);
-        }
-      });
-    } catch (err) {}
-
-    requestAnimationFrame(render3DScene);
-  }
-  requestAnimationFrame(render3DScene);
-
-  // ==========================================
-  // GAMEPLAY ACTIONS
-  // ==========================================
-  async function startChickenRun() {
-    ensureAudio();
+  async function startChickenGame() {
+    initAudio();
+    if (isPlaying) return;
     const bet = parseInt(document.getElementById("betInp").value);
     if (!bet || bet < 10) return alert("Minimum bet ₹10 hai!");
-    if (bet > getTotalBal()) return alert("Aapke wallet mein itna balance nahi hai!");
+    if (bet > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
 
-    playSound("jump");
-
-    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0);
-    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0);
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
     if (dBal >= bet) {
       dBal -= bet;
     } else {
@@ -719,7 +339,7 @@
     }
 
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-    txns.unshift({ type: `Chicken 3D Bet (${MODES[currentMode].label})`, amt: "-₹" + bet, date: new Date().toLocaleString() });
+    txns.unshift({ type: "Chicken Road Bet", amt: "-₹" + bet, date: new Date().toLocaleString() });
 
     userData.depositBal = dBal;
     userData.winningBal = wBal;
@@ -733,84 +353,93 @@
       body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
     });
 
-    currentBet = bet;
-    currentStep = 0;
-    visualStep = 0;
-    crashedStep = -1;
-    killerCar = null;
-    isGameActive = true;
-
-    document.querySelectorAll(".diff-btn").forEach(b => b.disabled = true);
-    document.getElementById("startBtnWrap").style.display = "none";
-    document.getElementById("activeBtnsWrap").style.display = "grid";
-    document.getElementById("curMultBadge").innerText = "1.00x";
-    document.getElementById("cashBtn").innerText = `CASH OUT ₹${bet}`;
-    document.getElementById("statusBanner").innerText = "🐾 JUMP NEXT dabakar saamne wali lane par koodein!";
+    activeBet = bet;
+    isPlaying = true;
+    currentLane = 0;
+    crashLane = -1;
+    chickenX = getLaneCenterX(0);
+    targetChickenX = chickenX;
+    renderRibbon();
+    updateHud();
+    renderActionButtons();
   }
 
-  function stepChickenForward() {
-    if (!isGameActive) return;
-    ensureAudio();
-    const mults = MODES[currentMode].mults;
-    const nextStep = currentStep + 1;
-    if (nextStep > mults.length) return;
+  function updateHud() {
+    document.getElementById("laneHud").innerText = `LANE: ${currentLane} / 8`;
+    const mult = currentLane > 0 ? LADDERS[difficulty][currentLane - 1] : 0;
+    const winNow = activeBet * mult;
+    document.getElementById("winHud").innerText = `WIN: ₹${winNow.toFixed(2)}`;
+  }
 
-    ambientCars = ambientCars.filter(c => c.lane !== nextStep);
-
-    const baseFail = MODES[currentMode].baseFail;
-    const adminFactor = (100 - winRateSetting) / 65;
-    const failProb = Math.min(0.75, Math.max(0.08, baseFail * adminFactor));
-
-    if (Math.random() < failProb) {
-      currentStep = nextStep;
-      hopAnim = 1.0;
-      crashedStep = nextStep;
-      isGameActive = false;
-      killerCar = {
-        lane: nextStep,
-        z: 0.15,
-        style: { body: "#ef4444", roof: "#fca5a5" }
-      };
-      playSound("crash");
-      document.getElementById("statusBanner").innerHTML = `<span style="color:#ff4d6d;">💥 CRASH! Speeding car ne takkar maar di. ₹${currentBet} lost!</span>`;
-      resetDeckUI();
+  function renderActionButtons() {
+    const grid = document.getElementById("actionGrid");
+    if (!isPlaying) {
+      grid.innerHTML = `<button type="button" class="btn-main btn-play" onclick="startChickenGame()">▶ START CROSSING</button>`;
       return;
     }
+    const mult = currentLane > 0 ? LADDERS[difficulty][currentLane - 1] : 0;
+    const winNow = (activeBet * mult).toFixed(2);
+    const nextMult = LADDERS[difficulty][currentLane] || mult;
 
-    currentStep = nextStep;
-    hopAnim = 1.0;
-    playSound("jump");
-    setTimeout(() => playSound("coin"), 110);
+    grid.innerHTML = `
+      <button type="button" class="btn-main btn-go" onclick="stepForward()">🐔 HOP (${nextMult.toFixed(2)}x)</button>
+      <button type="button" class="btn-main btn-cash" ${currentLane === 0 ? "disabled style='opacity:0.45;'" : ""} onclick="cashoutChicken()">💰 CASH ₹${winNow}</button>
+    `;
+  }
 
-    const curMult = mults[currentStep - 1];
-    const curWin = Math.floor(currentBet * curMult);
-    document.getElementById("curMultBadge").innerText = curMult.toFixed(2) + "x";
-    document.getElementById("cashBtn").innerText = `CASH OUT ₹${curWin}`;
-    document.getElementById("statusBanner").innerText = `🔥 Lane ${currentStep} Clear! Win: ₹${curWin} (${curMult.toFixed(2)}x)`;
+  function stepForward() {
+    if (!isPlaying || currentLane >= 8) return;
+    initAudio();
 
-    if (currentStep === mults.length) {
-      cashOutChicken();
+    const nextLane = currentLane + 1;
+    const diffPenalty = difficulty === "easy" ? 1.0 : (difficulty === "med" ? 0.82 : 0.65);
+    const laneDecay = Math.pow(0.84, nextLane - 1);
+    const surviveChance = Math.min(82, Math.max(12, winRateSetting * 1.45 * diffPenalty * laneDecay));
+
+    const survived = (Math.random() * 100) < surviveChance;
+
+    if (survived) {
+      playChickenSound("hop");
+      currentLane = nextLane;
+      targetChickenX = getLaneCenterX(currentLane);
+      chickenHopPhase = 1.0;
+      renderRibbon();
+      updateHud();
+      renderActionButtons();
+
+      if (currentLane === 8) {
+        setTimeout(() => cashoutChicken(), 450);
+      }
+    } else {
+      playChickenSound("horn");
+      crashLane = nextLane;
+      targetChickenX = getLaneCenterX(nextLane);
+      chickenHopPhase = 1.0;
+      crashCarY = -50;
+      isPlaying = false;
+      renderRibbon();
+      renderActionButtons();
+      document.getElementById("laneHud").innerText = `💥 HIT AT LANE ${nextLane}!`;
+      document.getElementById("winHud").innerText = `LOST ₹${activeBet}`;
     }
   }
 
-  async function cashOutChicken() {
-    if (!isGameActive) return;
-    if (currentStep === 0) return alert("Pehle kam se kam 1 lane cross karein!");
+  async function cashoutChicken() {
+    if (!isPlaying || currentLane === 0) return;
+    initAudio();
+    playChickenSound("cashout");
 
-    ensureAudio();
-    playSound("win");
+    const mult = LADDERS[difficulty][currentLane - 1];
+    const winAmt = Number((activeBet * mult).toFixed(2));
+    isPlaying = false;
+    targetChickenX = getLaneCenterX(9);
+    chickenHopPhase = 1.0;
+    renderActionButtons();
 
-    const mults = MODES[currentMode].mults;
-    const curMult = mults[currentStep - 1];
-    const winAmt = Math.floor(currentBet * curMult);
-
-    isGameActive = false;
-    resetDeckUI();
-
-    const newWinBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) + winAmt;
+    const newWinBal = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({
-      type: `Chicken 3D Win (${curMult.toFixed(2)}x)`,
+      type: `Chicken Road Win (${mult.toFixed(2)}x)`,
       amt: "+₹" + winAmt,
       date: new Date().toLocaleString()
     });
@@ -820,16 +449,8 @@
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
 
-    document.getElementById("statusBanner").innerHTML = `<span style="color:#28e04d;">🎉 CASHED OUT! Aapne ₹${winAmt} (${curMult.toFixed(2)}x) jeete!</span>`;
-
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
-    liveFeedData.unshift({
-      name: maskedMe + " (You)",
-      bet: currentBet,
-      mult: curMult.toFixed(2) + "x",
-      win: winAmt,
-      isMe: true
-    });
+    liveFeedData.unshift({ name: maskedMe + " (You)", bet: activeBet, mult: mult.toFixed(2) + "x", win: winAmt, isMe: true });
     renderFeed();
 
     fetch(`${DB_URL}/users/${mobile}.json`, {
@@ -841,38 +462,170 @@
     fetch(`${DB_URL}/chickenLiveFeed/${mobile}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: maskedMe,
-        bet: currentBet,
-        mult: curMult.toFixed(2) + "x",
-        win: winAmt,
-        ts: Date.now()
-      })
+      body: JSON.stringify({ name: maskedMe, bet: activeBet, mult: mult.toFixed(2) + "x", win: winAmt, ts: Date.now() })
     });
   }
 
-  function resetDeckUI() {
-    document.querySelectorAll(".diff-btn").forEach(b => b.disabled = false);
-    document.getElementById("startBtnWrap").style.display = "grid";
-    document.getElementById("activeBtnsWrap").style.display = "none";
+  // ==========================================
+  // 3D HIGHWAY & TRAFFIC ANIMATION CANVAS
+  // ==========================================
+  const canvas = document.getElementById("roadCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const CAR_COLORS = ["#ef4444", "#3b82f6", "#f59e0b", "#a855f7", "#10b981", "#ec4899"];
+  const trafficCars = [];
+  for (let lane = 1; lane <= 8; lane++) {
+    trafficCars.push({
+      lane: lane,
+      y: Math.random() * 240,
+      speed: (lane % 2 === 0 ? 1 : -1) * (1.2 + (lane % 3) * 0.45),
+      color: CAR_COLORS[lane % CAR_COLORS.length]
+    });
   }
 
-  // Hybrid Live Feed
-  const BOTS = ["r***9", "s***2", "a***7", "m***4", "k***1", "v***8", "p***5", "d***3", "n***6", "t***0"];
+  function draw3DCar(x, y, color, dirDown) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.beginPath();
+    ctx.roundRect(-12, -18, 26, 40, 6);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(-13, -20, 26, 38, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.beginPath();
+    ctx.roundRect(-9, -11, 18, 20, 4);
+    ctx.fill();
+
+    ctx.fillStyle = "#fef08a";
+    const lightY = dirDown ? 16 : -20;
+    ctx.fillRect(-10, lightY, 5, 3);
+    ctx.fillRect(5, lightY, 5, 3);
+    ctx.restore();
+  }
+
+  function draw3DChicken(x, y, hopOffset, isCrushed) {
+    ctx.save();
+    ctx.translate(x, y - hopOffset);
+    if (isCrushed) {
+      ctx.scale(1.35, 0.55);
+      ctx.font = "28px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("💥", 0, 8);
+      ctx.restore();
+      return;
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.beginPath();
+    ctx.ellipse(0, 14 + hopOffset, 12, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, 2, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(0, -10, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.moveTo(10, -1);
+    ctx.lineTo(17, 2);
+    ctx.lineTo(10, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(5, -3, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function animateRoad() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#15803d";
+    ctx.fillRect(0, 0, 48, canvas.height);
+    ctx.fillStyle = "#ca8a04";
+    ctx.fillRect(372, 0, 48, canvas.height);
+
+    ctx.fillStyle = "#262b38";
+    ctx.fillRect(48, 0, 324, canvas.height);
+
+    for (let i = 1; i <= 8; i++) {
+      const lx = 48 + (i - 1) * 40.5;
+      if (isPlaying && i === currentLane + 1) {
+        ctx.fillStyle = "rgba(255, 190, 11, 0.14)";
+        ctx.fillRect(lx, 0, 40.5, canvas.height);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.setLineDash([10, 10]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.font = "bold 9px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText(LADDERS[difficulty][i - 1].toFixed(2) + "x", lx + 20.2, 236);
+    }
+
+    trafficCars.forEach(car => {
+      if (car.lane <= currentLane && isPlaying) return;
+      if (car.lane === crashLane) return;
+
+      car.y += car.speed;
+      if (car.y > canvas.height + 30) car.y = -30;
+      if (car.y < -30) car.y = canvas.height + 30;
+      draw3DCar(getLaneCenterX(car.lane), car.y, car.color, car.speed > 0);
+    });
+
+    if (crashLane > 0) {
+      if (crashCarY < 135) crashCarY += 14;
+      draw3DCar(getLaneCenterX(crashLane), crashCarY, "#ef4444", true);
+    }
+
+    chickenX += (targetChickenX - chickenX) * 0.22;
+    let hopY = 0;
+    if (chickenHopPhase > 0) {
+      hopY = Math.sin(chickenHopPhase * Math.PI) * 16;
+      chickenHopPhase = Math.max(0, chickenHopPhase - 0.08);
+    }
+    draw3DChicken(chickenX, 132, hopY, crashLane > 0);
+
+    requestAnimationFrame(animateRoad);
+  }
+  requestAnimationFrame(animateRoad);
+
+  // Hybrid Live Winners Feed
+  const BOTS = ["r***8", "k***3", "a***7", "s***1", "v***9", "m***4", "p***2", "d***5", "n***6", "t***0"];
   let liveFeedData = [
-    { name: "r***9", bet: 500, mult: "2.48x", win: 1240, isMe: false },
-    { name: "a***7", bet: 200, mult: "1.80x", win: 360, isMe: false },
-    { name: "m***4", bet: 1000, mult: "3.60x", win: 3600, isMe: false },
-    { name: "v***8", bet: 100, mult: "1.48x", win: 148, isMe: false },
-    { name: "k***1", bet: 300, mult: "2.25x", win: 675, isMe: false }
+    { name: "r***8", bet: 200, mult: "2.45x", win: 490, isMe: false },
+    { name: "k***3", bet: 100, mult: "3.10x", win: 310, isMe: false },
+    { name: "a***7", bet: 500, mult: "1.95x", win: 975, isMe: false },
+    { name: "s***1", bet: 50, mult: "5.20x", win: 260, isMe: false },
+    { name: "v***9", bet: 300, mult: "1.55x", win: 465, isMe: false }
   ];
 
   function renderFeed() {
     document.getElementById("liveFeedList").innerHTML = liveFeedData.slice(0, 10).map(item => `
       <div class="feed-row win ${item.isMe ? 'me' : ''}">
-        <div style="font-weight:bold; color:#e2e8f0;">🐔 ${item.name}</div>
-        <div style="color:#9ca3af;">₹${item.bet}</div>
-        <div><span class="x-pill">${item.mult}</span></div>
+        <div style="font-weight:bold; color:#ddd;">🐔 ${item.name}</div>
+        <div style="color:#aaa;">₹${item.bet}</div>
+        <div style="color:#ffbe0b; font-weight:bold;">${item.mult}</div>
         <div style="text-align:right; font-weight:bold; color:#28e04d;">+₹${item.win}</div>
       </div>
     `).join("");
@@ -881,16 +634,10 @@
 
   setInterval(async () => {
     const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
-    const bBet = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
-    const bMult = (1.18 + Math.random() * 3.5).toFixed(2);
-    liveFeedData.unshift({
-      name: bName,
-      bet: bBet,
-      mult: bMult + "x",
-      win: Math.floor(bBet * Number(bMult)),
-      isMe: false
-    });
-    document.getElementById("onlineTxt").innerText = "● " + (Math.floor(Math.random() * 45) + 190) + " Playing";
+    const bBet = [50, 100, 200, 500][Math.floor(Math.random() * 4)];
+    const bMult = [1.25, 1.55, 1.95, 2.45, 3.10][Math.floor(Math.random() * 5)];
+    liveFeedData.unshift({ name: bName, bet: bBet, mult: bMult.toFixed(2) + "x", win: Math.floor(bBet * bMult), isMe: false });
+    document.getElementById("onlineCount").innerText = "● " + (165 + Math.floor(Math.random() * 45)) + " Playing";
 
     try {
       const res = await fetch(`${DB_URL}/chickenLiveFeed.json?t=${Date.now()}`);
@@ -904,9 +651,43 @@
         });
       }
     } catch (e) {}
-
     renderFeed();
   }, 4500);
+
+  // ==========================================
+  // SAFE EXIT & BACK BUTTON CONFIRMATION
+  // ==========================================
+  function hasRunningBet() {
+    return isPlaying;
+  }
+
+  function safeExitTo(url) {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapka Chicken Road round abhi chal raha hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
+      : "Kya aap Chicken Road game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = url;
+    }
+  }
+
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapka Chicken Road round abhi chal raha hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
+      : "Kya aap Chicken Road game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = "game.html";
+    } else {
+      history.pushState(null, "", location.href);
+    }
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (hasRunningBet()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
 </script>
 </body>
 </html>
