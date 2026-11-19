@@ -961,6 +961,58 @@
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 1500);
   setInterval(tickSynchronizedEngine, 60);
+   // ==========================================
+  // SAFE EXIT & BACK BUTTON CONFIRMATION
+  // ==========================================
+  function hasRunningBet() {
+    // Aviator check
+    if (typeof panels !== "undefined" && Array.isArray(panels)) {
+      if (panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED")) return true;
+    }
+    // Chicken Road check
+    if (typeof isPlaying !== "undefined" && isPlaying) return true;
+    // Car Roulette check
+    if (typeof myBets !== "undefined" && Object.values(myBets).some(v => v > 0)) return true;
+    // Color Trading check
+    if (typeof activeRoundBets !== "undefined" && activeRoundBets.length > 0) return true;
+    // Lucky Dice check
+    if (typeof activeBet !== "undefined" && activeBet !== null) return true;
+    // Buffalo Gold Slot check
+    if (typeof isSpinning !== "undefined" && isSpinning) return true;
+
+    return false;
+  }
+
+  function safeExitTo(url) {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
+      : "Kya aap game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = url;
+    }
+  }
+
+  // Mobile Back Button Intercept
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapki bet abhi chal rahi hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
+      : "Kya aap game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = "game.html";
+    } else {
+      history.pushState(null, "", location.href);
+    }
+  });
+
+  // Browser Tab Close / Refresh Warning (Jab Bet Lagi Ho)
+  window.addEventListener("beforeunload", function (e) {
+    if (hasRunningBet()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+ 
 </script>
 </body>
 </html>
