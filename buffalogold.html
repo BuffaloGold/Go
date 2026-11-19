@@ -3,562 +3,597 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buffalo Gold Stampede</title>
+<title>Buffalo Gold 3D Slot - Buffalo Gold</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; user-select: none; }
-  body { background: #0d0114; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; overflow-x: hidden; }
-  .container { width: 100%; max-width: 430px; background: radial-gradient(circle at top, #4f0b6e 0%, #1d032b 55%, #0f0117 100%); min-height: 100vh; padding: 12px; position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+  body { background: #0d0214; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
+  .app { width: 100%; max-width: 440px; background: linear-gradient(180deg, #1f052e 0%, #12021c 100%); min-height: 100vh; padding: 10px; }
 
-  .top-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(18, 2, 28, 0.85); padding: 10px 14px; border-radius: 16px; border: 1.5px solid #f5b915; }
-  .right-controls { display: flex; align-items: center; gap: 8px; }
-  .sound-btn { background: #29073b; border: 1.5px solid #ffd700; color: #ffd700; width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .bal-pill { background: #29073b; padding: 6px 12px; border-radius: 22px; border: 1.5px solid #ffd700; font-weight: 800; color: #ffd700; display: flex; align-items: center; gap: 8px; }
-  .add-btn { background: #28e04d; color: #000; border: none; width: 24px; height: 24px; border-radius: 50%; font-weight: 900; font-size: 16px; cursor: pointer; }
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #2b0740; border-radius: 12px; margin-bottom: 8px; border: 1px solid #ffd700; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #ffd700; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
+  .hdr-right { display: flex; align-items: center; gap: 8px; }
+  .snd-btn { background: #3e0a5c; border: 1px solid #ffd700; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #14021f; border: 1px solid #28e04d; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
 
-  .players-row { display: flex; justify-content: space-around; margin: 12px 0 8px; text-align: center; font-size: 11px; color: #e2c6f0; }
-  .avatar { width: 42px; height: 42px; border-radius: 50%; background: #58127a; border: 2px solid #ffd700; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 4px; }
+  /* Jackpot Banner */
+  .jackpot-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;
+  }
+  .jp-box {
+    background: linear-gradient(180deg, #4a0e6b, #260538); border: 1px solid #ffd700;
+    border-radius: 10px; padding: 5px 4px; text-align: center;
+    box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.25);
+  }
+  .jp-box span { font-size: 9px; color: #ffe885; font-weight: bold; display: block; }
+  .jp-box strong { font-size: 13px; color: #ffd700; font-weight: 900; }
 
-  .banner { text-align: center; margin: 4px 0 8px; }
-  .banner h1 { font-size: 26px; font-weight: 900; color: #ffd700; text-shadow: 0 3px 0 #8a3b00, 0 0 15px #ff6600; }
-  .jackpot-bar { background: linear-gradient(90deg, #7a0000, #d40000, #7a0000); border: 2px solid #ffd700; border-radius: 12px; text-align: center; padding: 7px; font-weight: 900; font-size: 13px; color: #fff; margin-bottom: 12px; }
+  /* 3D Slot Machine Frame */
+  .slot-cabinet {
+    background: linear-gradient(180deg, #591182 0%, #2d0645 100%);
+    border: 3px solid #ffd700;
+    border-radius: 18px;
+    padding: 12px 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.85), inset 0 0 20px rgba(255,215,0,0.3);
+    position: relative;
+  }
+  .reels-window {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    background: #0b0112; border: 2px solid #b8860b; border-radius: 14px; padding: 8px;
+    box-shadow: inset 0 10px 18px rgba(0,0,0,0.9), inset 0 -10px 18px rgba(0,0,0,0.9);
+  }
+  .reel-col {
+    display: flex; flex-direction: column; gap: 6px;
+    background: linear-gradient(180deg, #1b0329 0%, #2f0847 50%, #1b0329 100%);
+    border-radius: 10px; padding: 6px 4px; border: 1px solid #6b1d91;
+    transition: transform 0.1s;
+  }
+  .reel-col.spinning {
+    animation: reelBlur 0.12s infinite linear;
+  }
+  @keyframes reelBlur {
+    0% { transform: translateY(-3px); filter: blur(1.2px); }
+    50% { transform: translateY(3px); filter: blur(1.5px); }
+    100% { transform: translateY(-3px); filter: blur(1.2px); }
+  }
+  .sym-cell {
+    height: 58px; display: flex; align-items: center; justify-content: center;
+    font-size: 36px; border-radius: 8px;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.14), rgba(0,0,0,0.45));
+    text-shadow: 0 4px 8px rgba(0,0,0,0.8);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .sym-cell.mid-row {
+    border: 1.5px solid rgba(255, 215, 0, 0.55);
+    background: radial-gradient(circle at 35% 30%, rgba(255, 215, 0, 0.22), rgba(20, 2, 31, 0.75));
+  }
+  .sym-cell.win-glow {
+    border: 2px solid #28e04d;
+    box-shadow: 0 0 16px #28e04d, inset 0 0 10px rgba(40, 224, 77, 0.5);
+    transform: scale(1.06);
+  }
 
-  .slot-cabinet { background: linear-gradient(180deg, #b8860b, #ffd700, #8a5a00); padding: 6px; border-radius: 22px; box-shadow: 0 0 25px rgba(255, 215, 0, 0.35); }
-  .slot-inner { background: linear-gradient(180deg, #6b0f1a, #2b0308); padding: 14px 12px 10px; border-radius: 17px; border: 2px solid #3d0000; position: relative; }
+  .win-banner {
+    margin-top: 9px; text-align: center; background: #14021f; border: 1px solid #6b1d91;
+    border-radius: 10px; padding: 6px; font-size: 13px; font-weight: 900; color: #ffe885;
+  }
 
-  .reels-window { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #1a0205; padding: 8px; border-radius: 14px; border: 2px solid #d4af37; position: relative; }
-  .payline { position: absolute; top: 50%; left: 4px; right: 4px; height: 3px; background: linear-gradient(90deg, transparent, #ff2a55, #ffd700, #ff2a55, transparent); transform: translateY(-50%); z-index: 5; pointer-events: none; }
+  /* Paytable Mini Strip */
+  .paytable {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    background: #1b0429; border: 1px solid #5c197d; border-radius: 12px;
+    padding: 6px; margin-bottom: 10px; text-align: center; font-size: 10px;
+  }
+  .pt-item span { font-size: 18px; display: block; }
+  .pt-item strong { color: #ffd700; }
 
-  .reel-col { height: 110px; overflow: hidden; border-radius: 10px; background: linear-gradient(180deg, #cbb382 0%, #fffdf5 25%, #ffffff 50%, #fffdf5 75%, #cbb382 100%); border: 2px solid #8c6218; position: relative; box-shadow: inset 0 12px 12px -6px rgba(0,0,0,0.6), inset 0 -12px 12px -6px rgba(0,0,0,0.6); }
-  .reel-strip { display: flex; flex-direction: column; }
-  .reel-cell { height: 110px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 50px; flex-shrink: 0; }
-  .sym-label { font-size: 9px; font-weight: 900; color: #5c3a00; letter-spacing: 0.5px; margin-top: -4px; }
+  /* Spin Control Deck */
+  .control-deck {
+    background: #230633; border: 1px solid #75229e; border-radius: 16px; padding: 11px; margin-bottom: 10px;
+  }
+  .bet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #12021c; border: 1px solid #75229e; border-radius: 12px; padding: 6px 10px; }
+  .step-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #ffd700; background: #380952; color: #ffd700; font-weight: bold; cursor: pointer; }
+  .bet-inp { background: transparent; border: none; color: #fff; font-size: 16px; font-weight: 900; width: 70px; text-align: center; outline: none; }
+  .quick-chips { display: flex; gap: 5px; }
+  .q-chip { background: #380952; border: 1px solid #75229e; color: #ffe885; padding: 8px 9px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
-  .status-strip { text-align: center; min-height: 26px; margin-top: 10px; font-size: 14px; font-weight: 900; color: #ffd700; text-shadow: 0 0 10px #ff0000; }
+  .spin-actions { display: grid; grid-template-columns: 1fr 2.2fr; gap: 8px; }
+  .btn-auto {
+    border: 1px solid #ffd700; border-radius: 12px; background: #14021f; color: #ffd700;
+    font-size: 12px; font-weight: 900; cursor: pointer; padding: 10px 4px;
+  }
+  .btn-auto.active { background: #ff9f1c; color: #000; border-color: #fff; }
+  .btn-spin {
+    border: none; border-radius: 12px;
+    background: linear-gradient(180deg, #ffd700 0%, #e69500 100%);
+    color: #000; font-size: 16px; font-weight: 900; cursor: pointer;
+    box-shadow: 0 4px 0 #8a5600; text-transform: uppercase;
+  }
+  .btn-spin:active { transform: scale(0.97); }
+  .btn-spin:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .paytable-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 6px; margin-top: 10px; font-size: 10px; text-align: center; border: 1px solid rgba(255,215,0,0.3); }
-  .pt-item { background: rgba(255,255,255,0.06); padding: 4px 2px; border-radius: 6px; }
-  .pt-item strong { display: block; color: #28e04d; font-size: 11px; }
+  /* Live Feed */
+  .feed-box { background: #1e042b; border: 1px solid #5c197d; border-radius: 14px; padding: 10px; }
+  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #ffd700; padding-bottom: 7px; border-bottom: 1px solid #4a1566; margin-bottom: 6px; }
+  .feed-row {
+    display: grid; grid-template-columns: 1.2fr 0.9fr 0.8fr 1.1fr; align-items: center;
+    background: #14021f; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
+  }
+  .feed-row.win { background: rgba(40, 224, 77, 0.14); border: 1px solid rgba(40, 224, 77, 0.4); }
+  .feed-row.me { border-color: #ffd700; }
 
-  .spin-panel { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px 14px; border-radius: 18px; border: 1.5px solid #8e2de2; margin-top: 12px; }
-  .bet-box { text-align: center; }
-  .bet-controls { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
-  .bet-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: #ffd700; color: #000; font-weight: 900; font-size: 22px; cursor: pointer; }
-  .spin-btn { background: linear-gradient(180deg, #38f254, #0d8f20); color: #fff; border: 3px solid #fff; padding: 14px 32px; border-radius: 18px; font-size: 22px; font-weight: 900; cursor: pointer; box-shadow: 0 5px 15px rgba(40, 224, 77, 0.5); }
-  .spin-btn:disabled { opacity: 0.5; }
-
-  .live-feed-box { background: rgba(20, 3, 31, 0.9); border: 1px solid #6b1d91; border-radius: 14px; padding: 12px; margin-top: 14px; }
-  .feed-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3d0c57; padding-bottom: 8px; margin-bottom: 8px; font-size: 12px; }
-  .online-dot { color: #28e04d; font-weight: bold; }
-  .feed-table-head { display: grid; grid-template-columns: 1.5fr 1fr 1fr; font-size: 11px; color: #aaa; padding: 4px 6px; }
-  .feed-list { max-height: 175px; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
-  .feed-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; align-items: center; background: #29073b; padding: 7px 8px; border-radius: 8px; font-size: 12px; animation: rowPop 0.3s ease; }
-  @keyframes rowPop { from { opacity: 0.4; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-  .win-tag { color: #28e04d; font-weight: bold; text-align: right; }
-  .bet-tag { color: #ffd700; text-align: center; }
-
-  .win-overlay { position: fixed; inset: 0; background: rgba(8, 1, 14, 0.85); display: none; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
-  .win-overlay.show { display: flex; }
-  .win-dialog { width: 100%; max-width: 340px; background: radial-gradient(circle at top, #5c0f82, #240436 75%); border: 3px solid #ffd700; border-radius: 24px; padding: 26px 20px; text-align: center; box-shadow: 0 0 45px rgba(255, 215, 0, 0.65); animation: popBounce 0.4s ease; }
-  @keyframes popBounce { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-  .win-crown { font-size: 56px; margin-bottom: 6px; }
-  .win-title { font-size: 26px; font-weight: 900; color: #ffd700; }
-  .win-sub { font-size: 13px; color: #e2c6f0; margin-top: 4px; }
-  .win-amount-box { background: rgba(0,0,0,0.45); border: 2px solid #28e04d; border-radius: 16px; padding: 14px; margin: 16px 0; font-size: 36px; font-weight: 900; color: #28e04d; }
-  .collect-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; background: linear-gradient(180deg, #ffd700, #e69500); color: #000; font-size: 17px; font-weight: 900; cursor: pointer; }
-
-  .coin-particle { position: fixed; top: -40px; font-size: 24px; z-index: 1000; pointer-events: none; animation: coinFall linear forwards; }
-  @keyframes coinFall { to { transform: translateY(105vh) rotate(360deg); opacity: 0.9; } }
-
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 99; }
-  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  /* Bottom Navigation */
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1e042b; border-top: 1px solid #5c197d; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .nav-item { text-align: center; color: #aaa; font-size: 11px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
-  .nav-icon { font-size: 20px; display: block; }
+  .nav-icon { font-size: 19px; display: block; }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="top-bar">
-    <div>
-      <div style="font-size:10px; color:#ccc;">PLAYER</div>
-      <div style="font-weight:bold; font-size:14px;" id="playerName">Player</div>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-title">
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#ffd700; font-size:16px;">⬅</span>
+      <span>🐃 BUFFALO GOLD 3D</span>
     </div>
-    <div class="right-controls">
-      <button type="button" class="sound-btn" id="soundToggle">🔊</button>
-      <div class="bal-pill">
-        <span>₹ <span id="totalBal">0</span></span>
-        <button type="button" class="add-btn" onclick="location.href='wallet.html'">+</button>
-      </div>
+    <div class="hdr-right">
+      <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span></div>
     </div>
   </div>
 
-  <div class="players-row">
-    <div><div class="avatar">😎</div>Lezlie_490</div>
-    <div><div class="avatar">🦊</div>Jonathan_9</div>
-    <div><div class="avatar">🤠</div>Franzy22</div>
-    <div><div class="avatar">👑</div>TommySan</div>
+  <!-- Jackpot Ticker Strip -->
+  <div class="jackpot-strip">
+    <div class="jp-box"><span>GRAND JACKPOT</span><strong id="jpGrand">₹2,50,000</strong></div>
+    <div class="jp-box"><span>MAJOR BONUS</span><strong id="jpMajor">₹50,000</strong></div>
+    <div class="jp-box"><span>MINI HIT</span><strong id="jpMini">₹5,000</strong></div>
   </div>
 
-  <div class="banner">
-    <h1>🐃 BUFFALO GOLD</h1>
-    <div style="font-size:11px; letter-spacing:3px; color:#ffd700; font-weight:bold;">3D STAMPEDE ARENA</div>
-  </div>
-
-  <div class="jackpot-bar">🏆 3X BUFFALO GOLD = 10X MEGA JACKPOT 🏆</div>
-
+  <!-- 3x3 3D Slot Machine Cabinet -->
   <div class="slot-cabinet">
-    <div class="slot-inner">
-      <div class="reels-window">
-        <div class="payline"></div>
-        <div class="reel-col"><div class="reel-strip" id="strip1"><div class="reel-cell">🐃<span class="sym-label">GOLD</span></div></div></div>
-        <div class="reel-col"><div class="reel-strip" id="strip2"><div class="reel-cell">👑<span class="sym-label">KING</span></div></div></div>
-        <div class="reel-col"><div class="reel-strip" id="strip3"><div class="reel-cell">🐃<span class="sym-label">GOLD</span></div></div></div>
+    <div class="reels-window">
+      <div class="reel-col" id="reelCol0">
+        <div class="sym-cell" id="c0_0">🦅</div>
+        <div class="sym-cell mid-row" id="c0_1">🐃</div>
+        <div class="sym-cell" id="c0_2">🐺</div>
       </div>
-      <div class="status-strip" id="winMsg">HIT BUFFALO GOLD FOR 10X!</div>
-    </div>
-  </div>
-
-  <div class="paytable-grid">
-    <div class="pt-item">🐃🐃🐃<strong>10X</strong></div>
-    <div class="pt-item">👑/💎 x3<strong>5X</strong></div>
-    <div class="pt-item">🐯/🐺 x3<strong>3X</strong></div>
-    <div class="pt-item">1x 🐃 Gold<strong>1.5X</strong></div>
-  </div>
-
-  <div class="spin-panel">
-    <div class="bet-box">
-      <div style="font-size:10px; color:#ccc;">TOTAL BET</div>
-      <div class="bet-controls">
-        <button type="button" class="bet-btn" id="minusBtn">-</button>
-        <span style="font-size:20px; font-weight:900; color:#ffd700; min-width:52px;">₹<span id="betVal">10</span></span>
-        <button type="button" class="bet-btn" id="plusBtn">+</button>
+      <div class="reel-col" id="reelCol1">
+        <div class="sym-cell" id="c1_0">🪙</div>
+        <div class="sym-cell mid-row" id="c1_1">🐃</div>
+        <div class="sym-cell" id="c1_2">💎</div>
+      </div>
+      <div class="reel-col" id="reelCol2">
+        <div class="sym-cell" id="c2_0">🔥</div>
+        <div class="sym-cell mid-row" id="c2_1">🐃</div>
+        <div class="sym-cell" id="c2_2">🦅</div>
       </div>
     </div>
-    <button type="button" class="spin-btn" id="spinBtn">SPIN</button>
+    <div class="win-banner" id="winBanner">3x Match Center Line pe Jeetein Up To 25x!</div>
   </div>
 
-  <div class="live-feed-box">
-    <div class="feed-header">
-      <span style="font-weight:bold; color:#ffd700;">🔥 LIVE BETS & WINNERS</span>
-      <span class="online-dot">🟢 <span id="onlineCount">1,428</span> Online</span>
+  <!-- Paytable Strip -->
+  <div class="paytable">
+    <div class="pt-item"><span>🐃</span><strong>25x</strong></div>
+    <div class="pt-item"><span>🪙</span><strong>12x</strong></div>
+    <div class="pt-item"><span>💎</span><strong>8x</strong></div>
+    <div class="pt-item"><span>🦅</span><strong>5x</strong></div>
+    <div class="pt-item"><span>🐺</span><strong>3x</strong></div>
+  </div>
+
+  <!-- Spin Control Deck -->
+  <div class="control-deck">
+    <div class="bet-row">
+      <div class="stepper">
+        <button type="button" class="step-btn" onclick="adjBet(-10)">-</button>
+        <input type="number" class="bet-inp" id="betInp" value="20">
+        <button type="button" class="step-btn" onclick="adjBet(10)">+</button>
+      </div>
+      <div class="quick-chips">
+        <button type="button" class="q-chip" onclick="setBet(50)">50</button>
+        <button type="button" class="q-chip" onclick="setBet(100)">100</button>
+        <button type="button" class="q-chip" onclick="setBet(500)">500</button>
+      </div>
     </div>
-    <div class="feed-table-head">
-      <span>PLAYER</span>
-      <span style="text-align:center;">BET</span>
-      <span style="text-align:right;">PROFIT</span>
+
+    <div class="spin-actions">
+      <button type="button" class="btn-auto" id="autoSpinBtn" onclick="toggleAutoSpin()">AUTO: OFF</button>
+      <button type="button" class="btn-spin" id="spinBtn" onclick="spinReels()">🎰 SPIN NOW</button>
     </div>
-    <div class="feed-list" id="botFeedList"></div>
+  </div>
+
+  <!-- Live Winners Feed -->
+  <div class="feed-box">
+    <div class="feed-head">
+      <span>🔥 LIVE BUFFALO WINNERS</span>
+      <span style="color:#28e04d; font-weight:bold;" id="onlineTxt">● 312 Spinning</span>
+    </div>
+    <div id="liveFeedList"></div>
   </div>
 </div>
 
-<div class="win-overlay" id="winOverlay">
-  <div class="win-dialog">
-    <div class="win-crown" id="winDialogIcon">🐃</div>
-    <div class="win-title" id="winDialogTitle">BUFFALO JACKPOT!</div>
-    <div class="win-sub" id="winDialogSub">3X Buffalo Gold (10X Payout)</div>
-    <div class="win-amount-box">+₹<span id="winDialogAmt">0</span></div>
-    <button type="button" class="collect-btn" id="collectWinBtn">COLLECT WINNINGS</button>
-  </div>
-</div>
-
+<!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
 </div>
 
 <script>
-  try {
-    const cached = JSON.parse(localStorage.getItem("cachedUser") || "null");
-    if (cached && cached.name) {
-      document.getElementById("playerName").innerText = cached.name;
-      document.getElementById("totalBal").innerText = Number(cached.depositBal || 0) + Number(cached.winningBal || 0);
-    }
-  } catch (e) {}
-</script>
-
-<script type="module">
-  import { db, ref, set, get, update, onValue } from "./firebase-config.js";
-
+  const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
+  let userData = {};
+  try {
+    userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+  } catch (e) {}
+  let winRateSetting = 35;
+
+  function getTotalBal() {
+    const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    return dep + win;
+  }
+
+  function updateHeaderBal() {
+    document.getElementById("balDisplay").innerText = getTotalBal().toFixed(2);
+  }
+  updateHeaderBal();
+
+  async function syncUser() {
+    try {
+      const [uRes, rRes] = await Promise.all([
+        fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
+        fetch(`${DB_URL}/settings/rates/slot.json?t=${Date.now()}`)
+      ]);
+      const u = await uRes.json();
+      const r = await rRes.json();
+      if (u && typeof u === "object") {
+        userData = { ...userData, ...u };
+        localStorage.setItem("cachedUser", JSON.stringify(userData));
+        updateHeaderBal();
+      }
+      if (typeof r === "number") winRateSetting = r;
+    } catch (e) {}
+  }
+  syncUser();
+
+  // ==========================================
+  // WEB AUDIO SLOT MACHINE SOUND EFFECTS
+  // ==========================================
   let soundOn = true;
   let audioCtx = null;
-  function unlockAudio() {
+
+  function initAudio() {
     if (!audioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (AC) audioCtx = new AC();
     }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }
-  document.addEventListener("touchstart", unlockAudio, { once: true });
-  document.addEventListener("click", unlockAudio, { once: true });
-
-  function playTone(freq, type, duration, vol = 0.25, delay = 0) {
-    if (!soundOn) return;
-    unlockAudio();
-    if (!audioCtx) return;
-    try {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
-      gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(audioCtx.currentTime + delay);
-      osc.stop(audioCtx.currentTime + delay + duration);
-    } catch (e) {}
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
 
-  const sfx = {
-    click: () => playTone(650, 'sine', 0.08, 0.25),
-    spinStart: () => { playTone(320, 'triangle', 0.1, 0.3, 0); playTone(480, 'triangle', 0.12, 0.3, 0.07); },
-    reelStop: () => playTone(220, 'triangle', 0.09, 0.35),
-    win: () => [523, 659, 784, 1046].forEach((f, i) => playTone(f, 'triangle', 0.18, 0.3, i * 0.09)),
-    bigWin: () => [523, 659, 784, 1046, 784, 1046, 1318, 1568].forEach((f, i) => playTone(f, 'sawtooth', 0.22, 0.28, i * 0.09)),
-    lose: () => playTone(180, 'sawtooth', 0.2, 0.2)
-  };
-
-  document.getElementById("soundToggle").addEventListener("click", function() {
+  function toggleSound() {
     soundOn = !soundOn;
-    this.innerText = soundOn ? "🔊" : "🔇";
-    if (soundOn) sfx.click();
-  });
-
-  let userData = JSON.parse(localStorage.getItem("cachedUser") || "null");
-  let isVerifiedLive = false;
-  let bet = 10;
-  let isSpinning = false;
-  let adminWinRate = 35;
-
-  const symMeta = { "🐃": "GOLD", "👑": "KING", "💎": "GEM", "🐯": "TIGER", "🐺": "WOLF" };
-  const allSymbols = ["🐃", "👑", "💎", "🐯", "🐺"];
-  const regularSymbols = ["👑", "💎", "🐯", "🐺"];
-  let currentTopSymbols = ["🐃", "👑", "🐃"];
-  const userRef = ref(db, "users/" + mobile);
-
-  onValue(ref(db, "settings/winRate"), (s) => {
-    if (s.exists()) adminWinRate = Number(s.val());
-  });
-
-  // FORCE LOGOUT IF DELETED BY ADMIN
-  onValue(userRef, (snapshot) => {
-    if (!snapshot.exists() || !snapshot.val().name) {
-      localStorage.removeItem("activeUser");
-      localStorage.removeItem("cachedUser");
-      window.location.replace("index.html");
-      return;
-    }
-    isVerifiedLive = true;
-    userData = snapshot.val();
-    localStorage.setItem("cachedUser", JSON.stringify(userData));
-    document.getElementById("playerName").innerText = userData.name;
-    const total = Number(userData.depositBal || 0) + Number(userData.winningBal || 0);
-    document.getElementById("totalBal").innerText = total;
-  });
-
-  document.getElementById("minusBtn").addEventListener("click", () => {
-    if (bet > 10) { bet -= 10; sfx.click(); document.getElementById("betVal").innerText = bet; }
-  });
-
-  document.getElementById("plusBtn").addEventListener("click", () => {
-    if (bet < 500) { bet += 10; sfx.click(); document.getElementById("betVal").innerText = bet; }
-  });
-
-  function renderCell(sym) {
-    return `<div class="reel-cell">${sym}<span class="sym-label">${symMeta[sym] || ""}</span></div>`;
+    document.getElementById("sndBtn").innerText = soundOn ? "🔊" : "🔇";
   }
 
-  function rollSingleReel(stripId, startSym, targetSym, itemCount, durationMs) {
-    return new Promise((resolve) => {
-      const strip = document.getElementById(stripId);
-      const cellHeight = 110;
-
-      const list = [targetSym];
-      for (let i = 1; i < itemCount - 1; i++) {
-        list.push(allSymbols[Math.floor(Math.random() * allSymbols.length)]);
-      }
-      list.push(startSym);
-
-      strip.style.transition = "none";
-      strip.innerHTML = list.map(s => renderCell(s)).join("");
-
-      const startY = -(list.length - 1) * cellHeight;
-      strip.style.transform = `translateY(${startY}px)`;
-      strip.offsetHeight;
-
-      strip.style.transition = `transform ${durationMs}ms cubic-bezier(0.15, 0.88, 0.32, 1.04)`;
-      strip.style.transform = "translateY(0px)";
-
-      setTimeout(() => {
-        sfx.reelStop();
-        if (navigator.vibrate) navigator.vibrate(25);
-        resolve();
-      }, durationMs);
-    });
-  }
-
-  function showWinDialog(icon, title, subtitle, winAmount, isMega) {
-    const overlay = document.getElementById("winOverlay");
-    document.getElementById("winDialogIcon").innerText = icon;
-    document.getElementById("winDialogTitle").innerText = title;
-    document.getElementById("winDialogSub").innerText = subtitle;
-
-    const amtEl = document.getElementById("winDialogAmt");
-    amtEl.innerText = "0";
-    overlay.classList.add("show");
-
-    let cur = 0;
-    const step = Math.max(1, Math.ceil(winAmount / 25));
-    const counter = setInterval(() => {
-      cur += step;
-      if (cur >= winAmount) {
-        amtEl.innerText = winAmount;
-        clearInterval(counter);
-      } else {
-        amtEl.innerText = cur;
-      }
-    }, 25);
-
-    const coinIcons = ["🪙", "💰", "🐃", "✨"];
-    for (let i = 0; i < (isMega ? 26 : 12); i++) {
-      const c = document.createElement("div");
-      c.className = "coin-particle";
-      c.innerText = coinIcons[Math.floor(Math.random() * coinIcons.length)];
-      c.style.left = Math.random() * 95 + "vw";
-      c.style.animationDuration = (1.2 + Math.random() * 1.3) + "s";
-      c.style.animationDelay = (Math.random() * 0.4) + "s";
-      document.body.appendChild(c);
-      setTimeout(() => c.remove(), 3000);
-    }
-  }
-
-  document.getElementById("collectWinBtn").addEventListener("click", () => {
-    sfx.click();
-    document.getElementById("winOverlay").classList.remove("show");
-  });
-
-  // SYNCHRONIZED LIVE FEED
-  const liveFeedRef = ref(db, "liveFeed");
-  const botNames = ["Aarav_77", "Rohan_King", "Priya_99", "Vikram_UP", "Amit_Pro", "Neha_Star", "Suresh_01", "Karan_Win", "Ankit_24", "Pooja_R", "Dev_Lucknow", "Simran_88"];
-  const botBets = [10, 20, 50, 100, 200, 500];
-  const multipliers = [1.5, 3, 5, 10, 3];
-  let latestSharedRows = [];
-
-  function renderSharedFeed(rows, onlineNum) {
-    const list = document.getElementById("botFeedList");
-    document.getElementById("onlineCount").innerText = Number(onlineNum || 1428).toLocaleString();
-    list.innerHTML = (rows || []).map(r => `
-      <div class="feed-row">
-        <span>👤 ${r.name}</span>
-        <span class="bet-tag">₹${r.bet}</span>
-        <span class="win-tag">+₹${r.win}</span>
-      </div>
-    `).join("");
-  }
-
-  async function pushSharedFeedRow(customName, customBet, customWin) {
-    const name = customName || botNames[Math.floor(Math.random() * botNames.length)];
-    const bAmt = customBet || botBets[Math.floor(Math.random() * botBets.length)];
-    const wAmt = customWin || Math.round(bAmt * multipliers[Math.floor(Math.random() * multipliers.length)]);
-
-    const updatedRows = [{ name, bet: bAmt, win: wAmt }, ...latestSharedRows].slice(0, 5);
-    const nextOnline = 1410 + Math.floor(Math.random() * 45);
-
-    await set(liveFeedRef, {
-      lastTick: Date.now(),
-      onlineCount: nextOnline,
-      rows: updatedRows
-    });
-  }
-
-  onValue(liveFeedRef, async (snap) => {
-    if (!snap.exists()) {
-      const initial = Array.from({ length: 5 }, () => {
-        const b = botBets[Math.floor(Math.random() * botBets.length)];
-        return {
-          name: botNames[Math.floor(Math.random() * botNames.length)],
-          bet: b,
-          win: Math.round(b * multipliers[Math.floor(Math.random() * multipliers.length)])
-        };
-      });
-  await set(liveFeedRef, { lastTick: Date.now(), onlineCount: 1428, rows: initial });
-      return;
-    }
-    const data = snap.val();
-    latestSharedRows = Array.isArray(data.rows) ? data.rows : [];
-    renderSharedFeed(latestSharedRows, data.onlineCount);
-  });
-
-  setInterval(async () => {
+  function playSlotSound(type) {
+    if (!soundOn) return;
     try {
-      const snap = await get(liveFeedRef);
-      const data = snap.val() || {};
-      if (!data.lastTick || (Date.now() - Number(data.lastTick) >= 2800)) {
-        await pushSharedFeedRow();
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      if (type === "spin") {
+        for (let i = 0; i < 8; i++) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(240 + (i % 3) * 90, now + i * 0.08);
+          gain.gain.setValueAtTime(0.12, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.005, now + i * 0.08 + 0.06);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.06);
+        }
+      } else if (type === "stop") {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(360, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === "win") {
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.3);
+        });
       }
     } catch (e) {}
-  }, 3000);
+  }
+   // ==========================================
+  // BUFFALO GOLD SLOT LOGIC & ADMIN WIN RATE
+  // ==========================================
+  const SYMBOLS = [
+    { icon: "🐃", mult: 25, weight: 8 },
+    { icon: "🪙", mult: 12, weight: 14 },
+    { icon: "💎", mult: 8,  weight: 20 },
+    { icon: "🦅", mult: 5,  weight: 28 },
+    { icon: "🐺", mult: 3,  weight: 30 }
+  ];
 
-  // SPIN HANDLER (GUARDED AGAINST DELETED ACCOUNTS)
-  document.getElementById("spinBtn").addEventListener("click", async () => {
-    if (!isVerifiedLive || !userData || !userData.name || isSpinning) return;
+  let isSpinning = false;
+  let autoSpin = false;
 
-    let dep = Number(userData.depositBal || 0);
-    let winB = Number(userData.winningBal || 0);
-    let total = dep + winB;
+  function adjBet(delta) {
+    if (isSpinning) return;
+    const inp = document.getElementById("betInp");
+    inp.value = Math.max(10, (parseInt(inp.value) || 10) + delta);
+  }
 
-    if (total < bet) {
-      sfx.lose();
-      document.getElementById("winMsg").innerText = "❌ Low Balance! Add Money";
-      return;
+  function setBet(val) {
+    if (isSpinning) return;
+    document.getElementById("betInp").value = val;
+  }
+
+  function toggleAutoSpin() {
+    initAudio();
+    autoSpin = !autoSpin;
+    const btn = document.getElementById("autoSpinBtn");
+    btn.innerText = autoSpin ? "AUTO: ON" : "AUTO: OFF";
+    btn.classList.toggle("active", autoSpin);
+    if (autoSpin && !isSpinning) spinReels();
+  }
+
+  function pickWeightedSymbol() {
+    const totalW = SYMBOLS.reduce((s, x) => s + x.weight, 0);
+    let r = Math.random() * totalW;
+    for (const s of SYMBOLS) {
+      if (r < s.weight) return s;
+      r -= s.weight;
+    }
+    return SYMBOLS[4];
+  }
+
+  function pickDifferentSymbol(excludeIcon) {
+    const pool = SYMBOLS.filter(s => s.icon !== excludeIcon);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  async function spinReels() {
+    initAudio();
+    if (isSpinning) return;
+
+    const bet = parseInt(document.getElementById("betInp").value);
+    if (!bet || bet < 10) {
+      autoSpin = false;
+      document.getElementById("autoSpinBtn").innerText = "AUTO: OFF";
+      document.getElementById("autoSpinBtn").classList.remove("active");
+      return alert("Minimum bet ₹10 hai!");
+    }
+    if (bet > getTotalBal()) {
+      autoSpin = false;
+      document.getElementById("autoSpinBtn").innerText = "AUTO: OFF";
+      document.getElementById("autoSpinBtn").classList.remove("active");
+      return alert("Wallet mein itna balance nahi hai!");
     }
 
     isSpinning = true;
     document.getElementById("spinBtn").disabled = true;
-    document.getElementById("winMsg").innerText = "🎰 ROLLING...";
-    sfx.spinStart();
-    if (navigator.vibrate) navigator.vibrate(40);
+    document.getElementById("winBanner").innerHTML = "🎰 Reels ghoom rahi hain...";
+    playSlotSound("spin");
 
-    // Double-check user still exists before writing
-    const checkSnap = await get(userRef);
-    if (!checkSnap.exists() || !checkSnap.val().name) {
-      localStorage.removeItem("activeUser");
-      localStorage.removeItem("cachedUser");
-      window.location.replace("index.html");
-      return;
+    // Clear previous win glow
+    for (let c = 0; c < 3; c++) {
+      document.getElementById(`c${c}_1`).classList.remove("win-glow");
+      document.getElementById(`reelCol${c}`).classList.add("spinning");
     }
 
-    let newDep = dep;
-    let newWin = winB;
-    if (dep >= bet) {
-      newDep = dep - bet;
+    // Deduct Bet
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    if (dBal >= bet) {
+      dBal -= bet;
     } else {
-      let rem = bet - dep;
-      newDep = 0;
-      newWin = winB - rem;
+      const rem = bet - dBal;
+      dBal = 0;
+      wBal -= rem;
     }
 
-    await update(userRef, {
-      depositBal: newDep,
-      winningBal: newWin,
-      totalSpins: (userData.totalSpins || 0) + 1
+    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: "Buffalo Slot Spin", amt: "-₹" + bet, date: new Date().toLocaleString() });
+
+    userData.depositBal = dBal;
+    userData.winningBal = wBal;
+    userData.txns = txns.slice(0, 30);
+    localStorage.setItem("cachedUser", JSON.stringify(userData));
+    updateHeaderBal();
+
+    fetch(`${DB_URL}/users/${mobile}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
     });
 
-    const effectiveWinChance = Math.min(45, adminWinRate * 0.65);
-    const roll = Math.random() * 100;
-    let a, b, c;
-    let outcome = "LOSE";
+    // Determine outcome strictly by Admin winRateSetting
+    const isWin = (Math.random() * 100) < winRateSetting;
+    let midSymbols = [];
 
-    if (roll < effectiveWinChance * 0.14) {
-      a = b = c = "🐃";
-      outcome = "BUFFALO_10X";
-    } else if (roll < effectiveWinChance * 0.34) {
-      const sym = Math.random() < 0.5 ? "👑" : "💎";
-      a = b = c = sym;
-      outcome = "ROYAL_5X";
-    } else if (roll < effectiveWinChance * 0.62) {
-      const sym = Math.random() < 0.5 ? "🐯" : "🐺";
-      a = b = c = sym;
-      outcome = "BEAST_3X";
-    } else if (roll < effectiveWinChance) {
-      const r1 = regularSymbols[Math.floor(Math.random() * regularSymbols.length)];
-      const others = regularSymbols.filter(s => s !== r1);
-      const r2 = others[Math.floor(Math.random() * others.length)];
-      const combo = ["🐃", r1, r2].sort(() => 0.5 - Math.random());
-      [a, b, c] = combo;
-      outcome = "SINGLE_BUFFALO_1_5X";
+    if (isWin) {
+      const winSym = pickWeightedSymbol();
+      midSymbols = [winSym, winSym, winSym];
     } else {
-      if (Math.random() < 0.45) {
-        const r1 = regularSymbols[Math.floor(Math.random() * regularSymbols.length)];
-        const others = regularSymbols.filter(s => s !== r1);
-        const r2 = others[Math.floor(Math.random() * others.length)];
-        a = r1; b = r1; c = r2;
-      } else {
-        const shuffled = [...regularSymbols].sort(() => 0.5 - Math.random());
-        [a, b, c] = [shuffled[0], shuffled[1], shuffled[2]];
-      }
-      outcome = "LOSE";
+      const s0 = pickWeightedSymbol();
+      const s1 = pickWeightedSymbol();
+      const s2 = (s0.icon === s1.icon) ? pickDifferentSymbol(s0.icon) : pickWeightedSymbol();
+      midSymbols = [s0, s1, s2];
     }
 
-    await Promise.all([
-      rollSingleReel("strip1", currentTopSymbols[0], a, 12, 1000),
-      rollSingleReel("strip2", currentTopSymbols[1], b, 17, 1450),
-      rollSingleReel("strip3", currentTopSymbols[2], c, 22, 1900)
-    ]);
+    // Stop reels sequentially for realistic 3D feel
+    for (let col = 0; col < 3; col++) {
+      await new Promise(res => setTimeout(res, 260));
+      playSlotSound("stop");
+      const colEl = document.getElementById(`reelCol${col}`);
+      colEl.classList.remove("spinning");
 
-    currentTopSymbols = [a, b, c];
-    await finishSpin(outcome, a, newWin);
-  });
-
-  async function finishSpin(outcome, leadSym, currentWinningBal) {
-    let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-
-    if (outcome === "BUFFALO_10X") {
-      let win = bet * 10;
-      txns.unshift({ type: "🐃 Buffalo Gold 10X Jackpot", amt: "+₹" + win, date: new Date().toLocaleTimeString() });
-      await update(userRef, {
-        winningBal: currentWinningBal + win,
-        totalWon: (userData.totalWon || 0) + win,
-        txns: txns.slice(0, 30)
-      });
-      document.getElementById("winMsg").innerText = "🐃 MEGA STAMPEDE! +₹" + win;
-      sfx.bigWin();
-      if (navigator.vibrate) navigator.vibrate([120, 60, 180]);
-      showWinDialog("🐃", "BUFFALO JACKPOT!", "3X Buffalo Gold (10X Payout)", win, true);
-      await pushSharedFeedRow(userData.name, bet, win);
-
-    } else if (outcome === "ROYAL_5X") {
-      let win = bet * 5;
-      txns.unshift({ type: "Royal 5X Super Win", amt: "+₹" + win, date: new Date().toLocaleTimeString() });
-      await update(userRef, {
-        winningBal: currentWinningBal + win,
-        totalWon: (userData.totalWon || 0) + win,
-        txns: txns.slice(0, 30)
-      });
-      document.getElementById("winMsg").innerText = "👑 SUPER WIN! +₹" + win;
-      sfx.bigWin();
-      showWinDialog(leadSym, "SUPER WIN!", "3X Royal Match (5X Payout)", win, true);
-      await pushSharedFeedRow(userData.name, bet, win);
-
-    } else if (outcome === "BEAST_3X") {
-      let win = bet * 3;
-      txns.unshift({ type: "Wild Beast 3X Win", amt: "+₹" + win, date: new Date().toLocaleTimeString() });
-      await update(userRef, {
-        winningBal: currentWinningBal + win,
-        totalWon: (userData.totalWon || 0) + win,
-        txns: txns.slice(0, 30)
-      });
-      document.getElementById("winMsg").innerText = "🔥 3X BIG WIN! +₹" + win;
-      sfx.win();
-      showWinDialog(leadSym, "BIG WIN!", "3X Symbol Match (3X Payout)", win, false);
-      await pushSharedFeedRow(userData.name, bet, win);
-
-    } else if (outcome === "SINGLE_BUFFALO_1_5X") {
-      let win = Math.round(bet * 1.5);
-      txns.unshift({ type: "🐃 1X Buffalo Gold Bonus", amt: "+₹" + win, date: new Date().toLocaleTimeString() });
-      await update(userRef, {
-        winningBal: currentWinningBal + win,
-        totalWon: (userData.totalWon || 0) + win,
-        txns: txns.slice(0, 30)
-      });
-      document.getElementById("winMsg").innerText = "🐃 BUFFALO GOLD BONUS! +₹" + win;
-      sfx.win();
-      showWinDialog("🐃", "BUFFALO BONUS!", "1X Buffalo Gold Hit (1.5X Payout)", win, false);
-      await pushSharedFeedRow(userData.name, bet, win);
-
-    } else {
-      document.getElementById("winMsg").innerText = "So Close! Spin Again";
-      sfx.lose();
+      const topSym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+      const botSym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+      document.getElementById(`c${col}_0`).innerText = topSym.icon;
+      document.getElementById(`c${col}_1`).innerText = midSymbols[col].icon;
+      document.getElementById(`c${col}_2`).innerText = botSym.icon;
     }
 
     isSpinning = false;
     document.getElementById("spinBtn").disabled = false;
+
+    if (isWin) {
+      const mult = midSymbols[0].mult;
+      const winAmt = bet * mult;
+      playSlotSound("win");
+
+      for (let c = 0; c < 3; c++) {
+        document.getElementById(`c${c}_1`).classList.add("win-glow");
+      }
+      document.getElementById("winBanner").innerHTML = `<span style="color:#28e04d;">🎉 ${midSymbols[0].icon}${midSymbols[0].icon}${midSymbols[0].icon} (${mult}x) • YOU WON +₹${winAmt}!</span>`;
+
+      const newWinBal = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt;
+      const winTxns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+      winTxns.unshift({
+        type: `Buffalo Slot Win (${mult}x)`,
+        amt: "+₹" + winAmt,
+        date: new Date().toLocaleString()
+      });
+
+      userData.winningBal = newWinBal;
+      userData.txns = winTxns.slice(0, 30);
+      localStorage.setItem("cachedUser", JSON.stringify(userData));
+      updateHeaderBal();
+
+      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+      liveFeedData.unshift({ name: maskedMe + " (You)", bet: bet, mult: mult + "x", win: winAmt, isMe: true });
+      renderFeed();
+
+      fetch(`${DB_URL}/users/${mobile}.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ winningBal: newWinBal, txns: userData.txns })
+      });
+
+      fetch(`${DB_URL}/slotLiveFeed/${mobile}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: maskedMe, bet: bet, mult: mult + "x", win: winAmt, ts: Date.now() })
+      });
+    } else {
+      document.getElementById("winBanner").innerHTML = `<span style="color:#ff9f1c;">No Match • Phir se Spin karein!</span>`;
+    }
+
+    if (autoSpin) {
+      setTimeout(() => {
+        if (autoSpin && !isSpinning) spinReels();
+      }, 650);
+    }
   }
+
+  // Hybrid Live Winners Feed
+  const BOTS = ["r***4", "k***8", "a***1", "s***9", "v***3", "m***7", "p***2", "d***6", "n***5", "t***0"];
+  let liveFeedData = [
+    { name: "r***4", bet: 100, mult: "25x", win: 2500, isMe: false },
+    { name: "k***8", bet: 50, mult: "12x", win: 600, isMe: false },
+    { name: "a***1", bet: 200, mult: "8x", win: 1600, isMe: false },
+    { name: "s***9", bet: 100, mult: "5x", win: 500, isMe: false },
+    { name: "v***3", bet: 500, mult: "3x", win: 1500, isMe: false }
+  ];
+
+  function renderFeed() {
+    document.getElementById("liveFeedList").innerHTML = liveFeedData.slice(0, 10).map(item => `
+      <div class="feed-row win ${item.isMe ? 'me' : ''}">
+        <div style="font-weight:bold; color:#ffe885;">🐃 ${item.name}</div>
+        <div style="color:#ccc;">₹${item.bet}</div>
+        <div style="color:#ffd700; font-weight:bold;">${item.mult}</div>
+        <div style="text-align:right; font-weight:bold; color:#28e04d;">+₹${item.win}</div>
+      </div>
+    `).join("");
+  }
+  renderFeed();
+
+  setInterval(async () => {
+    const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
+    const bBet = [20, 50, 100, 200, 500][Math.floor(Math.random() * 5)];
+    const bSym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+    liveFeedData.unshift({ name: bName, bet: bBet, mult: bSym.mult + "x", win: bBet * bSym.mult, isMe: false });
+    document.getElementById("onlineTxt").innerText = "● " + (280 + Math.floor(Math.random() * 60)) + " Spinning";
+
+    try {
+      const res = await fetch(`${DB_URL}/slotLiveFeed.json?t=${Date.now()}`);
+      const real = await res.json();
+      if (real) {
+        Object.keys(real).forEach(k => {
+          const r = real[k];
+          if (r && (Date.now() - r.ts) < 25000 && k !== mobile) {
+            liveFeedData.unshift({ name: r.name, bet: r.bet, mult: r.mult, win: r.win, isMe: false });
+          }
+        });
+      }
+    } catch (e) {}
+    renderFeed();
+  }, 4500);
+
+  // ==========================================
+  // SAFE EXIT & BACK BUTTON CONFIRMATION
+  // ==========================================
+  function hasRunningBet() {
+    return isSpinning || autoSpin;
+  }
+
+  function safeExitTo(url) {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapka Spin / Auto-Spin abhi chal raha hai! Agar aap back jayenge toh aapka spin cancel/loss ho jayega.\n\nKya aap sach mein bahar nikalna chahte hain?"
+      : "Kya aap Buffalo Gold Slot se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      autoSpin = false;
+      window.location.href = url;
+    }
+  }
+
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapka Spin / Auto-Spin abhi chal raha hai! Back jaane par aapka spin cancel/loss ho jayega.\n\nKya aap sach mein back jaana chahte hain?"
+      : "Kya aap Buffalo Gold Slot se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      autoSpin = false;
+      window.location.href = "game.html";
+    } else {
+      history.pushState(null, "", location.href);
+    }
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (hasRunningBet()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
 </script>
 </body>
 </html>
