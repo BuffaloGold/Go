@@ -6,116 +6,101 @@
 <title>3D Car Roulette - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-  body { background: #08090e; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
-  .app { width: 100%; max-width: 440px; background: #10131c; min-height: 100vh; padding: 10px; }
+  body { background: #090b10; color: #fff; display: flex; justify-content: center; padding-bottom: 75px; }
+  .app { width: 100%; max-width: 440px; background: #12151f; min-height: 100vh; padding: 10px; }
 
   /* Header */
-  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #181c29; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2b3247; }
-  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #ffd700; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1b2030; border-radius: 12px; margin-bottom: 8px; border: 1px solid #2c344d; }
+  .logo-title { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 15px; color: #ffbe0b; }
   .sync-pill { font-size: 9px; background: rgba(40, 224, 77, 0.15); color: #28e04d; border: 1px solid rgba(40, 224, 77, 0.4); padding: 2px 6px; border-radius: 8px; font-weight: bold; }
   .hdr-right { display: flex; align-items: center; gap: 8px; }
-  .snd-btn { background: #23293b; border: 1px solid #3a435e; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .bal-pill { background: #23293b; border: 1px solid #3a435e; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
+  .snd-btn { background: #262d42; border: 1px solid #3c4766; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bal-pill { background: #262d42; border: 1px solid #3c4766; padding: 5px 11px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #28e04d; cursor: pointer; }
 
-  /* History Strip */
-  .hist-bar { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
-  .hist-bar::-webkit-scrollbar { display: none; }
-  .hist-label { font-size: 10px; color: #9ca3af; font-weight: bold; flex-shrink: 0; }
-  .h-chip { padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; background: #1e2333; border: 1px solid #2f374f; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
-  .h-chip.super { border-color: #ffd700; color: #fde047; background: rgba(255, 215, 0, 0.12); }
+  /* Recent Winners Strip */
+  .hist-strip { display: flex; gap: 5px; overflow-x: auto; padding: 3px 2px 8px; scrollbar-width: none; }
+  .hist-strip::-webkit-scrollbar { display: none; }
+  .h-badge {
+    padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;
+    background: #1d2233; border: 1px solid #2e3752; color: #e2e8f0; flex-shrink: 0;
+  }
+  .h-badge.super { border-color: #ffd700; color: #ffd700; background: rgba(255, 215, 0, 0.14); }
 
-  /* 3D Roulette Arena */
-  .arena-3d {
+  /* 3D Roulette Track Canvas */
+  .track-arena {
     position: relative;
     width: 100%;
-    height: 245px;
+    height: 225px;
     border-radius: 16px;
-    border: 2px solid #2d354d;
+    border: 2px solid #2c354f;
     overflow: hidden;
-    background: radial-gradient(circle at 50% 45%, #1e1b4b 0%, #0d101a 75%, #07090f 100%);
+    background: radial-gradient(circle at 50% 45%, #1e2947 0%, #0d111a 78%, #07090f 100%);
     margin-bottom: 10px;
-    box-shadow: inset 0 0 35px rgba(0,0,0,0.85);
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.85);
   }
   canvas { width: 100%; height: 100%; display: block; }
   .center-hud {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -46%);
-    text-align: center;
-    pointer-events: none;
-    width: 150px;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
   }
-  .hud-timer { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
-  .hud-state { font-size: 11px; font-weight: 800; color: #fbbf24; letter-spacing: 0.6px; text-transform: uppercase; }
-  .hud-win-banner { font-size: 14px; font-weight: 900; color: #28e04d; margin-top: 2px; }
+  .phase-tag { font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.8px; }
+  .timer-num { font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
+  .win-car-big { font-size: 28px; display: block; }
 
-  /* Chip Selector Bar */
-  .chip-deck {
+  /* Chip Selector */
+  .chip-bar {
     display: flex; justify-content: space-between; align-items: center; gap: 6px;
-    background: #181c29; border: 1px solid #2b3247; border-radius: 14px; padding: 8px 10px; margin-bottom: 10px;
+    background: #1b2030; border: 1px solid #2c344d; border-radius: 14px;
+    padding: 8px 10px; margin-bottom: 10px;
   }
-  .chip-coin {
-    flex: 1; height: 38px; border-radius: 50px; border: 2px dashed rgba(255,255,255,0.35);
-    font-size: 12px; font-weight: 900; color: #fff; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 0.15s, box-shadow 0.15s;
+  .chip-btn {
+    flex: 1; padding: 7px 2px; border-radius: 10px; border: 1.5px solid #384261;
+    background: #12151f; color: #cbd5e1; font-size: 12px; font-weight: 900; cursor: pointer;
   }
-  .chip-coin.active { transform: scale(1.08); border: 2px solid #ffd700; box-shadow: 0 0 14px rgba(255, 215, 0, 0.55); }
-  .c-10 { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-  .c-50 { background: linear-gradient(135deg, #16a34a, #15803d); }
-  .c-100 { background: linear-gradient(135deg, #d97706, #b45309); }
-  .c-500 { background: linear-gradient(135deg, #dc2626, #991b1b); }
-  .c-1000 { background: linear-gradient(135deg, #9333ea, #6b21a8); }
-  .clear-btn { background: #262c3d; border: 1px solid #3f4863; color: #fca5a5; padding: 8px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .chip-btn.active { background: #ffd700; color: #000; border-color: #fff; transform: scale(1.05); }
+  .btn-clear {
+    padding: 7px 10px; border-radius: 10px; border: 1px solid #ef4444;
+    background: rgba(239, 68, 68, 0.16); color: #f87171; font-size: 11px; font-weight: bold; cursor: pointer;
+  }
 
-  /* 8-Car Betting Grid */
-  .cars-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 10px; }
+  /* 8 Car Slots Betting Grid */
+  .cars-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
+    margin-bottom: 10px;
+  }
   .car-card {
-    background: linear-gradient(180deg, #1d2233, #131724);
-    border: 1.5px solid #2f374f;
-    border-radius: 12px;
-    padding: 8px 4px;
-    text-align: center;
-    cursor: pointer;
-    position: relative;
-    transition: transform 0.1s, border-color 0.2s, background 0.2s;
-    user-select: none;
+    background: linear-gradient(180deg, #1e2436, #141824);
+    border: 1.5px solid #2e3752; border-radius: 12px; padding: 8px 4px;
+    text-align: center; cursor: pointer; position: relative; transition: transform 0.1s;
   }
   .car-card:active { transform: scale(0.95); }
-  .car-card.super-car { border-color: #6b4c14; background: linear-gradient(180deg, #2b2110, #17130b); }
-  .car-card.has-bet { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.3); background: linear-gradient(180deg, #172b42, #111b29); }
-  .car-card.winner-glow { border-color: #28e04d !important; background: rgba(40, 224, 77, 0.22) !important; box-shadow: 0 0 18px rgba(40, 224, 77, 0.6); }
-
-  .mult-badge {
-    font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 8px;
-    background: #283047; color: #38bdf8; display: inline-block; margin-bottom: 3px;
+  .car-card.vip { border-color: rgba(255, 215, 0, 0.55); background: linear-gradient(180deg, #2d2212, #17130d); }
+  .car-card.winner-glow {
+    border: 2px solid #28e04d;
+    box-shadow: 0 0 18px rgba(40, 224, 77, 0.75);
+    transform: scale(1.04);
   }
-  .super-car .mult-badge { background: #78350f; color: #fde047; }
-  .car-emoji { font-size: 26px; display: block; margin: 2px 0; }
-  .car-title { font-size: 11px; font-weight: 800; color: #e2e8f0; }
-  .my-bet-tag {
-    margin-top: 4px;
-    background: #0284c7;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 900;
-    padding: 2px 5px;
-    border-radius: 6px;
-    display: inline-block;
+  .car-mult { font-size: 10px; font-weight: 900; color: #ffd700; display: block; }
+  .car-emoji { font-size: 24px; margin: 3px 0; display: block; }
+  .car-name { font-size: 10px; font-weight: 800; color: #cbd5e1; display: block; }
+  .my-bet-pill {
+    margin-top: 4px; background: #0284c7; color: #fff; font-size: 10px;
+    font-weight: 900; border-radius: 8px; padding: 2px 4px; display: none;
   }
-  .total-pool-txt { font-size: 9px; color: #8892b0; margin-top: 2px; }
+  .my-bet-pill.show { display: block; }
 
-  /* Live Winners Feed */
-  .feed-box { background: #181c29; border: 1px solid #2b3247; border-radius: 14px; padding: 10px; }
-  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; padding-bottom: 7px; border-bottom: 1px solid #2b3247; margin-bottom: 6px; }
+  /* Live Feed */
+  .feed-box { background: #1b2030; border: 1px solid #2c344d; border-radius: 14px; padding: 10px; }
+  .feed-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; padding-bottom: 7px; border-bottom: 1px solid #2c344d; margin-bottom: 6px; }
   .feed-row {
     display: grid; grid-template-columns: 1.2fr 1fr 0.7fr 1.1fr; align-items: center;
-    background: #10131c; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
+    background: #12151f; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; font-size: 11px;
   }
-  .feed-row.me { border: 1px solid #ffd700; background: rgba(255, 215, 0, 0.08); }
+  .feed-row.win { background: rgba(40, 224, 77, 0.12); border: 1px solid rgba(40, 224, 77, 0.35); }
+  .feed-row.me { border-color: #ffd700; }
 
   /* Bottom Navigation */
-  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #181c29; border-top: 1px solid #2b3247; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 440px; background: #1b2030; border-top: 1px solid #2c344d; display: flex; justify-content: space-around; padding: 9px 0; z-index: 999; }
   .nav-item { text-align: center; color: #888; font-size: 11px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 19px; display: block; }
@@ -127,47 +112,45 @@
   <!-- Header -->
   <div class="header">
     <div class="logo-title">
-      <span onclick="location.href='game.html'" style="cursor:pointer; color:#9ca3af; font-size:16px;">⬅</span>
+      <span onclick="safeExitTo('game.html')" style="cursor:pointer; color:#aaa; font-size:16px;">⬅</span>
       <span>🏎️ 3D CAR ROULETTE</span>
-      <span class="sync-pill">● LIVE</span>
+      <span class="sync-pill">● 25S LIVE</span>
     </div>
     <div class="hdr-right">
       <button type="button" class="snd-btn" id="sndBtn" onclick="toggleSound()">🔊</button>
-      <div class="bal-pill" onclick="location.href='wallet.html'">₹<span id="balDisplay">0.00</span></div>
+      <div class="bal-pill" onclick="safeExitTo('wallet.html')">₹<span id="balDisplay">0.00</span></div>
     </div>
   </div>
 
-  <!-- Recent Winning Cars Strip -->
-  <div class="hist-bar" id="histBar"></div>
+  <!-- Recent Winning Cars Bar -->
+  <div class="hist-strip" id="histStrip"></div>
 
-  <!-- 3D Perspective Roulette Track -->
-  <div class="arena-3d">
-    <canvas id="roulette3dCanvas" width="420" height="245"></canvas>
+  <!-- 3D Circular Track Arena -->
+  <div class="track-arena">
+    <canvas id="carTrackCanvas" width="420" height="225"></canvas>
     <div class="center-hud">
-      <div class="hud-state" id="hudState">PLACE BETS</div>
-      <div class="hud-timer" id="hudTimer">10s</div>
-      <div class="hud-win-banner" id="hudWinBanner"></div>
+      <div class="phase-tag" id="phaseTag">PLACE BETS</div>
+      <div class="timer-num" id="timerNum">15s</div>
     </div>
   </div>
 
-  <!-- Chip Selector Deck -->
-  <div class="chip-deck">
-    <button type="button" class="chip-coin c-10 active" onclick="selectChip(10, this)">₹10</button>
-    <button type="button" class="chip-coin c-50" onclick="selectChip(50, this)">₹50</button>
-    <button type="button" class="chip-coin c-100" onclick="selectChip(100, this)">₹100</button>
-    <button type="button" class="chip-coin c-500" onclick="selectChip(500, this)">₹500</button>
-    <button type="button" class="chip-coin c-1000" onclick="selectChip(1000, this)">₹1K</button>
-    <button type="button" class="clear-btn" onclick="repeatLastBets()">🔁 Repeat</button>
+  <!-- Chip Selector Bar -->
+  <div class="chip-bar">
+    <button type="button" class="chip-btn active" onclick="selectChip(10, this)">₹10</button>
+    <button type="button" class="chip-btn" onclick="selectChip(50, this)">₹50</button>
+    <button type="button" class="chip-btn" onclick="selectChip(100, this)">₹100</button>
+    <button type="button" class="chip-btn" onclick="selectChip(500, this)">₹500</button>
+    <button type="button" class="chip-btn" onclick="selectChip(1000, this)">₹1K</button>
   </div>
 
-  <!-- 8 Luxury Car Betting Grid -->
+  <!-- 8 Luxury Car Slots Grid -->
   <div class="cars-grid" id="carsGrid"></div>
 
-  <!-- Live Hybrid Winners Feed -->
+  <!-- Live Winners Feed -->
   <div class="feed-box">
     <div class="feed-head">
-      <span>🏆 LIVE ARENA WINNERS</span>
-      <span style="color:#28e04d; font-weight:bold;" id="onlineCount">● 318 Online</span>
+      <span>🔥 LIVE GARAGE WINNERS</span>
+      <span style="color:#28e04d; font-weight:bold;" id="onlineCount">● 268 Racing</span>
     </div>
     <div id="liveFeedList"></div>
   </div>
@@ -175,10 +158,10 @@
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
-  <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
+  <div class="nav-item active" onclick="safeExitTo('game.html')"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="safeExitTo('wallet.html')"><span class="nav-icon">💰</span>Wallet</div>
+  <div class="nav-item" onclick="safeExitTo('refer.html')"><span class="nav-icon">🎁</span>Refer</div>
+  <div class="nav-item" onclick="safeExitTo('profile.html')"><span class="nav-icon">👤</span>Profile</div>
 </div>
 
 <script>
@@ -207,8 +190,7 @@
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
-              fetch(`${DB_URL}/settings/rates/car.json?t=${Date.now()}`)
-       
+        fetch(`${DB_URL}/settings/rates/car.json?t=${Date.now()}`)
       ]);
       const u = await uRes.json();
       const r = await rRes.json();
@@ -223,7 +205,7 @@
   syncUser();
 
   // ==========================================
-  // WEB AUDIO 3D CAR ROULETTE SOUND EFFECTS
+  // WEB AUDIO 3D CAR ROULETTE SOUNDS
   // ==========================================
   let soundOn = true;
   let audioCtx = null;
@@ -253,13 +235,13 @@
         const gain = audioCtx.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(750, now);
-        osc.frequency.exponentialRampToValueAtTime(1150, now + 0.06);
+        osc.frequency.exponentialRampToValueAtTime(1100, now + 0.05);
         gain.gain.setValueAtTime(0.16, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.07);
+        osc.stop(now + 0.06);
       } else if (type === "tick") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -271,128 +253,101 @@
         gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.04);
-      } else if (type === "engine") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(95, now);
-        osc.frequency.exponentialRampToValueAtTime(280, now + 0.45);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.48);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.48);
       } else if (type === "win") {
         [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
           osc.type = "triangle";
-          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-          gain.gain.setValueAtTime(0.24, now + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.3);
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.24, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.28);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
-          osc.start(now + idx * 0.08);
-          osc.stop(now + idx * 0.08 + 0.3);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.28);
         });
-      } else if (type === "stop") {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.exponentialRampToValueAtTime(220, now + 0.25);
-        gain.gain.setValueAtTime(0.18, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.26);
       }
     } catch (e) {}
   }
-
-  // ==========================================
-  // 8 CAR SLOTS CONFIGURATION
+   // ==========================================
+  // 8 LUXURY CAR BRANDS & BETTING SLOTS
   // ==========================================
   const CARS = [
-    { id: 0, name: "Ferrari", mult: 40, icon: "🏎️", color: "#ef4444", super: true },
-    { id: 1, name: "Lambo", mult: 25, icon: "⚡", color: "#eab308", super: true },
-    { id: 2, name: "Porsche", mult: 15, icon: "🏁", color: "#f97316", super: true },
-    { id: 3, name: "Bugatti", mult: 10, icon: "🚀", color: "#a855f7", super: true },
-    { id: 4, name: "BMW", mult: 5, icon: "🚙", color: "#3b82f6", super: false },
-    { id: 5, name: "Audi", mult: 5, icon: "🚗", color: "#06b6d4", super: false },
-    { id: 6, name: "Mercedes", mult: 5, icon: "🚘", color: "#10b981", super: false },
-    { id: 7, name: "Jaguar", mult: 5, icon: "🐆", color: "#ec4899", super: false }
+    { id: 0, name: "FERRARI",  emoji: "🏎️", mult: 40, vip: true,  color: "#ef4444" },
+    { id: 1, name: "LAMBO",    emoji: "🚀", mult: 25, vip: true,  color: "#f59e0b" },
+    { id: 2, name: "PORSCHE",  emoji: "🏁", mult: 15, vip: true,  color: "#a855f7" },
+    { id: 3, name: "BUGATTI",  emoji: "⚡", mult: 10, vip: true,  color: "#3b82f6" },
+    { id: 4, name: "BMW",      emoji: "🚙", mult: 5,  vip: false, color: "#0ea5e9" },
+    { id: 5, name: "MERCEDES", emoji: "🚘", mult: 5,  vip: false, color: "#10b981" },
+    { id: 6, name: "AUDI",     emoji: "🚗", mult: 5,  vip: false, color: "#f97316" },
+    { id: 7, name: "JAGUAR",   emoji: "🚕", mult: 5,  vip: false, color: "#eab308" }
   ];
 
   let selectedChip = 10;
   let myBets = {}; // { carId: amount }
-  let lastRoundBets = {};
-  let botPools = [1200, 1800, 2400, 3100, 5400, 4900, 6200, 5800];
-  let historyCars = [4, 6, 2, 5, 7, 1, 4, 5, 3, 6];
+  let recentCars = [4, 6, 2, 5, 7, 4, 1, 6];
+  let highlightedCarIdx = 0;
+  let winningCarIdx = -1;
+
+  function renderHistory() {
+    document.getElementById("histStrip").innerHTML = recentCars.slice(0, 12).map(id => {
+      const c = CARS[id] || CARS[4];
+      return `<span class="h-badge ${c.vip ? 'super' : ''}">${c.emoji} ${c.mult}x</span>`;
+    }).join("");
+  }
+  renderHistory();
+
+  function renderCarsGrid() {
+    document.getElementById("carsGrid").innerHTML = CARS.map(c => {
+      const betVal = myBets[c.id] || 0;
+      const isWin = winningCarIdx === c.id;
+      return `
+        <div class="car-card ${c.vip ? 'vip' : ''} ${isWin ? 'winner-glow' : ''}" onclick="placeCarBet(${c.id})">
+          <span class="car-mult">${c.mult}x</span>
+          <span class="car-emoji">${c.emoji}</span>
+          <span class="car-name">${c.name}</span>
+          <div class="my-bet-pill ${betVal > 0 ? 'show' : ''}">₹${betVal}</div>
+        </div>
+      `;
+    }).join("");
+  }
+  renderCarsGrid();
 
   function selectChip(amt, el) {
     initAudio();
     playCarSound("chip");
     selectedChip = amt;
-    document.querySelectorAll(".chip-coin").forEach(c => c.classList.remove("active"));
+    document.querySelectorAll(".chip-btn").forEach(b => b.classList.remove("active"));
     el.classList.add("active");
   }
 
-  function renderHistory() {
-    document.getElementById("histBar").innerHTML = `<span class="hist-label">LAST:</span>` +
-      historyCars.slice(0, 10).map(cid => {
-        const c = CARS[cid] || CARS[4];
-        return `<span class="h-chip ${c.super ? 'super' : ''}">${c.icon} ${c.mult}x</span>`;
-      }).join("");
-  }
-  renderHistory();
-
-  function renderCarGrid(winnerId = -1) {
-    const grid = document.getElementById("carsGrid");
-    grid.innerHTML = CARS.map(c => {
-      const betVal = myBets[c.id] || 0;
-      const poolVal = botPools[c.id] + betVal;
-      const isWin = (winnerId === c.id);
-      return `
-        <div class="car-card ${c.super ? 'super-car' : ''} ${betVal > 0 ? 'has-bet' : ''} ${isWin ? 'winner-glow' : ''}" onclick="placeCarBet(${c.id})">
-          <div class="mult-badge">${c.mult}x</div>
-          <span class="car-emoji">${c.icon}</span>
-          <div class="car-title">${c.name}</div>
-          ${betVal > 0 ? `<div class="my-bet-tag">₹${betVal}</div>` : `<div class="total-pool-txt">₹${poolVal}</div>`}
-        </div>
-      `;
-    }).join("");
-  }
-  renderCarGrid();
-
-  async function placeCarBet(carId, customAmt) {
+  async function placeCarBet(carId) {
     initAudio();
-    if (gamePhase !== "BETTING") return;
-    const amt = customAmt || selectedChip;
-    if (amt > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
+    if (roundPhase !== "BETTING") {
+      return alert("Bets closed! Car spin ho rahi hai, agle round mein lagayein.");
+    }
+    if (selectedChip > getTotalBal()) {
+      return alert("Wallet mein itna balance nahi hai!");
+    }
 
     playCarSound("chip");
 
-    // Deduct immediately from wallet
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
-    if (dBal >= amt) {
-      dBal -= amt;
+    if (dBal >= selectedChip) {
+      dBal -= selectedChip;
     } else {
-      const rem = amt - dBal;
+      const rem = selectedChip - dBal;
       dBal = 0;
       wBal -= rem;
     }
 
-    myBets[carId] = (myBets[carId] || 0) + amt;
-    lastRoundBets = { ...myBets };
+    myBets[carId] = (myBets[carId] || 0) + selectedChip;
 
     const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({
       type: `Car Roulette (${CARS[carId].name})`,
-      amt: "-₹" + amt,
+      amt: "-₹" + selectedChip,
       date: new Date().toLocaleString()
     });
 
@@ -401,7 +356,7 @@
     userData.txns = txns.slice(0, 30);
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
-    renderCarGrid();
+    renderCarsGrid();
 
     fetch(`${DB_URL}/users/${mobile}.json`, {
       method: "PATCH",
@@ -410,232 +365,122 @@
     });
   }
 
-  async function repeatLastBets() {
-    if (gamePhase !== "BETTING") return;
-    const keys = Object.keys(lastRoundBets);
-    if (keys.length === 0) return alert("Pichhle round mein koi bet nahi thi!");
-    let totalNeeded = 0;
-    keys.forEach(k => totalNeeded += lastRoundBets[k]);
-    if (totalNeeded > getTotalBal()) return alert("Repeat karne ke liye wallet mein ₹" + totalNeeded + " chahiye!");
-
-    for (let k of keys) {
-      await placeCarBet(Number(k), lastRoundBets[k]);
-    }
-  }
-
   // ==========================================
-  // SYNCHRONIZED MULTIPLAYER ROOM STATE
+  // 3D ELLIPTICAL RACE TRACK CANVAS
   // ==========================================
-  const BET_MS = 10000;
-  const SPIN_MS = 5500;
-  const RESULT_MS = 3500;
-
-  let gamePhase = "BETTING"; // BETTING | SPINNING | RESULT
-  let lastHandledRound = null;
-  let lastTickSlot = -1;
-  let roundPaid = false;
-  let isCreating = false;
-
-  const bootNow = Date.now();
-  let roomState = {
-    roundId: "CR" + bootNow,
-    betStart: bootNow,
-    spinStart: bootNow + BET_MS,
-    winnerCar: 4,
-    history: historyCars
-  };
-
-  function pickWeightedWinner() {
-    // Lower multiplier 5x cars appear more often; Admin winRate scales big multiplier frequency
-    const allowSuper = (Math.random() * 100) < winRateSetting;
-    const r = Math.random();
-    if (allowSuper && r < 0.04) return 0; // Ferrari 40x
-    if (allowSuper && r < 0.10) return 1; // Lambo 25x
-    if (allowSuper && r < 0.20) return 2; // Porsche 15x
-    if (allowSuper && r < 0.34) return 3; // Bugatti 10x
-    return 4 + Math.floor(Math.random() * 4); // BMW, Audi, Mercedes, Jaguar (5x)
-  }
-
-  async function startNewCarRound(prevWin) {
-    if (isCreating) return;
-    isCreating = true;
-    const now = Date.now();
-    const winCar = pickWeightedWinner();
-    let newHist = [...historyCars];
-    if (typeof prevWin === "number") {
-      newHist.unshift(prevWin);
-      newHist = newHist.slice(0, 12);
-    }
-
-    const newRoom = {
-      roundId: "CR" + now,
-      betStart: now,
-      spinStart: now + BET_MS,
-      winnerCar: winCar,
-      history: newHist
-    };
-    roomState = newRoom;
-    historyCars = newHist;
-    renderHistory();
-
-    try {
-      await fetch(`${DB_URL}/carRouletteRoom.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newRoom)
-      });
-    } catch (e) {
-    } finally {
-      isCreating = false;
-    }
-  }
-
-  async function syncCarRoom() {
-    try {
-      const res = await fetch(`${DB_URL}/carRouletteRoom.json?t=${Date.now()}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const now = Date.now();
-      if (!data || !data.roundId || !data.spinStart) {
-        await startNewCarRound(null);
-        return;
-      }
-      const endMs = Number(data.spinStart) + SPIN_MS + RESULT_MS;
-      if (now >= endMs + 400) {
-        await startNewCarRound(Number(data.winnerCar));
-        return;
-      }
-      roomState = data;
-      if (Array.isArray(data.history)) {
-        historyCars = data.history;
-        renderHistory();
-      }
-    } catch (e) {}
-  }
-
-  // ==========================================
-  // 3D PERSPECTIVE ROULETTE WHEEL RENDERER
-  // ==========================================
-  const canvas = document.getElementById("roulette3dCanvas");
+  const canvas = document.getElementById("carTrackCanvas");
   const ctx = canvas.getContext("2d");
-  let highlightedIndex = 0;
 
-  function draw3DRouletteArena() {
+  function draw3DRouletteTrack() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const cx = canvas.width / 2;
-    const cy = 126;
-    const rx = 178; // 3D Perspective Horizontal Radius
-    const ry = 88;  // 3D Perspective Foreshortened Vertical Radius
+    const cy = canvas.height / 2 + 4;
+    const rx = 165;
+    const ry = 76;
 
-    // 1. 3D Track Outer Shadow & Rim
+    // Outer 3D Track Ring
     ctx.save();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 34;
     ctx.beginPath();
-    ctx.ellipse(cx, cy + 12, rx + 12, ry + 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Metallic 3D Track Base
-    const trackGrad = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
-    trackGrad.addColorStop(0, "#1e293b");
-    trackGrad.addColorStop(1, "#0f172a");
-    ctx.fillStyle = trackGrad;
-    ctx.strokeStyle = "#fbbf24";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx + 8, ry + 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner Track Ring
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+    ctx.strokeStyle = "#fbbf24";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rx - 38, ry - 22, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, rx + 17, ry + 17, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx - 17, ry - 17, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 2. Draw 8 3D Car Platforms around the Oval Track (Sorted by Y depth)
-    const nodes = [];
+    // Draw 8 Car Nodes around 3D Track
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-      const x = cx + Math.cos(angle) * (rx - 16);
-      const y = cy + Math.sin(angle) * (ry - 9);
-      const depthScale = 0.84 + 0.24 * ((Math.sin(angle) + 1) / 2); // Closer at bottom = bigger
-      nodes.push({ i, x, y, depthScale });
-    }
-    nodes.sort((a, b) => a.y - b.y);
+      const x = cx + Math.cos(angle) * rx;
+      const y = cy + Math.sin(angle) * ry;
+      const isSelected = (highlightedCarIdx === i);
+      const car = CARS[i];
 
-    nodes.forEach(n => {
-      const car = CARS[n.i];
-      const isLit = (highlightedIndex === n.i);
-      const w = 58 * n.depthScale;
-      const h = 42 * n.depthScale;
+      if (isSelected) {
+        const glow = ctx.createRadialGradient(x, y, 4, x, y, 28);
+        glow.addColorStop(0, "rgba(255, 215, 0, 0.95)");
+        glow.addColorStop(1, "rgba(255, 215, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, 28, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      ctx.save();
-      // 3D Pod Shadow / Thickness
-      ctx.fillStyle = isLit ? "#b45309" : "#090d16";
+      ctx.fillStyle = isSelected ? "#ffd700" : "#0f172a";
       ctx.beginPath();
-      ctx.ellipse(n.x, n.y + 5 * n.depthScale, w * 0.52, h * 0.52, 0, 0, Math.PI * 2);
+      ctx.arc(x, y, isSelected ? 21 : 18, 0, Math.PI * 2);
       ctx.fill();
-
-      // Pod Top Face
-      ctx.fillStyle = isLit ? "#fef08a" : (car.super ? "#2d2110" : "#1e2538");
-      ctx.strokeStyle = isLit ? "#ffffff" : (car.super ? "#fbbf24" : "#475569");
-      ctx.lineWidth = isLit ? 3 : 1.5;
-      ctx.beginPath();
-      ctx.ellipse(n.x, n.y, w * 0.52, h * 0.52, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.strokeStyle = isSelected ? "#ffffff" : car.color;
+      ctx.lineWidth = isSelected ? 3 : 2;
       ctx.stroke();
 
-      // Car Icon
-      ctx.font = `${Math.round(21 * n.depthScale)}px Arial`;
+      ctx.font = isSelected ? "20px Segoe UI" : "17px Segoe UI";
       ctx.textAlign = "center";
-      ctx.fillText(car.icon, n.x, n.y + 4 * n.depthScale);
-
-      // Multiplier Pill under Pod
-      ctx.fillStyle = isLit ? "#ef4444" : "#0f172a";
-      ctx.fillRect(n.x - 16 * n.depthScale, n.y + 11 * n.depthScale, 32 * n.depthScale, 12 * n.depthScale);
-      ctx.fillStyle = isLit ? "#fff" : "#fde047";
-      ctx.font = `bold ${Math.round(9 * n.depthScale)}px Segoe UI`;
-      ctx.fillText(car.mult + "x", n.x, n.y + 20 * n.depthScale);
-      ctx.restore();
-    });
-
-    // 3. Center 3D Hub Pedestal
-    ctx.fillStyle = "#0b0f19";
-    ctx.strokeStyle = "#38bdf8";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + 4, 72, 36, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+      ctx.textBaseline = "middle";
+      ctx.fillText(car.emoji, x, y + 1);
+    }
 
     ctx.restore();
-    requestAnimationFrame(draw3DRouletteArena);
+    requestAnimationFrame(draw3DRouletteTrack);
   }
-  requestAnimationFrame(draw3DRouletteArena);
+  requestAnimationFrame(draw3DRouletteTrack);
 
   // ==========================================
-  // MASTER SYNCHRONIZED LOOP
+  // SYNCHRONIZED 25-SECOND ROULETTE CLOCK
   // ==========================================
-  async function handleRoundResult(winCarId) {
-    if (roundPaid) return;
-    roundPaid = true;
+  const ROUND_SEC = 25;
+  const BET_SEC = 15;
+  const SPIN_SEC = 6;
+  let roundPhase = "BETTING";
+  let lastRoundIdx = -1;
+  let settledRoundIdx = -1;
+  let lastTickStep = -1;
 
-    const winCar = CARS[winCarId];
-    renderCarGrid(winCarId);
+  function chooseWinningCar(rIdx) {
+    const x = Math.sin(rIdx * 7919) * 10000;
+    const frac = x - Math.floor(x);
+    let defaultPick = frac < 0.78 ? (4 + Math.floor((frac / 0.78) * 4)) : Math.floor(((frac - 0.78) / 0.22) * 4);
 
-    const betOnWinner = myBets[winCarId] || 0;
-    if (betOnWinner > 0) {
-      const totalWin = betOnWinner * winCar.mult;
+    // Apply Admin car winRateSetting if user has active bets
+    const betKeys = Object.keys(myBets).map(Number);
+    if (betKeys.length > 0 && (Math.random() * 100) > winRateSetting) {
+      const unbetCars = [4, 5, 6, 7, 3, 2, 1, 0].filter(id => !betKeys.includes(id));
+      if (unbetCars.length > 0) return unbetCars[0];
+    }
+    return defaultPick;
+  }
+
+  async function settleCarRound(rIdx, winId) {
+    if (settledRoundIdx === rIdx) return;
+    settledRoundIdx = rIdx;
+    winningCarIdx = winId;
+    highlightedCarIdx = winId;
+
+    recentCars.unshift(winId);
+    recentCars = recentCars.slice(0, 14);
+    renderHistory();
+    renderCarsGrid();
+
+    const winCar = CARS[winId];
+    const betOnWin = myBets[winId] || 0;
+
+    if (betOnWin > 0) {
+      const winAmt = betOnWin * winCar.mult;
       playCarSound("win");
-      document.getElementById("hudWinBanner").innerText = `WIN +₹${totalWin}!`;
 
-      const newWinBal = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + totalWin;
+      const newWinBal = (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt;
       const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
       txns.unshift({
         type: `Car Roulette Win (${winCar.name} ${winCar.mult}x)`,
-        amt: "+₹" + totalWin,
+        amt: "+₹" + winAmt,
         date: new Date().toLocaleString()
       });
 
@@ -647,9 +492,9 @@
       const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
       liveFeedData.unshift({
         name: maskedMe + " (You)",
-        car: `${winCar.icon} ${winCar.name}`,
+        car: `${winCar.emoji} ${winCar.name}`,
         mult: winCar.mult + "x",
-        win: totalWin,
+        win: winAmt,
         isMe: true
       });
       renderFeed();
@@ -663,96 +508,77 @@
       fetch(`${DB_URL}/carLiveFeed/${mobile}.json`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: maskedMe,
-          car: `${winCar.icon} ${winCar.name}`,
-          mult: winCar.mult + "x",
-          win: totalWin,
-          ts: Date.now()
-        })
+        body: JSON.stringify({ name: maskedMe, car: `${winCar.emoji} ${winCar.name}`, mult: winCar.mult + "x", win: winAmt, ts: Date.now() })
       });
-    } else {
-      playCarSound("stop");
-      document.getElementById("hudWinBanner").innerText = `${winCar.icon} ${winCar.name}`;
     }
   }
 
-  function tickCarRoulette() {
-    if (!roomState) return;
-    const now = Date.now();
-    const spinStart = Number(roomState.spinStart);
-    const resultStart = spinStart + SPIN_MS;
-    const nextRoundStart = resultStart + RESULT_MS;
-    const winCarId = Number(roomState.winnerCar) || 0;
+  let currentRoundWinner = 4;
+  function tickCarClock() {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const rIdx = Math.floor(nowSec / ROUND_SEC);
+    const elapsed = nowSec % ROUND_SEC;
 
-    // Reset bets on new round
-    if (lastHandledRound !== roomState.roundId) {
-      lastHandledRound = roomState.roundId;
+    if (lastRoundIdx !== rIdx) {
+      lastRoundIdx = rIdx;
       myBets = {};
-      roundPaid = false;
-      botPools = CARS.map(c => (c.super ? 1200 : 4500) + Math.floor(Math.random() * 2500));
-      document.getElementById("hudWinBanner").innerText = "";
-      renderCarGrid(-1);
+      winningCarIdx = -1;
+      currentRoundWinner = chooseWinningCar(rIdx);
+      renderCarsGrid();
     }
 
-    if (now < spinStart) {
-      gamePhase = "BETTING";
-      const remSec = Math.max(1, Math.ceil((spinStart - now) / 1000));
-      document.getElementById("hudState").innerText = "PLACE BETS";
-      document.getElementById("hudTimer").innerText = remSec + "s";
-
-      // Slowly grow bot pools during betting phase
-      if (Math.random() < 0.15) {
-        const rIdx = Math.floor(Math.random() * 8);
-        botPools[rIdx] += [50, 100, 200, 500][Math.floor(Math.random() * 4)];
-        renderCarGrid(-1);
+    if (elapsed < BET_SEC) {
+      roundPhase = "BETTING";
+      const rem = BET_SEC - elapsed;
+      document.getElementById("phaseTag").innerText = "PLACE YOUR BETS";
+      document.getElementById("phaseTag").style.color = "#38bdf8";
+      document.getElementById("timerNum").innerText = rem + "s";
+      document.getElementById("timerNum").style.color = rem <= 4 ? "#ef4444" : "#fff";
+    } else if (elapsed < BET_SEC + SPIN_SEC) {
+      roundPhase = "SPINNING";
+      if (settledRoundIdx !== rIdx && Object.keys(myBets).length > 0) {
+        currentRoundWinner = chooseWinningCar(rIdx);
       }
-    } else if (now >= spinStart && now < resultStart) {
-      if (gamePhase !== "SPINNING") {
-        gamePhase = "SPINNING";
-        playCarSound("engine");
-      }
-      document.getElementById("hudState").innerText = "SPINNING...";
-      document.getElementById("hudTimer").innerText = "🏎️";
+      const spinElapsed = (Date.now() / 1000) % ROUND_SEC - BET_SEC;
+      const totalSteps = 24 + currentRoundWinner;
+      const easeProg = 1 - Math.pow(1 - Math.min(1, spinElapsed / SPIN_SEC), 2.4);
+      const stepNow = Math.floor(easeProg * totalSteps);
+      highlightedCarIdx = stepNow % 8;
 
-      // Ease-out decelerating spin landing smoothly on winCarId
-      const progress = Math.min(1, (now - spinStart) / SPIN_MS);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const totalSteps = 32 + winCarId; // 4 full laps + target car
-      const currentSlot = Math.floor(eased * totalSteps) % 8;
-      highlightedIndex = currentSlot;
-
-      if (currentSlot !== lastTickSlot) {
-        lastTickSlot = currentSlot;
+      if (lastTickStep !== stepNow) {
+        lastTickStep = stepNow;
         playCarSound("tick");
       }
-    } else if (now >= resultStart && now < nextRoundStart) {
-      gamePhase = "RESULT";
-      highlightedIndex = winCarId;
-      document.getElementById("hudState").innerText = "WINNER!";
-      document.getElementById("hudTimer").innerText = CARS[winCarId].mult + "x";
-      handleRoundResult(winCarId);
+
+      document.getElementById("phaseTag").innerText = "RACING...";
+      document.getElementById("phaseTag").style.color = "#ffbe0b";
+      document.getElementById("timerNum").innerText = CARS[highlightedCarIdx].emoji;
     } else {
-      startNewCarRound(winCarId);
+      roundPhase = "RESULT";
+      settleCarRound(rIdx, currentRoundWinner);
+      const winCar = CARS[currentRoundWinner];
+      document.getElementById("phaseTag").innerText = `${winCar.name} (${winCar.mult}x)`;
+      document.getElementById("phaseTag").style.color = "#28e04d";
+      document.getElementById("timerNum").innerText = winCar.emoji;
     }
   }
 
-  // Hybrid Live Feed (Bots + Real Players)
-  const BOTS = ["r***8", "k***3", "a***9", "s***5", "m***2", "v***7", "p***1", "d***6", "n***4", "t***0"];
+  // Hybrid Live Feed
+  const BOTS = ["r***5", "k***2", "a***8", "s***4", "v***7", "m***1", "p***9", "d***3", "n***6", "t***0"];
   let liveFeedData = [
-    { name: "r***8", car: "🏎️ Ferrari", mult: "40x", win: 4000, isMe: false },
-    { name: "s***5", car: "🚙 BMW", mult: "5x", win: 1000, isMe: false },
-    { name: "a***9", car: "🏁 Porsche", mult: "15x", win: 1500, isMe: false },
-    { name: "v***7", car: "🚘 Mercedes", mult: "5x", win: 2500, isMe: false },
-    { name: "m***2", car: "🚀 Bugatti", mult: "10x", win: 2000, isMe: false }
+    { name: "r***5", car: "🏎️ FERRARI", mult: "40x", win: 4000, isMe: false },
+    { name: "k***2", car: "🚙 BMW", mult: "5x", win: 1000, isMe: false },
+    { name: "a***8", car: "🏁 PORSCHE", mult: "15x", win: 1500, isMe: false },
+    { name: "s***4", car: "🚘 MERCEDES", mult: "5x", win: 500, isMe: false },
+    { name: "v***7", car: "🚀 LAMBO", mult: "25x", win: 2500, isMe: false }
   ];
 
   function renderFeed() {
     document.getElementById("liveFeedList").innerHTML = liveFeedData.slice(0, 10).map(item => `
-      <div class="feed-row ${item.isMe ? 'me' : ''}">
+      <div class="feed-row win ${item.isMe ? 'me' : ''}">
         <div style="font-weight:bold; color:#e2e8f0;">${item.name}</div>
-        <div style="color:#cbd5e1;">${item.car}</div>
-        <div style="color:#fbbf24; font-weight:bold;">${item.mult}</div>
+        <div style="color:#ffbe0b; font-weight:bold;">${item.car}</div>
+        <div style="color:#38bdf8; font-weight:bold;">${item.mult}</div>
         <div style="text-align:right; font-weight:bold; color:#28e04d;">+₹${item.win}</div>
       </div>
     `).join("");
@@ -761,16 +587,10 @@
 
   setInterval(async () => {
     const bName = BOTS[Math.floor(Math.random() * BOTS.length)];
-    const c = CARS[Math.floor(Math.random() * CARS.length)];
-    const bBet = [50, 100, 200, 500][Math.floor(Math.random() * 4)];
-    liveFeedData.unshift({
-      name: bName,
-      car: `${c.icon} ${c.name}`,
-      mult: c.mult + "x",
-      win: bBet * c.mult,
-      isMe: false
-    });
-    document.getElementById("onlineCount").innerText = "● " + (290 + Math.floor(Math.random() * 55)) + " Online";
+    const bCar = CARS[Math.floor(Math.random() * CARS.length)];
+    const bAmt = [50, 100, 200, 500][Math.floor(Math.random() * 4)];
+    liveFeedData.unshift({ name: bName, car: `${bCar.emoji} ${bCar.name}`, mult: bCar.mult + "x", win: bAmt * bCar.mult, isMe: false });
+    document.getElementById("onlineCount").innerText = "● " + (240 + Math.floor(Math.random() * 55)) + " Racing";
 
     try {
       const res = await fetch(`${DB_URL}/carLiveFeed.json?t=${Date.now()}`);
@@ -784,13 +604,46 @@
         });
       }
     } catch (e) {}
-
     renderFeed();
-  }, 5000);
+  }, 4500);
 
-  syncCarRoom();
-  setInterval(syncCarRoom, 1500);
-  setInterval(tickCarRoulette, 60);
+  // ==========================================
+  // SAFE EXIT & BACK BUTTON CONFIRMATION
+  // ==========================================
+  function hasRunningBet() {
+    return Object.values(myBets).some(v => v > 0);
+  }
+
+  function safeExitTo(url) {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapki Car Roulette par bet lagi hui hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?"
+      : "Kya aap Car Roulette game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = url;
+    }
+  }
+
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet()
+      ? "⚠️ Aapki Car Roulette par bet lagi hui hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?"
+      : "Kya aap Car Roulette game se bahar nikalna chahte hain?";
+    if (confirm(msg)) {
+      window.location.href = "game.html";
+    } else {
+      history.pushState(null, "", location.href);
+    }
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (hasRunningBet()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+
+  tickCarClock();
+  setInterval(tickCarClock, 80);
 </script>
 </body>
 </html>
