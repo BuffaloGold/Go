@@ -25,17 +25,30 @@
   .games-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
   .game-card { background: linear-gradient(145deg, #280538, #180224); border: 1.5px solid #6b1d91; border-radius: 16px; padding: 16px 12px; text-align: center; cursor: pointer; transition: transform 0.2s, border-color 0.2s; position: relative; overflow: hidden; }
   .game-card:hover { transform: translateY(-3px); border-color: #ffd700; }
+  
+  /* Cricket Featured Full-Width Card */
+  .game-card.featured-cricket { grid-column: span 2; background: linear-gradient(135deg, #3b0a52, #1f042e); border: 2px solid #ffd700; display: flex; align-items: center; text-align: left; gap: 14px; padding: 14px 16px; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.15); }
+  .game-card.featured-cricket .game-icon { font-size: 42px; margin-bottom: 0; }
+  .game-card.featured-cricket .game-name { font-size: 16px; color: #ffd700; }
+
   .game-icon { font-size: 38px; display: block; margin-bottom: 8px; }
   .game-name { font-size: 14px; font-weight: bold; color: #fff; margin-bottom: 4px; }
   .game-desc { font-size: 10px; color: #bbb; line-height: 1.3; }
   .tag { position: absolute; top: 8px; right: 8px; background: #ff4d6d; color: #fff; font-size: 8px; font-weight: bold; padding: 2px 6px; border-radius: 6px; }
   .tag.hot { background: #ff9f1c; color: #000; }
   .tag.og { background: #ffd700; color: #000; }
+  .tag.live { background: #28e04d; color: #000; animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
 
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
-  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 11px; cursor: pointer; flex: 1; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
-  .nav-icon { font-size: 20px; display: block; }
+  .nav-icon { font-size: 19px; display: block; margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -54,20 +67,29 @@
 
   <div class="banner">
     <h2>Buffalo Gold Arcade</h2>
-    <p>Apna favorite game chunein, bet lagayein aur instant winnings jeetein!</p>
+    <p>Live Cricket Exchange & Instant Casino Games — Jeetein aur Turant Withdraw Karein!</p>
   </div>
 
-  <div class="sec-title">🔥 POPULAR & LIVE GAMES</div>
+  <div class="sec-title">🔥 LIVE SPORTS & POPULAR GAMES</div>
 
   <div class="games-grid">
+    <!-- 0. Live Cricket Exchange (Featured Top Card) -->
+    <div class="game-card featured-cricket" onclick="location.href='cricket.html'">
+      <span class="tag live">● LIVE</span>
+      <span class="game-icon">🏏</span>
+      <div>
+        <div class="game-name">Cricket & Sports Exchange</div>
+        <div class="game-desc">IPL, T20, ODI aur Live Matches par Back/Lay odds lagayein aur instant jeetein!</div>
+      </div>
+    </div>
+
     <!-- 1. Buffalo Gold (Original Game) -->
-<div class="game-card" onclick="location.href='buffalogold.html'">
-  <span class="tag og">OG</span>
-  <span class="game-icon">🐃💰</span>
-  <div class="game-name">Buffalo Gold</div>
-  <div class="game-desc">Aapka original slot game jismein jackpots jeetein.</div>
-</div>
-   
+    <div class="game-card" onclick="location.href='buffalogold.html'">
+      <span class="tag og">OG</span>
+      <span class="game-icon">🐃💰</span>
+      <div class="game-name">Buffalo Gold</div>
+      <div class="game-desc">Aapka original slot game jismein jackpots jeetein.</div>
+    </div>
 
     <!-- 2. Aviator -->
     <div class="game-card" onclick="location.href='aviator.html'">
@@ -110,7 +132,8 @@
 </div>
 
 <div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item active" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Games</div>
+  <div class="nav-item" onclick="location.href='cricket.html'"><span class="nav-icon">🏏</span>Cricket</div>
   <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
   <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
