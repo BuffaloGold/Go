@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buffalo Gold | Live Cricket & Sports Exchange</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f0f2f5;
+      color: #1e1e1e;
+      padding-bottom: 70px;
+    }
+
+    /* Top Header */
+    .header {
+      background: linear-gradient(90deg, #111111 0%, #242424 100%);
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 2px solid #f59e0b;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fbbf24;
+    }
+
+    .brand span {
+      color: #ffffff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wallet-badge {
+      background: #2b2b2b;
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .btn-deposit {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* Promo Banner */
+    .promo-banner {
+      background: linear-gradient(135deg, #1f1605 0%, #452c04 50%, #1a1204 100%);
+      color: #fff;
+      padding: 16px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #d97706;
+    }
+
+    .promo-text h2 {
+      font-size: 17px;
+      color: #fbbf24;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .promo-text p {
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    .promo-tag {
+      background: #fbbf24;
+      color: #000;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    /* Ticker / Notice Bar */
+    .news-ticker {
+      background: #18181b;
+      color: #facc15;
+      font-size: 12px;
+      padding: 6px 12px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    /* Sports Category Tabs */
+    .sports-tabs {
+      display: flex;
+      background: #1f2937;
+      overflow-x: auto;
+      border-bottom: 2px solid #f59e0b;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 90px;
+      padding: 10px 8px;
+      background: transparent;
+      border: none;
+      color: #d1d5db;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #f59e0b;
+      color: #000000;
+    }
+
+    /* Section Header */
+    .section-bar {
+      background: #27272a;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .odds-labels {
+      display: flex;
+      gap: 48px;
+      padding-right: 26px;
+      font-size: 12px;
+      color: #fbbf24;
+    }
+
+    /* Match List Container */
+    .match-list {
+      background: #ffffff;
+    }
+
+    .match-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .match-info {
+      flex: 1;
+      padding-right: 8px;
+    }
+
+    .match-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .badge-live {
+      background: #16a34a;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 3px;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-upcoming {
+      background: #2563eb;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .badge-fancy {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #f59e0b;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .match-time {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .match-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0369a1;
+      line-height: 1.3;
+    }
+
+    .match-series {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    /* Odds Boxes (Back & Lay) */
+    .odds-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .odd-box {
+      width: 52px;
+      height: 38px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .odd-back {
+      background-color: #72bbef;
+      color: #000;
+    }
+
+    .odd-lay {
+      background-color: #faa9ba;
+      color: #000;
+    }
+
+    .odd-val {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .odd-vol {
+      font-size: 9px;
+      opacity: 0.8;
+    }
+
+    /* Bet Slip Modal */
+    .bet-modal {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1f2937;
+      color: #fff;
+      padding: 14px;
+      border-top: 3px solid #f59e0b;
+      z-index: 200;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .bet-modal.open {
+      display: block;
+    }
+
+    .bet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .bet-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .bet-controls input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .quick-stakes {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .stake-chip {
+      flex: 1;
+      background: #374151;
+      color: #fbbf24;
+      border: 1px solid #4b5563;
+      padding: 6px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .bet-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 10px;
+      background: #4b5563;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .btn-place {
+      flex: 2;
+      padding: 10px;
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 800;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #111111;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      border-top: 1px solid #333;
+      z-index: 90;
+    }
+
+    .nav-item {
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .nav-item.active {
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="header">
+    <div class="brand">BUFFALO <span>GOLD</span></div>
+    <div class="header-actions">
+      <div class="wallet-badge" id="walletDisplay">₹ 0.00</div>
+      <button class="btn-deposit" onclick="window.location.href='index.html'">+ Deposit</button>
+    </div>
+  </header>
+
+  <!-- Promo Banner -->
+  <section class="promo-banner">
+    <div class="promo-text">
+      <h2>Live Cricket Exchange</h2>
+      <p>Instant Odds • Match Winner • Session & Fancy</p>
+    </div>
+    <div class="promo-tag">IN-PLAY<br>24/7</div>
+  </section>
+
+  <!-- News Ticker -->
+  <div class="news-ticker">
+    ⚡ Welcome to Buffalo Gold Exchange! Live Cricket, Tennis & Football markets open with instant settlement.
+  </div>
+
+  <!-- Sports Tabs (Only Sports, No Casino Grid) -->
+  <nav class="sports-tabs">
+    <button class="tab-btn active" onclick="filterSport('all', this)">🔥 In-Play</button>
+    <button class="tab-btn" onclick="filterSport('cricket', this)">🏏 Cricket</button>
+    <button class="tab-btn" onclick="filterSport('soccer', this)">⚽ Soccer</button>
+    <button class="tab-btn" onclick="filterSport('tennis', this)">🎾 Tennis</button>
+  </nav>
+
+  <!-- Section Bar -->
+  <div class="section-bar">
+    <span>Matches</span>
+    <div class="odds-labels">
+      <span>1 (Back)</span>
+      <span>2 (Lay)</span>
+    </div>
+  </div>
+
+  <!-- Matches List -->
+  <main class="match-list" id="matchContainer"></main>
+
+  <!-- Interactive Bet Slip -->
+  <div class="bet-modal" id="betModal">
+    <div class="bet-header">
+      <span id="betMatchTitle">Match Name</span>
+      <span id="betTypeTag" style="color:#fbbf24;">BACK @ 1.85</span>
+    </div>
+    <div class="bet-controls">
+      <input type="number" id="stakeInput" placeholder="Enter Amount (Min ₹100)" value="100" />
+    </div>
+    <div class="quick-stakes">
+      <button class="stake-chip" onclick="setStake(100)">+100</button>
+      <button class="stake-chip" onclick="setStake(500)">+500</button>
+      <button class="stake-chip" onclick="setStake(1000)">+1K</button>
+      <button class="stake-chip" onclick="setStake(5000)">+5K</button>
+    </div>
+    <div class="bet-actions">
+      <button class="btn-cancel" onclick="closeBetSlip()">Cancel</button>
+      <button class="btn-place" onclick="confirmBet()">Place Bet</button>
+    </div>
+  </div>
+
+  <!-- Clean Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item"><span>🏠</span>Home</a>
+    <a href="cricket.html" class="nav-item active"><span>🏏</span>Cricket</a>
+    <a href="index.html#mybets" class="nav-item"><span>📋</span>My Bets</a>
+    <a href="index.html#profile" class="nav-item"><span>👤</span>Account</a>
+  </nav>
+
+  <script>
+    // Cricket & Sports Match Data (Easily customizable or connectable to Firebase)
+    const matchesData = [
+      {
+        id: "m1",
+        sport: "cricket",
+        live: true,
+        fancy: true,
+        time: "In-Play • 14.2 Ov",
+        title: "India v Australia",
+        series: "T20 International Series",
+        back: "1.78",
+        backVol: "45K",
+        lay: "1.80",
+        layVol: "32K"
+      },
+      {
+        id: "m2",
+        sport: "cricket",
+        live: true,
+        fancy: true,
+        time: "In-Play • 8.4 Ov",
+        title: "Mumbai Indians v Chennai Super Kings",
+        series: "Indian Premier League",
+        back: "1.92",
+        backVol: "80K",
+        lay: "1.94",
+        layVol: "61K"
+      },
+      {
+        id: "m3",
+        sport: "cricket",
+        live: true,
+        fancy: true,
+        time: "In-Play • 2nd Inn",
+        title: "England v South Africa",
+        series: "ODI Series",
+        back: "2.10",
+        backVol: "24K",
+        lay: "2.14",
+        layVol: "19K"
+      },
+      {
+        id: "m4",
+        sport: "cricket",
+        live: false,
+        fancy: true,
+        time: "Today, 7:30 PM",
+        title: "Royal Challengers Bengaluru v Kolkata Knight Riders",
+        series: "Indian Premier League",
+        back: "1.86",
+        backVol: "50K",
+        lay: "1.88",
+        layVol: "42K"
+      },
+      {
+        id: "m5",
+        sport: "cricket",
+        live: false,
+        fancy: false,
+        time: "Tomorrow, 2:00 PM",
+        title: "New Zealand v Pakistan",
+        series: "T20 Tri-Series",
+        back: "1.65",
+        backVol: "18K",
+        lay: "1.68",
+        layVol: "15K"
+      },
+      {
+        id: "m6",
+        sport: "soccer",
+        live: true,
+        fancy: false,
+        time: "In-Play • 64'",
+        title: "Real Madrid v FC Barcelona",
+        series: "La Liga",
+        back: "2.05",
+        backVol: "30K",
+        lay: "2.08",
+        layVol: "28K"
+      },
+      {
+        id: "m7",
+        sport: "tennis",
+        live: true,
+        fancy: false,
+        time: "In-Play • Set 2",
+        title: "Carlos Alcaraz v Jannik Sinner",
+        series: "ATP Masters",
+        back: "1.72",
+        backVol: "22K",
+        lay: "1.75",
+        layVol: "20K"
+      }
+    ];
+
+    let selectedBet = null;
+
+    function renderMatches(filter = "all") {
+      const container = document.getElementById("matchContainer");
+      container.innerHTML = "";
+
+      const filtered = matchesData.filter(m => {
+        if (filter === "all") return true;
+        return m.sport === filter;
+      });
+
+      filtered.forEach(match => {
+        const row = document.createElement("div");
+        row.className = "match-row";
+
+        const statusBadge = match.live
+          ? `<span class="badge-live">LIVE</span>`
+          : `<span class="badge-upcoming">UPCOMING</span>`;
+
+        const fancyBadge = match.fancy
+          ? `<span class="badge-fancy">BM | FANCY</span>`
+          : ``;
+
+        row.innerHTML = `
+          <div class="match-info">
+            <div class="match-status">
+              ${statusBadge}
+              ${fancyBadge}
+              <span class="match-time">${match.time}</span>
+            </div>
+            <div class="match-title">${match.title}</div>
+            <div class="match-series">${match.series}</div>
+          </div>
+          <div class="odds-group">
+            <div class="odd-box odd-back" onclick="openBetSlip('${match.title}', 'BACK', '${match.back}')">
+              <span class="odd-val">${match.back}</span>
+              <span class="odd-vol">${match.backVol}</span>
+            </div>
+            <div class="odd-box odd-lay" onclick="openBetSlip('${match.title}', 'LAY', '${match.lay}')">
+              <span class="odd-val">${match.lay}</span>
+              <span class="odd-vol">${match.layVol}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function filterSport(sport, btn) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderMatches(sport);
+    }
+
+    function openBetSlip(title, side, odd) {
+      selectedBet = { title, side, odd };
+      document.getElementById("betMatchTitle").innerText = title;
+      document.getElementById("betTypeTag").innerText = `${side} @ ${odd}`;
+      document.getElementById("betModal").classList.add("open");
+    }
+
+    function closeBetSlip() {
+      document.getElementById("betModal").classList.remove("open");
+    }
+
+    function setStake(val) {
+      document.getElementById("stakeInput").value = val;
+    }
+
+    function confirmBet() {
+      const stake = Number(document.getElementById("stakeInput").value);
+      if (!stake || stake < 100) {
+        alert("Minimum bet amount is ₹100");
+        return;
+      }
+      alert(`Bet Placed!\nMatch: ${selectedBet.title}\nType: ${selectedBet.side} @ ${selectedBet.odd}\nStake: ₹${stake}`);
+      closeBetSlip();
+    }
+
+    // Load default view
+    renderMatches("all");
+  </script>
+</body>
+</html>
