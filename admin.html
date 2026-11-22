@@ -6,7 +6,7 @@
 <title>Admin Panel - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-  body { background: #0d0214; color: #fff; padding: 14px; display: flex; justify-content: center; }
+  body { background: #0d0214; color: #fff; padding: 14px; display: flex; flex-direction: column; align-items: center; }
   .wrap { width: 100%; max-width: 500px; }
   input, select { width: 100%; padding: 11px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #75229e; background: #14021f; color: #fff; font-size: 14px; }
   .btn { padding: 8px 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
@@ -106,6 +106,7 @@
     </div>
   </div>
 </div>
+
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
   let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
@@ -294,8 +295,7 @@
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
     }
   }
-
-  async function replyTicket(tktId) {
+   async function replyTicket(tktId) {
     const inp = document.getElementById("repInput_" + tktId);
     const msg = (inp.value || "").trim();
     if (!msg) return alert("Reply message likhein!");
@@ -328,14 +328,66 @@
         if (!foundInTxns) {
           txns.unshift({ type: newStatus === "APPROVED" ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`, orderId: w.reqId || reqId, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED", amt: newStatus === "APPROVED" ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt), date: new Date().toLocaleString() });
         }
-        const updatedFields = { txns: txns.slice(0, 30) };
-        if (newStatus === "APPROVED") updatedFields.winningBal = Math.max(0, currentWinBal - wdAmt);
-        await dbPatch("users/" + w.mobile, updatedFields);
+        const updateObj = { txns };
+        if (newStatus === "APPROVED") {
+          const newBal = Math.max(0, currentWinBal - wdAmt);
+          updateObj.winningBal = newBal;
+          updateObj.winningBalance = newBal;
+        }
+        await dbPatch("users/" + w.mobile, updateObj);
       }
       await dbPatch("withdrawals/" + reqId, { status: newStatus });
-      alert(newStatus === "APPROVED" ? "✅ Withdrawal PAID mark ho gaya!" : "❌ Withdrawal REJECT kar diya gaya!");
+      alert(newStatus === "APPROVED" ? "✅ Withdrawal Paid mark ho gaya aur balance deduct ho gaya!" : "❌ Withdrawal Reject kar diya gaya!");
       forceLoadAll();
-    } catch (err) { alert("❌ Error: " + err.message); }
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  }
+
+  function renderUsers() {
+    const q = (document.getElementById("searchUser").value || "").toLowerCase();
+    const list = document.getElementById("usersList");
+    const keys = Object.keys(allUsers).filter(k => {
+      const u = allUsers[k];
+      return k.includes(q) || (u && u.name && u.name.toLowerCase().includes(q));
+    });
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Koi user nahi mila.</div>"; return; }
+    list.innerHTML = keys.map(k => {
+      const u = allUsers[k];
+      if (!u) return "";
+      const dep = u.depositBal ?? u.depositBalance ?? 0;
+      const win = u.winningBal ?? u.winningBalance ?? 0;
+      return `<div class="card">
+        <div class="row-between"><strong>👤 ${u.name || 'User'}</strong><span style="color:#ffd700; font-size:12px;">📱 ${k}</span></div>
+        <div style="font-size:12px; color:#ccc; margin:6px 0;">Deposit: <strong style="color:#28e04d;">₹${dep}</strong> | Winning: <strong style="color:#ffd700;">₹${win}</strong></div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}')">✏️ Edit Bal</button>
+          <button type="button" class="btn btn-del" onclick="deleteUser('${k}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function editUserBal(mob) {
+    const u = allUsers[mob];
+    if (!u) return;
+    const newDep = prompt("Naya Deposit Balance dalein:", u.depositBal ?? u.depositBalance ?? 0);
+    if (newDep === null) return;
+    const newWin = prompt("Naya Winning Balance dalein:", u.winningBal ?? u.winningBalance ?? 0);
+    if (newWin === null) return;
+    await dbPatch("users/" + mob, {
+      depositBal: Number(newDep), depositBalance: Number(newDep),
+      winningBal: Number(newWin), winningBalance: Number(newWin)
+    });
+    alert("✅ Balance update ho gaya!");
+    forceLoadAll();
+  }
+
+  async function deleteUser(mob) {
+    if (!confirm("User " + mob + " ko delete karein?")) return;
+    await fetch(`${DB_URL}/users/${mob}.json`, { method: "DELETE" });
+    alert("🗑️ User deleted!");
+    forceLoadAll();
   }
 
   async function saveSettings() {
@@ -348,202 +400,115 @@
       color: Number(document.getElementById("rate_color").value)
     };
     await dbPut("settings/rates", rates);
-    await dbPut("settings/winRate", rates.slot);
-    alert("✅ Sabhi games ke alag-alag Win Rates save ho gaye!");
-  }
-
-  function renderUsers() {
-    const q = (document.getElementById("searchUser").value || "").toLowerCase();
-    const list = document.getElementById("usersList");
-    const keys = Object.keys(allUsers);
-    if (keys.length === 0) { list.innerHTML = "<div class='card'>Abhi koi user registered nahi hai.</div>"; return; }
-    list.innerHTML = keys.filter(k => {
-      const u = allUsers[k] || {};
-      return String(u.name || "unidentified").toLowerCase().includes(q) || String(k).includes(q);
-    }).map(k => {
-      const u = allUsers[k] || {};
-      const isMaster = String(k) === "9794408205";
-      const depBal = u.depositBal ?? u.depositBalance ?? 0;
-      const winBal = u.winningBal ?? u.winningBalance ?? 0;
-      const totalDep = getUserTotalDep(u);
-      return `<div class="card">
-        <div class="row-between"><strong>${u.name ? `👤 ${u.name}` : `⚠️ Unidentified`}</strong><span style="font-size:12px; color:#ccc;">📱 ${k}</span></div>
-        <div style="font-size:13px; margin:6px 0;">Deposit: <strong style="color:#ffd700;">₹${depBal}</strong> | Winning: <strong style="color:#28e04d;">₹${winBal}</strong> | Total Dep: <strong style="color:#ffae00;">₹${totalDep}</strong></div>
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}', 100)">+₹100</button>
-          <button type="button" class="btn btn-blue" style="flex:1;" onclick="editUserBal('${k}', -100)">-₹100</button>
-          ${isMaster ? "" : `<button type="button" class="btn btn-del" style="flex:1;" onclick="deleteUserAccount('${k}')">🗑️ Delete</button>`}
-        </div>
-      </div>`;
-    }).join("");
-  }
-
-  async function editUserBal(mob, delta) {
-    const u = allUsers[mob];
-    if (!u || !u.name) return alert("Valid user nahi hai!");
-    const newBal = Math.max(0, Number(u.depositBal ?? u.depositBalance ?? 0) + delta);
-    const txns = Array.isArray(u.txns) ? [...u.txns] : [];
-    txns.unshift({ type: delta > 0 ? "Admin Bonus Added" : "Admin Deduction", amt: (delta > 0 ? "+₹" : "-₹") + Math.abs(delta), date: new Date().toLocaleString() });
-    await dbPatch("users/" + mob, { depositBal: newBal, txns: txns.slice(0, 30) });
-    alert("✅ " + u.name + " ka balance update ho gaya!");
-    forceLoadAll();
-  }
-
-  async function deleteUserAccount(mob) {
-    if (String(mob) === "9794408205") return alert("Master Admin account delete nahi kiya ja sakta!");
-    if (!confirm("Kya aap sach mein user " + mob + " ko delete karna chahte hain?")) return;
-    await dbPut("users/" + mob, null);
-    alert("🗑️ User delete ho gaya!");
-    forceLoadAll();
+    alert("✅ Sabhi Game Win Rates Save Ho Gaye!");
   }
 
   forceLoadAll();
-  setInterval(forceLoadAll, 10000);
+  setInterval(forceLoadAll, 8000);
 </script>
- <!-- ==================== CRICKET EXCHANGE CONTROL PANEL (ADD-ON) ==================== -->
-<style>
-  #bgCricAdminBox {
-    max-width: 460px;
-    margin: 20px auto 40px auto;
-    background: #1b0429;
-    border: 2px solid #ffd700;
-    border-radius: 16px;
-    padding: 16px;
-    color: #fff;
-    font-family: 'Segoe UI', sans-serif;
-  }
-  #bgCricAdminBox h3 { color: #ffd700; font-size: 16px; margin-bottom: 4px; }
-  #bgCricAdminBox p.csub { color: #bbb; font-size: 11px; margin-bottom: 12px; }
-  #bgCricAdminBox .c-sec { background: #260636; border: 1px solid #6b1d91; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-  #bgCricAdminBox .c-sec h4 { font-size: 12px; color: #28e04d; margin-bottom: 8px; }
-  #bgCricAdminBox label { display: block; font-size: 11px; color: #ccc; margin-bottom: 3px; }
-  #bgCricAdminBox input, #bgCricAdminBox select {
-    width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #75229e;
-    background: #12021a; color: #fff; font-size: 12px; margin-bottom: 7px;
-  }
-  #bgCricAdminBox .c-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  #bgCricAdminBox .c-btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; margin-top: 4px; }
-  #bgCricAdminBox .c-save { background: #28e04d; color: #000; }
-  #bgCricAdminBox .c-reset { background: #dc2626; color: #fff; margin-top: 6px; }
-</style>
 
-<div id="bgCricAdminBox">
-  <h3>🏏 Cricket Live Score & Bet Rate Control</h3>
-  <p class="csub">Yahan se kisi bhi match ke Odds, Bookmaker, Session aur Live Score/Balls set karein</p>
+<!-- ==================== CRICKET LIVE SCORE & RATE CONTROL (EXTRA PANEL) ==================== -->
+<div class="wrap" style="margin-top: 14px;">
+  <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Live Score & Bet Rate Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Yahan se set kiya gaya rate aur score sabhi users ke mobile par live dikhega</p>
 
-  <div class="c-sec">
-    <h4>1. Select Match</h4>
-    <select id="bgCric_matchSelect" onchange="bgCricLoadSaved()">
+    <label style="font-size:11px; color:#ffd700; font-weight:bold;">1. Match Chunein:</label>
+    <select id="bgCric_matchSelect" onchange="bgCricLoadFromFirebase()">
       <option value="">Matches load ho rahe hain...</option>
     </select>
-  </div>
 
-  <div class="c-sec">
-    <h4>2. Live Score, Overs & Recent 6 Balls</h4>
-    <div class="c-grid2">
-      <div><label>Runs / Wickets</label><input type="text" id="bgCric_runs" placeholder="e.g. 118/3" /></div>
-      <div><label>Overs</label><input type="text" id="bgCric_overs" placeholder="e.g. 14.2" /></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label style="font-size:11px; color:#ccc;">Runs / Wickets</label><input type="text" id="bgCric_runs" placeholder="e.g. 118/3" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Overs</label><input type="text" id="bgCric_overs" placeholder="e.g. 14.2" /></div>
     </div>
-    <label>Last 6 Balls (Comma se likhein)</label>
+
+    <label style="font-size:11px; color:#ccc;">Recent 6 Balls (Comma se likhein)</label>
     <input type="text" id="bgCric_balls" placeholder="e.g. 1,4,0,6,W,2" />
-    <label>Status / Commentary Line</label>
-    <input type="text" id="bgCric_status" placeholder="e.g. India need 24 runs in 12 balls" />
-    <label style="color:#ff4d6d; font-weight:bold; cursor:pointer;">
-      <input type="checkbox" id="bgCric_lock" style="width:auto; margin-right:6px;" /> 🔒 Ball Running (Lock All Bets)
+
+    <label style="font-size:11px; color:#ccc;">Live Status / Commentary Line</label>
+    <input type="text" id="bgCric_status" placeholder="e.g. Need 24 runs in 12 balls" />
+
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:6px 0 12px; cursor:pointer;">
+      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Ball Running (Lock All Bets)
     </label>
-  </div>
 
-  <div class="c-sec">
-    <h4>3. Match Odds & Bookmaker Rates</h4>
-    <div class="c-grid2">
-      <div><label>Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
-      <div><label>Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
-      <div><label>Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
-      <div><label>Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
-      <div><label>Bookmaker A (Back/Lay)</label><input type="text" id="bgCric_bmA" placeholder="84/87" /></div>
-      <div><label>Bookmaker B (Back/Lay)</label><input type="text" id="bgCric_bmB" placeholder="110/118" /></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label style="font-size:11px; color:#72bbef;">Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
+      <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Bookmaker A (Back/Lay)</label><input type="text" id="bgCric_bmA" placeholder="84/87" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Bookmaker B (Back/Lay)</label><input type="text" id="bgCric_bmB" placeholder="110/118" /></div>
+      <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
+      <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Inning Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
+      <div><label style="font-size:11px; color:#ffd700;">Last Digit Rate</label><input type="number" step="0.05" id="bgCric_digit" placeholder="9.75" /></div>
     </div>
-  </div>
 
-  <div class="c-sec">
-    <h4>4. Fancy Session & Last Digit Rate</h4>
-    <div class="c-grid2">
-      <div><label>6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
-      <div><label>10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
-      <div><label>Inning Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
-      <div><label>Last Digit Payout</label><input type="number" step="0.05" id="bgCric_digit" placeholder="9.75" /></div>
-    </div>
+    <button type="button" class="btn btn-gold" onclick="bgCricSaveFirebase()">✅ SAVE CRICKET RATES TO LIVE SITE</button>
+    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetFirebase()">🗑️ Reset Match to Auto-API</button>
   </div>
-
-  <button type="button" class="c-btn c-save" onclick="bgCricSave()">✅ Save Cricket Rates & Score</button>
-  <button type="button" class="c-btn c-reset" onclick="bgCricReset()">🗑️ Reset to Auto-API</button>
 </div>
 
 <script>
 (function() {
-  const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
+  const CRIC_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
+  const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
 
-  async function initBgCricAdmin() {
+  async function initBgCric() {
     try {
-      const [r1, r2] = await Promise.all([
-        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`),
-        fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`)
-      ]);
-      const j1 = await r1.json();
-      const j2 = await r2.json();
-      const map = new Map();
-      (j1.data || []).forEach(m => { if (!m.matchEnded) map.set(m.id, m); });
-      (j2.data || []).forEach(m => { if (!m.matchEnded && !map.has(m.id)) map.set(m.id, m); });
-
+      const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_KEY}&offset=0`);
+      const j = await res.json();
+      const list = (j.status === "success" && Array.isArray(j.data)) ? j.data : [];
       const sel = document.getElementById("bgCric_matchSelect");
       sel.innerHTML = "";
-      Array.from(map.values()).forEach(m => {
+      list.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.text = (m.matchStarted ? "🔴 " : "🕒 ") + m.name;
+        opt.text = (m.matchStarted && !m.matchEnded ? "🔴 " : "🕒 ") + m.name;
         sel.appendChild(opt);
       });
-      window.bgCricLoadSaved();
+      window.bgCricLoadFromFirebase();
     } catch (e) {
       document.getElementById("bgCric_matchSelect").innerHTML = "<option>Matches load nahi ho paye</option>";
     }
   }
 
-  window.bgCricLoadSaved = function() {
-    const id = document.getElementById("bgCric_matchSelect").value;
-    const all = JSON.parse(localStorage.getItem("bg_cricket_admin_overrides") || "{}");
-    const ov = all[id] || {};
-
-    document.getElementById("bgCric_runs").value = ov.liveRuns || "";
-    document.getElementById("bgCric_overs").value = ov.liveOvers || "";
-    document.getElementById("bgCric_balls").value = ov.recentBalls || "";
-    document.getElementById("bgCric_status").value = ov.customStatus || "";
-    document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
-
-    document.getElementById("bgCric_aBack").value = ov.teamABack || "";
-    document.getElementById("bgCric_aLay").value = ov.teamALay || "";
-    document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
-    document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
-
-    document.getElementById("bgCric_bmA").value = ov.bmABack ? `${ov.bmABack}/${ov.bmALay}` : "";
-    document.getElementById("bgCric_bmB").value = ov.bmBBack ? `${ov.bmBBack}/${ov.bmBLay}` : "";
-    document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
-    document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
-    document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
-    document.getElementById("bgCric_digit").value = ov.digitPayout || "";
-  };
-
-  window.bgCricSave = function() {
+  window.bgCricLoadFromFirebase = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
-    const all = JSON.parse(localStorage.getItem("bg_cricket_admin_overrides") || "{}");
+    try {
+      const r = await fetch(`${FB_URL}/cricketControls/${id}.json?t=${Date.now()}`);
+      const ov = (await r.json()) || {};
+      document.getElementById("bgCric_runs").value = ov.liveRuns || "";
+      document.getElementById("bgCric_overs").value = ov.liveOvers || "";
+      document.getElementById("bgCric_balls").value = ov.recentBalls || "";
+      document.getElementById("bgCric_status").value = ov.customStatus || "";
+      document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
+      document.getElementById("bgCric_aBack").value = ov.teamABack || "";
+      document.getElementById("bgCric_aLay").value = ov.teamALay || "";
+      document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
+      document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
+      document.getElementById("bgCric_bmA").value = ov.bmABack ? `${ov.bmABack}/${ov.bmALay}` : "";
+      document.getElementById("bgCric_bmB").value = ov.bmBBack ? `${ov.bmBBack}/${ov.bmBLay}` : "";
+      document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
+      document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
+      document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
+      document.getElementById("bgCric_digit").value = ov.digitPayout || "";
+    } catch (e) {}
+  };
+
+  window.bgCricSaveFirebase = async function() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
     const bmA = document.getElementById("bgCric_bmA").value.split("/");
     const bmB = document.getElementById("bgCric_bmB").value.split("/");
     const s6 = document.getElementById("bgCric_s6").value.split("/");
     const s10 = document.getElementById("bgCric_s10").value.split("/");
     const s20 = document.getElementById("bgCric_s20").value.split("/");
 
-    all[id] = {
+    const payload = {
       liveRuns: document.getElementById("bgCric_runs").value.trim(),
       liveOvers: document.getElementById("bgCric_overs").value.trim(),
       recentBalls: document.getElementById("bgCric_balls").value.trim(),
@@ -565,23 +530,25 @@
       sess20Yes: s20[1] ? s20[1].trim() : "",
       digitPayout: document.getElementById("bgCric_digit").value.trim()
     };
-    localStorage.setItem("bg_cricket_admin_overrides", JSON.stringify(all));
-    alert("Cricket Rates & Score Save Ho Gaye!");
+
+    await fetch(`${FB_URL}/cricketControls/${id}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    alert("✅ Cricket Rates & Score Firebase par Live Save Ho Gaye!");
   };
 
-  window.bgCricReset = function() {
+  window.bgCricResetFirebase = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
-    const all = JSON.parse(localStorage.getItem("bg_cricket_admin_overrides") || "{}");
-    delete all[id];
-    localStorage.setItem("bg_cricket_admin_overrides", JSON.stringify(all));
-    window.bgCricLoadSaved();
-    alert("Match Reset Ho Gaya!");
+    if (!id) return;
+    await fetch(`${FB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
+    window.bgCricLoadFromFirebase();
+    alert("🗑️ Reset ho gaya! Ab Auto-API score aur rates chalenge.");
   };
 
-  initBgCricAdmin();
+  initBgCric();
 })();
 </script>
-<!-- ==================== END CRICKET CONTROL PANEL ==================== -->
- 
 </body>
 </html>
