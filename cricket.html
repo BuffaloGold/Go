@@ -47,7 +47,7 @@
     .m-right { text-align: right; }
     .open-pill { background: linear-gradient(135deg, #ffd700, #f59e0b); color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; display: inline-block; }
     .m-date { font-size: 10px; color: #bbb; margin-top: 4px; }
-    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; }
+    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
 
     /* SCREEN 2: MATCH CONTESTS & LIVE SCORE */
     #contestScreen { display: none; }
@@ -278,8 +278,8 @@
   <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
   <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
-  </div>
-  <script>
+</div>
+<script>
   const CRIC_API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
 
   const mobile = localStorage.getItem("activeUser");
@@ -313,60 +313,57 @@
   }
 
   async function loadAllRealMatches(force = false) {
+    const box = document.getElementById("matchListContainer");
     const cleanKey = CRIC_API_KEY.trim().toLowerCase();
-    const cachedJson = sessionStorage.getItem("cricMergedCache");
-    const cachedTime = Number(sessionStorage.getItem("cricMergedTime") || 0);
 
-    if (!force && cachedJson && (Date.now() - cachedTime < 60000)) {
-      allMatches = JSON.parse(cachedJson);
+    const savedData = localStorage.getItem("bg_cric_saved_matches");
+    const savedTime = Number(localStorage.getItem("bg_cric_saved_time") || 0);
+
+    if (!force && savedData && (Date.now() - savedTime < 300000)) {
+      allMatches = JSON.parse(savedData);
       renderMatchList();
       if (activeMatchObj) {
-        const updated = allMatches.find(x => x.id === activeMatchObj.id);
-        if (updated) openMatchContests(updated);
+        const up = allMatches.find(x => x.id === activeMatchObj.id);
+        if (up) openMatchContests(up);
       }
       return;
     }
 
     try {
-      const [resLive, resUp] = await Promise.all([
-        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${cleanKey}&offset=0`),
-        fetch(`https://api.cricapi.com/v1/matches?apikey=${cleanKey}&offset=0`)
-      ]);
-      const jsonLive = await resLive.json();
-      const jsonUp = await resUp.json();
+      const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${cleanKey}&offset=0`);
+      const json = await res.json();
 
-      const liveArr = (jsonLive.status === "success" && Array.isArray(jsonLive.data)) ? jsonLive.data : [];
-      const upArr = (jsonUp.status === "success" && Array.isArray(jsonUp.data)) ? jsonUp.data : [];
+      if (json.status === "success" && Array.isArray(json.data) && json.data.length > 0) {
+        let list = json.data.map(m => ({
+          ...m,
+          isLive: Boolean(m.matchStarted && !m.matchEnded),
+          isUpcoming: Boolean(!m.matchStarted)
+        }));
 
-      const mapById = new Map();
-      liveArr.forEach(m => {
-        if (!m.matchEnded) {
-          mapById.set(m.id, { ...m, isLive: Boolean(m.matchStarted && !m.matchEnded), isUpcoming: Boolean(!m.matchStarted) });
+        list.sort((a, b) => (a.isLive === b.isLive) ? 0 : b.isLive ? 1 : -1);
+
+        allMatches = list;
+        localStorage.setItem("bg_cric_saved_matches", JSON.stringify(allMatches));
+        localStorage.setItem("bg_cric_saved_time", String(Date.now()));
+        renderMatchList();
+
+        if (activeMatchObj) {
+          const up = allMatches.find(x => x.id === activeMatchObj.id);
+          if (up) openMatchContests(up);
         }
-      });
-      upArr.forEach(m => {
-        if (!m.matchEnded && !mapById.has(m.id)) {
-          mapById.set(m.id, { ...m, isLive: Boolean(m.matchStarted && !m.matchEnded), isUpcoming: Boolean(!m.matchStarted) });
-        }
-      });
-
-      let merged = Array.from(mapById.values());
-      merged.sort((a, b) => {
-        if (a.isLive !== b.isLive) return b.isLive ? 1 : -1;
-        return new Date(a.dateTimeGMT || a.date) - new Date(b.dateTimeGMT || b.date);
-      });
-
-      allMatches = merged;
-      sessionStorage.setItem("cricMergedCache", JSON.stringify(allMatches));
-      sessionStorage.setItem("cricMergedTime", String(Date.now()));
-      renderMatchList();
-
-      if (activeMatchObj) {
-        const updated = allMatches.find(x => x.id === activeMatchObj.id);
-        if (updated) openMatchContests(updated);
+      } else if (savedData) {
+        allMatches = JSON.parse(savedData);
+        renderMatchList();
+      } else {
+        box.innerHTML = `<div class="empty-msg">⚠️ <b>API Notice:</b> ${json.reason || "Daily 100 hits limit reached. Kal subah auto-reset hoga."}</div>`;
       }
     } catch (e) {
-      document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Internet connection check karein aur Refresh dabayein.</div>`;
+      if (savedData) {
+        allMatches = JSON.parse(savedData);
+        renderMatchList();
+      } else {
+        box.innerHTML = `<div class="empty-msg">Network error! Internet check karke Refresh dabayein.</div>`;
+      }
     }
   }
 
@@ -399,7 +396,7 @@
     });
 
     if (filtered.length === 0) {
-      box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai. Refresh dabayein.</div>`;
+      box.innerHTML = `<div class="empty-msg">Is filter mein abhi koi match nahi hai. <b>All Matches</b> par click karein.</div>`;
       return;
     }
 
@@ -417,7 +414,7 @@
       item.innerHTML = `
         <div class="m-left">
           <div class="m-badges">
-            ${m.isLive ? '<span class="b-live">● LIVE</span>' : '<span class="b-up">UPCOMING</span>'}
+            ${m.isLive ? '<span class="b-live">● LIVE</span>' : m.isUpcoming ? '<span class="b-up">UPCOMING</span>' : '<span class="b-up">RESULT</span>'}
             <span class="b-type">${(m.matchType || "T20").toUpperCase()}</span>
           </div>
           <div class="m-title">${m.name}</div>
@@ -501,7 +498,6 @@
     const dogBack = ov.teamBBack || (currRuns > 80 ? "2.68" : "2.10");
     const dogLay = ov.teamBLay || (parseFloat(dogBack) + 0.04).toFixed(2);
 
-    // 1. Match Odds
     document.getElementById("matchOddsBody").innerHTML = isLocked ? `
       <div class="contest-row"><div class="runner-name">${teamA}</div><div class="rate-locked">BALL RUNNING</div></div>
       <div class="contest-row"><div class="runner-name">${teamB}</div><div class="rate-locked">BALL RUNNING</div></div>
@@ -522,7 +518,6 @@
       </div>
     `;
 
-    // 2. Bookmaker
     const bmABack = ov.bmABack || Math.round((parseFloat(favBack) - 1) * 100);
     const bmALay = ov.bmALay || (Number(bmABack) + 3);
     const bmBBack = ov.bmBBack || Math.round((parseFloat(dogBack) - 1) * 100);
@@ -548,7 +543,6 @@
       </div>
     `;
 
-    // 3. Fancy / Session
     const crrVal = currOvers > 0 ? (currRuns / currOvers) : 8.2;
     const s1No = ov.sess6No || Math.max(currRuns + 12, Math.round(crrVal * 6));
     const s1Yes = ov.sess6Yes || (Number(s1No) + 2);
@@ -581,7 +575,6 @@
       `;
     });
 
-    // 4. Last Digit
     const digitRate = ov.digitPayout || 9.75;
     const digitSessions = [
       `1st Inning 10 Over Last Digit`,
