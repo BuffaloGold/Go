@@ -208,15 +208,19 @@
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {};
   let cricketWinRate = 35;
+  let lastScoreSignature = "";
+  let ballChangeLockUntil = 0;
 
-  // Smart Multi-Key Fetcher: Agar ek key ki limit khatam ho toh automatic agli key try karega
-  async function fetchCricWithRotation(endpoint) {
+  async function fetchCricFast(endpoint) {
     let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % API_KEYS.length;
     for (let i = 0; i < API_KEYS.length; i++) {
       const idx = (startIdx + i) % API_KEYS.length;
       const key = API_KEYS[idx];
       try {
-        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${key}&offset=0&t=${Date.now()}`);
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 3500);
+        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${key}&offset=0&t=${Date.now()}`, { signal: ctrl.signal });
+        clearTimeout(tid);
         const j = await r.json();
         if (j && j.status === "success" && Array.isArray(j.data)) {
           localStorage.setItem("bg_cric_key_idx", String(idx));
@@ -227,21 +231,70 @@
     return null;
   }
 
-  async function syncAdminAndStats() {
+  function parseMatches(rawArr) {
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    const sevenDaysAhead = now + (7 * 24 * 60 * 60 * 1000);
+    const map = new Map();
+
+    rawArr.forEach(m => {
+      if (!m || !m.id || map.has(m.id)) return;
+      const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
+      const hasScore = Array.isArray(m.score) && m.score.length > 0;
+      const st = String(m.status || "").toLowerCase();
+
+      const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
+      const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
+      const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 1800000) && mTime <= sevenDaysAhead);
+
+      if (isTrueLive || isUpcoming || isCompleted) {
+        map.set(m.id, { ...m, isTrueLive, isUpcoming, isCompleted, mTime });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => (b.mTime || 0) - (a.mTime || 0));
+  }
+
+  async function fastLivePulse() {
     try {
-      const [rCtrl, rRate] = await Promise.all([
+      const [rCtrl, rRate, rCache] = await Promise.all([
         fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
-        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
+        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/sharedCricketCache.json?t=${Date.now()}`)
       ]);
       overrides = (await rCtrl.json()) || {};
       const rateObj = (await rRate.json()) || {};
       cricketWinRate = Number(rateObj.cricket || 35);
 
+      const fbCache = await rCache.json();
+      let liveList = (fbCache && Array.isArray(fbCache.list)) ? fbCache.list : [];
+
+      if (!fbCache || (Date.now() - Number(fbCache.updatedAt || 0) >= 4000)) {
+        const freshArr = await fetchCricFast("currentMatches");
+        if (Array.isArray(freshArr) && freshArr.length > 0) {
+          liveList = parseMatches([...freshArr, ...liveList]);
+          fetch(`${FB_URL}/sharedCricketCache.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updatedAt: Date.now(), list: liveList })
+          }).catch(() => {});
+        }
+      }
+
+      if (liveList.length > 0) matches = liveList;
+
       if (activeMatch) {
+        const fresh = matches.find(x => x.id === activeMatch.id);
+        if (fresh) {
+          const newSig = JSON.stringify(fresh.score || []);
+          if (lastScoreSignature && newSig !== lastScoreSignature) {
+            ballChangeLockUntil = Date.now() + 3000;
+          }
+          lastScoreSignature = newSig;
+          activeMatch = fresh;
+        }
         await fetchMatchBetLimits(activeMatch.id);
-        await loadMatches(false);
-        const updated = matches.find(x => x.id === activeMatch.id);
-        if (updated) openMatch(updated);
+        openMatch(activeMatch);
       } else if (matches.length) {
         renderList();
       }
@@ -263,53 +316,28 @@
     } catch (e) {}
   }
 
-  // Firebase Shared Cache + 5-Key Auto Rotation
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
     try {
-      // 1. Pehle Firebase Shared Cache check karein (sabhi users ke liye ek hi API hit)
       if (!force) {
         const fbRes = await fetch(`${FB_URL}/sharedCricketCache.json?t=${Date.now()}`);
         const fbCache = await fbRes.json();
-        if (fbCache && Array.isArray(fbCache.list) && fbCache.list.length > 0 && (Date.now() - Number(fbCache.updatedAt || 0) < 25000)) {
+        if (fbCache && Array.isArray(fbCache.list) && fbCache.list.length > 0 && (Date.now() - Number(fbCache.updatedAt || 0) < 8000)) {
           matches = fbCache.list;
           renderList();
           return;
         }
       }
 
-      // 2. Agar cache 25 sec purana hai toh 5 keys mein se active key se fetch karein
       const [arr1, arr2] = await Promise.all([
-        fetchCricWithRotation("currentMatches"),
-        fetchCricWithRotation("matches")
+        fetchCricFast("currentMatches"),
+        fetchCricFast("matches")
       ]);
 
-      const now = Date.now();
-      const oneDayAgo = now - (24 * 60 * 60 * 1000);
-      const sevenDaysAhead = now + (7 * 24 * 60 * 60 * 1000);
-
-      const map = new Map();
-      [...(arr1 || []), ...(arr2 || [])].forEach(m => {
-        if (!m || !m.id || map.has(m.id)) return;
-        const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
-        const hasScore = Array.isArray(m.score) && m.score.length > 0;
-        const st = String(m.status || "").toLowerCase();
-
-        const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
-        const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
-        const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 1800000) && mTime <= sevenDaysAhead);
-
-        if (isTrueLive || isUpcoming || isCompleted) {
-          map.set(m.id, { ...m, isTrueLive, isUpcoming, isCompleted, mTime });
-        }
-      });
-
-      const merged = Array.from(map.values());
+      const merged = parseMatches([...(arr1 || []), ...(arr2 || [])]);
       if (merged.length > 0) {
-        merged.sort((a, b) => b.mTime - a.mTime);
         matches = merged;
         renderList();
-        // Firebase par save kar dein taaki dusre users ko API hit na karni pade
         fetch(`${FB_URL}/sharedCricketCache.json`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -372,8 +400,10 @@
     const m = matches.find(x => x.id === id);
     if (m) {
       activeMatch = m;
+      lastScoreSignature = JSON.stringify(m.score || []);
       await fetchMatchBetLimits(m.id);
       openMatch(m);
+      fastLivePulse();
     }
   }
 
@@ -384,8 +414,7 @@
     if (maxMoney > 0 && st.totalMoney >= maxMoney) return { blocked: true, reason: `Limit ₹${maxMoney} Full` };
     return { blocked: false, reason: "" };
   }
-
-  function openMatch(m) {
+    function openMatch(m) {
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
@@ -416,9 +445,11 @@
       : "Match start hone par live score yahan aayega";
     document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
 
-    const globalLocked = Boolean(ov.locked || m.isCompleted);
+    const isBallRunning = Date.now() < ballChangeLockUntil;
+    const globalLocked = Boolean(ov.locked || m.isCompleted || isBallRunning);
+    const lockBannerText = isBallRunning ? "BALL RUNNING" : "Suspended";
 
-    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● LIVE OPEN";
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isBallRunning ? "⚡ BALL RUNNING" : globalLocked ? "🔒 SUSPENDED" : "● LIVE FAST OPEN";
     document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
 
     let autoOddA = "1.80", autoOddB = "2.05", oddSpread = 0.03, sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
@@ -446,7 +477,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
           <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || 'Suspended'}</div>` : ''}
+          ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || lockBannerText}</div>` : ''}
         </div>
       </div>
       <div class="contest-row">
@@ -454,7 +485,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
           <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || 'Suspended'}</div>` : ''}
+          ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || lockBannerText}</div>` : ''}
         </div>
       </div>`;
 
@@ -469,7 +500,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${bmA_B}', ${aB})"><span class="rate-main">${bmA_B}</span><span class="rate-sub">Back</span></div>
           <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${bmA_L}', ${aL})"><span class="rate-main">${bmA_L}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+          ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
         </div>
       </div>
       <div class="contest-row">
@@ -477,7 +508,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${bmB_B}', ${bB})"><span class="rate-main">${bmB_B}</span><span class="rate-sub">Back</span></div>
           <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${bmB_L}', ${bL})"><span class="rate-main">${bmB_L}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+          ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
         </div>
       </div>`;
 
@@ -508,7 +539,7 @@
       const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
       const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
       const isRowLocked = globalLocked || f.autoDone || lim.blocked;
-      const lockText = f.autoDone ? "Over Complete" : lim.blocked ? lim.reason : "Suspended";
+      const lockText = f.autoDone ? "Over Complete" : lim.blocked ? lim.reason : lockBannerText;
 
       return `<div class="contest-row">
         <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
@@ -537,7 +568,7 @@
       const lim = checkLimitStatus(b.title, maxUsersAllowed, maxMoneyAllowed);
       if (globalLocked || b.done || lim.blocked) {
         return `<div class="market-card">
-          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Over Completed' : lim.blocked ? lim.reason : 'Suspended'}</span></div>
+          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Over Completed' : lim.blocked ? lim.reason : lockBannerText}</span></div>
         </div>`;
       }
       let grid = "";
@@ -566,7 +597,8 @@
   }
 
   function openBet(marketName, side, lockedLine, oddMult) {
-    selBet = { marketName, side, lockedLine, oddMult: Number(oddMult) };
+    if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 2 second baad bet lagayein.");
+    selBet = { marketName, side, lockedLine, oddMult: Number(oddMult), sigAtOpen: lastScoreSignature };
     document.getElementById("betTitle").innerText = `${marketName} (${side}: ${lockedLine})`;
     document.getElementById("betOddTag").innerText = `@ ${oddMult}x`;
     document.getElementById("betModal").classList.add("open");
@@ -587,7 +619,22 @@
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
     if (st > userBal) return alert("Insufficient Balance!");
 
-    await fetchMatchBetLimits(activeMatch.id);
+    const btn = document.querySelector("#betModal button:last-child");
+    btn.disabled = true;
+    btn.innerText = "⏳ Verifying Live Ball...";
+
+    await new Promise(r => setTimeout(r, 2000));
+    await fastLivePulse();
+
+    btn.disabled = false;
+    btn.innerText = "Confirm & Lock Bet";
+
+    if (Date.now() < ballChangeLockUntil || lastScoreSignature !== selBet.sigAtOpen) {
+      alert("⚠️ Odds / Score abhi change hua hai (Ball Running)! Naye rate par bet lagayein.");
+      document.getElementById("betModal").classList.remove("open");
+      return;
+    }
+
     const ov = overrides[activeMatch.id] || {};
     const limCheck = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
     if (limCheck.blocked) {
@@ -619,7 +666,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(betRecord)
       });
-      alert(`✅ Bet Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
+      alert(`✅ Bet Verified & Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
       await fetchMatchBetLimits(activeMatch.id);
       openMatch(activeMatch);
@@ -657,9 +704,9 @@
     document.getElementById("matchListScreen").style.display = "block";
   }
 
-  syncAdminAndStats();
-  loadMatches(false);
-  setInterval(syncAdminAndStats, 25000);
+  loadMatches(true);
+  fastLivePulse();
+  setInterval(fastLivePulse, 4000);
 </script>
 </body>
 </html>
