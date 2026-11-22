@@ -39,7 +39,7 @@
     .team-box h4 { font-size: 15px; color: #fff; margin-bottom: 3px; }
     .team-box p { font-size: 11px; color: #bbb; }
     .big-score { text-align: right; }
-    .big-score .runs { font-size: 20px; font-weight: 900; color: #ffd700; }
+    .big-score .runs { font-size: 18px; font-weight: 900; color: #ffd700; }
     .big-score .overs { font-size: 11px; color: #ddd; margin-top: 2px; }
 
     .inning-row {
@@ -152,7 +152,7 @@
     <button class="tab-btn active" onclick="filterMatches('all', this)">🏏 All Matches</button>
     <button class="tab-btn" onclick="filterMatches('live', this)">🔴 Live Now</button>
     <button class="tab-btn" onclick="filterMatches('upcoming', this)">🕒 Upcoming</button>
-    <button class="tab-btn" onclick="fetchRealMatches()">🔄 Refresh</button>
+    <button class="tab-btn" onclick="fetchRealMatches(true)">🔄 Refresh</button>
   </div>
 
   <div class="section-bar">
@@ -196,10 +196,8 @@
 </div>
 
 <script>
-  // ============================================================
-  // YAHAN APNI CRICKETDATA.ORG (CRICAPI) KI FREE API KEY DALEIN:
-  const CRIC_API_KEY = "YAHAN_APNI_KEY_DALEIN";
-  // ============================================================
+  // Aapki Active CricketData API Key:
+  const CRIC_API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
 
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
@@ -223,61 +221,66 @@
   let selectedMatchId = null;
   let selectedBet = null;
 
-  async function fetchRealMatches() {
+  async function fetchRealMatches(forceRefresh = false) {
     const container = document.getElementById("matchContainer");
+    const cleanKey = CRIC_API_KEY.trim().toLowerCase();
 
-    if (!CRIC_API_KEY || CRIC_API_KEY === "b10ae8c8-70d1-442e-b709-98e66298e902") {
-      document.getElementById("scoreMatchTitle").innerText = "API Key Required";
-      document.getElementById("scoreVenueText").innerText = "cricketdata.org se free key lekar code mein dalein";
-      document.getElementById("commText").innerText = "Abhi koi fake match nahi chalaya gaya hai. Free API key dalte hi 100% real live score aur ball-by-ball overs dikhenge.";
-      container.innerHTML = `<div class="info-empty">⚠️ <b>Real Live Score Setup:</b><br>1. <b>cricketdata.org</b> par free account banayein.<br>2. Wahan se apni <b>API Key</b> copy karein.<br>3. <code>cricket.html</code> mein <code>CRIC_API_KEY</code> ki jagah paste karke save karein.</div>`;
+    // 45-second cache taaki free 100 hits/day safe rahein
+    const cachedJson = sessionStorage.getItem("cricCacheData");
+    const cachedTime = Number(sessionStorage.getItem("cricCacheTime") || 0);
+    if (!forceRefresh && cachedJson && (Date.now() - cachedTime < 45000)) {
+      processMatches(JSON.parse(cachedJson));
       return;
     }
 
     try {
-      const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_API_KEY}&offset=0`);
+      const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${cleanKey}&offset=0`);
       const json = await res.json();
 
-      if (json.status !== "success" || !json.data) {
-        container.innerHTML = `<div class="info-empty">API Limit poori ho gayi ya invalid key hai. CricketData dashboard check karein.</div>`;
-        return;
+      if (json.status === "success" && Array.isArray(json.data)) {
+        sessionStorage.setItem("cricCacheData", JSON.stringify(json.data));
+        sessionStorage.setItem("cricCacheTime", String(Date.now()));
+        processMatches(json.data);
+      } else {
+        container.innerHTML = `<div class="info-empty">❌ <b>Server Response:</b> ${json.reason || "Unable to fetch matches"}</div>`;
       }
-
-      allMatches = json.data.map((m, idx) => {
-        const isLive = m.matchStarted && !m.matchEnded;
-        const isUpcoming = !m.matchStarted;
-        // Deterministic realistic odds based on match id
-        const baseOdd = (1.70 + ((idx % 5) * 0.08)).toFixed(2);
-        const layOdd = (parseFloat(baseOdd) + 0.02).toFixed(2);
-
-        return {
-          id: m.id,
-          name: m.name || "Cricket Match",
-          matchType: (m.matchType || "T20").toUpperCase(),
-          status: m.status || "",
-          venue: m.venue || "International Venue",
-          date: m.date || "",
-          isLive,
-          isUpcoming,
-          matchEnded: m.matchEnded,
-          score: m.score || [],
-          back: baseOdd,
-          lay: layOdd
-        };
-      });
-
-      // Live matches ko sabse upar rakhein
-      allMatches.sort((a, b) => (b.isLive === a.isLive) ? 0 : b.isLive ? 1 : -1);
-
-      if (allMatches.length > 0) {
-        const active = allMatches.find(x => x.id === selectedMatchId) || allMatches[0];
-        updateScoreboard(active);
-      }
-
-      renderMatches();
     } catch (err) {
-      container.innerHTML = `<div class="info-empty">Internet ya API connection error. Refresh button dabayein.</div>`;
+      container.innerHTML = `<div class="info-empty">Network error! Internet check karke Refresh dabayein.</div>`;
     }
+  }
+
+  function processMatches(dataList) {
+    allMatches = dataList.map((m, idx) => {
+      const isLive = Boolean(m.matchStarted && !m.matchEnded);
+      const isUpcoming = Boolean(!m.matchStarted);
+      const baseOdd = (1.72 + ((idx % 5) * 0.07)).toFixed(2);
+      const layOdd = (parseFloat(baseOdd) + 0.02).toFixed(2);
+
+      return {
+        id: m.id,
+        name: m.name || "Cricket Match",
+        matchType: (m.matchType || "T20").toUpperCase(),
+        status: m.status || "",
+        venue: m.venue || "International Venue",
+        date: m.date || "",
+        isLive,
+        isUpcoming,
+        matchEnded: Boolean(m.matchEnded),
+        score: m.score || [],
+        back: baseOdd,
+        lay: layOdd
+      };
+    });
+
+    // Live matches ko sabse upar sort karein
+    allMatches.sort((a, b) => (b.isLive === a.isLive) ? 0 : b.isLive ? 1 : -1);
+
+    if (allMatches.length > 0) {
+      const active = allMatches.find(x => x.id === selectedMatchId) || allMatches[0];
+      updateScoreboard(active);
+    }
+
+    renderMatches();
   }
 
   function updateScoreboard(m) {
@@ -405,9 +408,8 @@
     closeBetSlip();
   }
 
-  // Real data load karein aur har 20 second mein refresh karein
   fetchRealMatches();
-  setInterval(fetchRealMatches, 20000);
+  setInterval(() => fetchRealMatches(false), 60000);
 </script>
 </body>
 </html>
