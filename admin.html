@@ -1,610 +1,542 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cricket Exchange & Contests - Buffalo Gold</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-    body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
-    .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 10px; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #260636; padding: 10px 12px; border-radius: 12px; border: 1px solid #75229e; }
-    .user-info h3 { font-size: 14px; color: #ffd700; }
-    .user-info span { font-size: 11px; color: #aaa; }
-    .mini-wallet { text-align: right; cursor: pointer; }
-    .mini-wallet div { font-size: 11px; color: #ccc; }
-    .mini-wallet strong { font-size: 13px; color: #28e04d; }
-    .hero-box { background: linear-gradient(135deg, #4a0d66, #260636); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 2px; }
-    .hero-box p { font-size: 11px; color: #ddd; }
-    .refresh-btn { background: #ffd700; color: #000; border: none; padding: 7px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer; }
-    .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-    .f-tab { flex: 1; padding: 8px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 11px; font-weight: 700; cursor: pointer; }
-    .f-tab.active { background: #ffd700; color: #000; border-color: #ffd700; }
-    .list-header { background: #260636; padding: 8px 12px; border-radius: 10px 10px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 700; color: #ffd700; display: flex; justify-content: space-between; }
-    .match-list-box { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
-    .match-item { padding: 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-    .m-left { flex: 1; padding-right: 10px; }
-    .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
-    .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
-    .b-done { background: #6b7280; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
-    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 4px 0; }
-    .m-score { font-size: 11px; color: #28e04d; font-weight: 600; }
-    .open-pill { background: #ffd700; color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; }
-    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
-    #contestScreen { display: none; }
-    .back-bar { display: flex; justify-content: space-between; align-items: center; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
-    .score-banner { background: linear-gradient(145deg, #2d0740, #14021f); border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
-    .big-runs { font-size: 19px; font-weight: 900; color: #ffd700; }
-    .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-    .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
-    .market-pills::-webkit-scrollbar { display: none; }
-    .pill-btn { white-space: nowrap; padding: 7px 12px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 700; cursor: pointer; }
-    .pill-btn.active { background: #28e04d; color: #000; border-color: #28e04d; }
-    .market-card { background: #220530; border: 1px solid #6b1d91; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
-    .market-head { background: #2d0840; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
-    .cashout-tag { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
-    .col-headers { display: flex; justify-content: flex-end; background: #1a0326; padding: 4px 10px; font-size: 10px; font-weight: 700; color: #bbb; gap: 6px; }
-    .col-headers span { width: 60px; text-align: center; }
-    .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; position: relative; }
-    .contest-row:last-child { border-bottom: none; }
-    .runner-name { font-size: 12px; font-weight: 700; color: #fff; flex: 1; padding-right: 6px; }
-    .runner-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
-    .rate-boxes { display: flex; gap: 6px; position: relative; }
-    .rate-btn { width: 60px; height: 40px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; }
-    .rate-back { background: #72bbef; }
-    .rate-lay { background: #faa9ba; }
-    .rate-main { font-size: 13px; font-weight: 900; line-height: 1.1; }
-    .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
-    .suspended-overlay { position: absolute; inset: 0; background: rgba(20, 10, 28, 0.86); border: 1px solid #ef4444; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
-    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; background: #1b0429; }
-    .digit-box { background: #72bbef; color: #000; border-radius: 6px; padding: 7px 4px; text-align: center; cursor: pointer; }
-    .digit-box:active { transform: scale(0.95); background: #ffd700; }
-    .digit-num { font-size: 14px; font-weight: 900; display: block; }
-    .digit-odd { font-size: 10px; font-weight: 700; opacity: 0.85; }
-    .bet-item-card { padding: 10px; border-bottom: 1px solid #3c0c54; font-size: 12px; }
-    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.8); }
-    .bet-modal.open { display: block; }
-    .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
-    .quick-stakes { display: flex; gap: 6px; margin-bottom: 10px; }
-    .stake-chip { flex: 1; background: #3b0a52; color: #ffd700; border: 1px solid #75229e; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
-    .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
-    .nav-item { text-align: center; color: #bbb; font-size: 11px; cursor: pointer; flex: 1; }
-    .nav-item.active { color: #ffd700; font-weight: bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Buffalo Gold</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #0d0214; color: #fff; padding: 14px; display: flex; flex-direction: column; align-items: center; }
+  .wrap { width: 100%; max-width: 500px; }
+  input, select { width: 100%; padding: 11px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #75229e; background: #14021f; color: #fff; font-size: 14px; }
+  .btn { padding: 8px 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
+  .btn-gold { background: linear-gradient(180deg, #ffd700, #e69500); color: #000; width: 100%; padding: 13px; font-size: 15px; }
+  .btn-green { background: #1db954; color: #fff; }
+  .btn-red { background: #e63946; color: #fff; }
+  .btn-blue { background: #3a86ff; color: #fff; }
+  .btn-del { background: #9b0000; border: 1px solid #ff4d4d; color: #fff; }
+  .btn-upi { background: linear-gradient(180deg, #ffbe0b, #fb5607); color: #000; width: 100%; padding: 10px; font-size: 12px; margin-bottom: 6px; }
+  .btn-qr { background: #3d0c57; border: 1px solid #28e04d; color: #28e04d; width: 100%; padding: 9px; font-size: 12px; margin-bottom: 6px; }
+  .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 6px 9px; font-size: 11px; }
+  .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
+  .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .stat { background: #1e042b; border: 1px solid #5c197d; padding: 8px 4px; border-radius: 10px; text-align: center; }
+  .stat span { font-size: 9px; color: #bbb; display: block; }
+  .stat strong { font-size: 15px; color: #ffd700; }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 14px; }
+  .tab { padding: 9px 2px; background: #260636; border: 1px solid #6b1d91; color: #ccc; border-radius: 8px; text-align: center; font-size: 10px; font-weight: bold; cursor: pointer; }
+  .tab.active { background: #ffd700; color: #000; }
+  .card { background: #1e042b; border: 1px solid #5c197d; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .reason-box { background: #2d0842; border-left: 3px solid #ffd700; padding: 8px; border-radius: 6px; font-size: 13px; margin: 8px 0; color: #ffe885; }
+  .upi-row { display: flex; justify-content: space-between; align-items: center; background: #14021f; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a1566; margin: 6px 0; gap: 6px; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; }
+  .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+  .PENDING, .OPEN { background: #ff9f1c; color: #000; }
+  .APPROVED, .AUTO_APPROVED, .RESOLVED { background: #2ec4b6; color: #000; }
+  .REJECTED { background: #e71d36; color: #fff; }
+  .qr-popup { display: none; background: #12021a; border: 1px dashed #28e04d; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 8px; }
+  .qr-popup img { width: 170px; height: 170px; background: #fff; padding: 6px; border-radius: 8px; margin: 6px auto; display: block; }
+  .hidden { display: none; }
+</style>
 </head>
 <body>
-<div class="container">
-  <div class="top-bar">
-    <div class="user-info">
-      <h3 id="userName">Player</h3>
-      <span>📱 <span id="userMob">-</span></span>
+<script>
+  const activeMob = localStorage.getItem("activeUser");
+  if (activeMob !== "9794408205") {
+    window.location.replace(activeMob ? "game.html" : "index.html");
+  }
+</script>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h3 style="color:#ffd700; font-size:16px;">👑 ADMIN PANEL</h3>
+      <span style="font-size:11px; color:#28e04d;">● 9794408205 (Master)</span>
     </div>
-    <div class="mini-wallet" onclick="location.href='wallet.html'">
-      <div>Deposit: <strong id="topDep">₹0</strong></div>
-      <div>Winning: <strong id="topWin">₹0</strong></div>
+    <div style="display:flex; gap:5px;">
+      <button type="button" class="btn btn-green" onclick="location.href='game.html'">🎰 Game</button>
+      <button type="button" class="btn btn-blue" onclick="forceLoadAll()">🔄 Sync</button>
+      <button type="button" class="btn btn-red" onclick="logoutAdmin()">Logout</button>
     </div>
   </div>
 
-  <div id="matchListScreen">
-    <div class="hero-box">
-      <div><h2>🏏 Cricket Exchange</h2><p>Real Live Matches & All Contests</p></div>
-      <button class="refresh-btn" onclick="loadMatches(true)">🔄 Refresh</button>
-    </div>
+  <div class="status-bar" id="connStatus">⏳ Direct Fast-Sync se data aa raha hai...</div>
 
-    <div class="filter-tabs">
-      <button class="f-tab active" onclick="setFilter('live', this)">🔴 Live Now</button>
-      <button class="f-tab" onclick="setFilter('upcoming', this)">🕒 Upcoming</button>
-      <button class="f-tab" onclick="setFilter('completed', this)">✅ Completed</button>
-    </div>
-
-    <div class="list-header"><span id="listHeading">🔴 Real Live Matches</span><span>Tap →</span></div>
-    <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Live matches check ho rahe hain...</div></div>
+  <div class="stats-grid">
+    <div class="stat"><span>USERS</span><strong id="stUsers">0</strong></div>
+    <div class="stat"><span>DEPOSITS</span><strong id="stDep">0</strong></div>
+    <div class="stat"><span>WITHDRAW</span><strong id="stWd">0</strong></div>
+    <div class="stat"><span>TICKETS</span><strong id="stTkt">0</strong></div>
   </div>
 
-  <div id="contestScreen">
-    <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● ODDS OPEN</span></div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('wdTab', this)">💸 Withdraw</div>
+    <div class="tab" onclick="showTab('depTab', this)">📥 Deposits</div>
+    <div class="tab" onclick="showTab('tktTab', this)">💬 Support</div>
+    <div class="tab" onclick="showTab('usersTab', this)">👥 Users</div>
+    <div class="tab" onclick="showTab('settingsTab', this)">⚙️ Rate</div>
+  </div>
 
-    <div class="score-banner">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="flex:1; padding-right:8px;">
-          <h4 id="cTitle" style="font-size:14px;">Match</h4>
-          <p id="cStatus" style="font-size:11px; color:#ccc; margin-top:3px;">Status</p>
-        </div>
-        <div style="text-align:right;">
-          <div class="big-runs" id="cRuns">--/--</div>
-          <div id="cOvers" style="font-size:11px; color:#28e04d; font-weight:700;">(-- Ov)</div>
-        </div>
+  <div id="wdTab"><div id="wdList">Loading requests...</div></div>
+  <div id="depTab" class="hidden"><div id="depList">Loading deposits...</div></div>
+  <div id="tktTab" class="hidden"><div id="tktList">Loading support tickets...</div></div>
+
+  <div id="usersTab" class="hidden">
+    <input type="text" id="searchUser" placeholder="🔍 Mobile ya Naam se search karein..." onkeyup="renderUsers()">
+    <div id="usersList"></div>
+  </div>
+
+  <div id="settingsTab" class="hidden">
+    <div class="card">
+      <h4 style="color:#ffd700; margin-bottom:10px;">🎮 Game-Wise Win Rate Control</h4>
+      <label style="font-size:12px; color:#ccc;">🐃 Buffalo Gold Slot (%):</label>
+      <select id="rate_slot"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ccc;">✈️ Aviator Crash (%):</label>
+      <select id="rate_aviator"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ccc;">🐔 Chicken Road 3D (%):</label>
+      <select id="rate_chicken"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ccc;">🏎️ Car Roulette 3D (%):</label>
+      <select id="rate_car"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ccc;">🎲 Lucky Dice 3D (%):</label>
+      <select id="rate_dice"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ccc;">🎨 Color Trading 3D (%):</label>
+      <select id="rate_color"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <button type="button" class="btn btn-gold" style="margin-top:6px;" onclick="saveSettings()">SAVE ALL GAME RATES</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CRICKET AUTO-LIMIT & RATE CONTROL ==================== -->
+<div class="wrap" style="margin-top: 14px;">
+  <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Auto-Limit & Rate Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Over complete hone par auto-suspend hoga + Max Users/Paisa limit set karein</p>
+
+    <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Match:</label>
+    <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
+      <option value="">Matches load ho rahe hain...</option>
+    </select>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#260636; padding:8px; border-radius:8px; margin-bottom:10px; border:1px solid #6b1d91;">
+      <div>
+        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Users / Contest</label>
+        <input type="number" id="bgCric_maxUsers" placeholder="e.g. 25" style="margin-bottom:0;" />
       </div>
-      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">SCORE:</span><div id="cBalls"></div></div>
+      <div>
+        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Paisa (₹) / Contest</label>
+        <input type="number" id="bgCric_maxMoney" placeholder="e.g. 15000" style="margin-bottom:0;" />
+      </div>
     </div>
 
-    <div class="market-pills">
-      <button class="pill-btn active" onclick="filterMarket('all', this)">All Markets</button>
-      <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
-      <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
-      <button class="pill-btn" onclick="filterMarket('fancy', this)">Fancy Markets</button>
-      <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
-      <button class="pill-btn" onclick="filterMarket('mybets', this)">📋 My Bets</button>
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:4px 0 12px; cursor:pointer;">
+      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Emergency Manual Lock (All Markets)
+    </label>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label style="font-size:11px; color:#72bbef;">Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
+      <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+      <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
+      <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
+      <div><label style="font-size:11px; color:#ccc;">15 Over Run (No/Yes)</label><input type="text" id="bgCric_s15" placeholder="122/124" /></div>
+      <div><label style="font-size:11px; color:#ccc;">20 Over Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
     </div>
 
-    <div class="market-card sec-odds">
-      <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
-      <div class="col-headers"><span>Back</span><span>Lay</span></div>
-      <div id="oddsBody"></div>
-    </div>
-
-    <div class="market-card sec-bookmaker">
-      <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">0% Comm</span></div>
-      <div class="col-headers"><span>Back</span><span>Lay</span></div>
-      <div id="bmBody"></div>
-    </div>
-
-    <div class="market-card sec-fancy">
-      <div class="market-head"><span>Fancy Markets (Session, Player & Boundaries)</span><span style="font-size:10px; color:#28e04d;">● LIVE</span></div>
-      <div class="col-headers"><span>No</span><span>Yes</span></div>
-      <div id="fancyBody"></div>
-    </div>
-
-    <div id="digitBody" class="sec-digit"></div>
-
-    <div class="market-card sec-mybets" style="display:none;">
-      <div class="market-head"><span>📋 My Placed Bets (Rate & Line Locked)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
-      <div id="myBetsList"><div class="empty-msg">Abhi is match par koi bet nahi lagi hai.</div></div>
-    </div>
+    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
+    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
   </div>
-</div>
-
-<div class="bet-modal" id="betModal">
-  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
-  <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
-  <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateBetReturn()" placeholder="Enter Stake (Min ₹100)" />
-  <div class="quick-stakes">
-    <button class="stake-chip" onclick="setStake(100)">+100</button>
-    <button class="stake-chip" onclick="setStake(500)">+500</button>
-    <button class="stake-chip" onclick="setStake(1000)">+1K</button>
-    <button class="stake-chip" onclick="setStake(5000)">+5K</button>
-  </div>
-  <div style="display:flex; gap:8px;">
-    <button style="flex:1; padding:10px; background:#4b5563; color:#fff; border:none; border-radius:8px; font-weight:700;" onclick="document.getElementById('betModal').classList.remove('open')">Cancel</button>
-    <button style="flex:2; padding:10px; background:#28e04d; color:#000; border:none; border-radius:8px; font-weight:800;" onclick="placeBet()">Confirm & Lock Bet</button>
-  </div>
-</div>
-
-<div class="bottom-nav">
-  <div class="nav-item" onclick="location.href='game.html'">🎰<br>Games</div>
-  <div class="nav-item active" onclick="goBack()">🏏<br>Cricket</div>
-  <div class="nav-item" onclick="location.href='wallet.html'">💰<br>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
-  <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
 
 <script>
-  const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
-  const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
 
-  const mob = localStorage.getItem("activeUser");
-  if (!mob) window.location.replace("index.html");
-
-  let userBal = 0;
-  let userNameStr = "Player";
-  try {
-    const u = JSON.parse(localStorage.getItem("cachedUser") || "{}");
-    userNameStr = u.name || "Player";
-    document.getElementById("userName").innerText = userNameStr;
-    document.getElementById("userMob").innerText = mob || "-";
-    const d = Number(u.depositBal ?? u.depositBalance ?? 0);
-    const w = Number(u.winningBal ?? u.winningBalance ?? 0);
-    userBal = d + w;
-    document.getElementById("topDep").innerText = "₹" + d;
-    document.getElementById("topWin").innerText = "₹" + w;
-  } catch (e) {}
-
-  let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
-  let matchBetsStats = {};
-
-  async function syncAdminAndStats() {
-    try {
-      const r = await fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`);
-      overrides = (await r.json()) || {};
-      if (activeMatch) {
-        await fetchMatchBetLimits(activeMatch.id);
-        openMatch(activeMatch);
-      } else if (matches.length) {
-        renderList();
-      }
-    } catch (e) {}
+  function logoutAdmin() {
+    localStorage.removeItem("activeUser");
+    localStorage.removeItem("cachedUser");
+    window.location.replace("index.html");
   }
 
-  async function fetchMatchBetLimits(matchId) {
-    try {
-      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
-      const betsObj = (await r.json()) || {};
-      const stats = {};
-      Object.values(betsObj).forEach(b => {
-        if (!b || !b.market) return;
-        if (!stats[b.market]) stats[b.market] = { users: new Set(), totalMoney: 0 };
-        stats[b.market].users.add(b.mobile);
-        stats[b.market].totalMoney += Number(b.stake || 0);
+  function showTab(tabId, el) {
+    ["wdTab", "depTab", "tktTab", "usersTab", "settingsTab"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById(tabId).classList.remove("hidden");
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    el.classList.add("active");
+  }
+
+  function copyText(val, label) {
+    navigator.clipboard.writeText(val);
+    alert("✅ " + label + " (" + val + ") copy ho gaya!");
+  }
+
+  function toggleWdQr(reqId, upiId, name, amount) {
+    const box = document.getElementById("qrBox_" + reqId);
+    const img = document.getElementById("qrImg_" + reqId);
+    if (!box) return;
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    const upiUri = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUri);
+    box.style.display = "block";
+  }
+
+  function payViaUpiApp(upiId, name, amount) {
+    window.location.href = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
+  }
+
+  async function dbGet(path) {
+    const res = await fetch(`${DB_URL}/${path}.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  async function dbPatch(path, data) {
+    const res = await fetch(`${DB_URL}/${path}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  async function dbPut(path, data) {
+    const res = await fetch(`${DB_URL}/${path}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  function getUserTotalDep(u) {
+    if (!u) return 0;
+    if (typeof u.totalDeposited === "number" && u.totalDeposited > 0) return u.totalDeposited;
+    let sum = 0;
+    if (Array.isArray(u.txns)) {
+      u.txns.forEach(t => {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && String(t.type).toLowerCase().includes("auto-deposit")) {
+          const v = parseInt(String(t.amt).replace("+₹", ""));
+          if (!isNaN(v)) sum += v;
+        }
       });
-      matchBetsStats = stats;
-    } catch (e) {}
+    }
+    return sum;
   }
 
-  async function loadMatches(force) {
-    const box = document.getElementById("matchListContainer");
-    const cache = localStorage.getItem("bg_cric_v3_cache");
-    const cTime = Number(localStorage.getItem("bg_cric_v3_time") || 0);
+  function updateUsersUI(data) {
+    allUsers = data || {};
+    const count = Object.keys(allUsers).length;
+    document.getElementById("stUsers").innerText = count;
+    document.getElementById("connStatus").innerText = "✅ Auto-Sync Active! Total " + count + " users (" + new Date().toLocaleTimeString() + ")";
+    if (!document.activeElement || document.activeElement.id !== "searchUser") renderUsers();
+  }
 
-    if (!force && cache && Date.now() - cTime < 180000) {
-      matches = JSON.parse(cache);
-      renderList();
-      return;
+  function updateWithdrawalsUI(data) {
+    allWithdrawals = data || {};
+    let pendingCount = 0;
+    const list = document.getElementById("wdList");
+    const keys = Object.keys(allWithdrawals).reverse();
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Abhi koi withdrawal request nahi hai.</div>"; document.getElementById("stWd").innerText = 0; return; }
+
+    list.innerHTML = keys.map(k => {
+      const w = allWithdrawals[k];
+      if (!w) return "";
+      if (w.status === "PENDING") pendingCount++;
+      const userRec = allUsers[w.mobile] || {};
+      const totalDep = getUserTotalDep(userRec);
+      const hasDepBadge = (totalDep >= 300 || userRec.hasDeposited)
+        ? `<span style="color:#28e04d; font-size:11px;">✔ Total Deposited: ₹${totalDep} | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`
+        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Total Deposited: ₹${totalDep} (&lt; ₹300) | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`;
+      const safeName = String(w.name || "User").replace(/['"\\]/g, "");
+      const safeUpi = String(w.upi || "").replace(/['"\\]/g, "");
+
+      return `<div class="card">
+        <div class="row-between"><strong>👤 ${w.name || 'User'} (${w.mobile || '-'})</strong><span class="badge ${w.status || 'PENDING'}">${w.status || 'PENDING'}</span></div>
+        <div style="margin-top:4px;">${hasDepBadge}</div>
+        <div class="upi-row">
+          <div style="flex:1;">
+            <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:16px;">₹${w.amount || 0}</strong></div>
+            <div style="font-size:13px; color:#28e04d; font-weight:bold; word-break:break-all;">UPI: ${w.upi || '-'}</div>
+            <div style="font-size:12px; color:#ccc; margin-top:2px;">Mob: ${w.mobile || '-'}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <button type="button" class="btn btn-copy" onclick="copyText('${safeUpi}', 'UPI ID')">📋 Copy UPI</button>
+            <button type="button" class="btn btn-copy" onclick="copyText('${w.mobile || ''}', 'Mobile')">📱 Copy Mob</button>
+          </div>
+        </div>
+        <div style="font-size:11px; color:#aaa; margin-bottom:8px;">ID: ${w.reqId || k} | ${w.date || ''}</div>
+        ${w.status === "PENDING" ? `
+          <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount || 0}')">📷 SHOW / SCAN QR CODE</button>
+          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div></div>
+          <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid & Deduct Bal</button>
+            <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject Request</button>
+          </div>` : ""}
+      </div>`;
+    }).join("");
+    document.getElementById("stWd").innerText = pendingCount;
+  }
+
+  function updateDepositsUI(data) {
+    allDeposits = data || {};
+    const list = document.getElementById("depList");
+    const keys = Object.keys(allDeposits).reverse();
+    document.getElementById("stDep").innerText = keys.length;
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Abhi koi deposit record nahi hai.</div>"; return; }
+    list.innerHTML = keys.map(k => {
+      const d = allDeposits[k];
+      if (!d) return "";
+      return `<div class="card">
+        <div class="row-between"><strong>${d.name || 'User'} (${d.mobile || '-'})</strong><span class="badge ${d.status || 'APPROVED'}">${d.status || 'APPROVED'}</span></div>
+        <div style="margin:6px 0; font-size:13px;">Amount: <strong style="color:#28e04d;">₹${d.amount || 0}</strong> | UTR: <strong style="color:#ffd700;">${d.utr || '-'}</strong></div>
+        <div style="font-size:11px; color:#aaa;">Order: ${d.depId || k} | ${d.date || ''}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function updateTicketsUI(data) {
+    allTickets = data || {};
+    let openCount = 0;
+    const list = document.getElementById("tktList");
+    const keys = Object.keys(allTickets).reverse();
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Abhi koi support ticket nahi hai.</div>"; document.getElementById("stTkt").innerText = 0; return; }
+    list.innerHTML = keys.map(k => {
+      const t = allTickets[k];
+      if (!t) return "";
+      if (t.status === "OPEN") openCount++;
+      return `<div class="card">
+        <div class="row-between"><strong>👤 ${t.name || 'User'} (${t.mobile || '-'})</strong><span class="badge ${t.status || 'OPEN'}">${t.status || 'OPEN'}</span></div>
+        <div class="reason-box"><strong>Reason:</strong> ${t.mainReason || ''}</div>
+        <div style="font-size:11px; color:#aaa; margin-bottom:6px;">${t.date || ''}</div>
+        ${t.adminReply ? `<div style="font-size:12px; color:#28e04d; margin-bottom:6px;">✅ Reply: ${t.adminReply}</div>` : ""}
+        <div style="display:flex; gap:6px;"><input type="text" id="repInput_${k}" placeholder="User ko reply likhein..." style="margin:0; padding:8px; font-size:12px;"><button type="button" class="btn btn-green" onclick="replyTicket('${k}')">Send</button></div>
+      </div>`;
+    }).join("");
+    document.getElementById("stTkt").innerText = openCount;
+  }
+
+  async function forceLoadAll() {
+    try {
+      const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
+      const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
+      const isChangingRate = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("rate_");
+      if (anyQrOpen || isTypingReply || isChangingRate) return;
+
+      const [uData, wData, dData, tData, ratesData] = await Promise.all([
+        dbGet("users"), dbGet("withdrawals"), dbGet("deposits"), dbGet("supportTickets"), dbGet("settings/rates")
+      ]);
+      updateUsersUI(uData);
+      updateWithdrawalsUI(wData);
+      updateDepositsUI(dData);
+      updateTicketsUI(tData);
+      if (ratesData && typeof ratesData === "object") {
+        if (ratesData.slot) document.getElementById("rate_slot").value = ratesData.slot;
+        if (ratesData.aviator) document.getElementById("rate_aviator").value = ratesData.aviator;
+        if (ratesData.chicken) document.getElementById("rate_chicken").value = ratesData.chicken;
+        if (ratesData.car) document.getElementById("rate_car").value = ratesData.car;
+        if (ratesData.dice) document.getElementById("rate_dice").value = ratesData.dice;
+        if (ratesData.color) document.getElementById("rate_color").value = ratesData.color;
+      }
+    } catch (e) {
+      document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
     }
+  }
 
+  async function replyTicket(tktId) {
+    const inp = document.getElementById("repInput_" + tktId);
+    const msg = (inp.value || "").trim();
+    if (!msg) return alert("Reply message likhein!");
+    await dbPatch("supportTickets/" + tktId, { adminReply: msg, status: "RESOLVED" });
+    inp.value = "";
+    alert("✅ User ko reply bhej diya gaya!");
+    forceLoadAll();
+  }
+
+  async function processWd(reqId, newStatus) {
+    try {
+      const w = allWithdrawals[reqId];
+      if (!w || w.status !== "PENDING") return;
+      if (allUsers[w.mobile]) {
+        const u = allUsers[w.mobile];
+        const currentWinBal = Number(u.winningBal ?? u.winningBalance ?? 0);
+        const wdAmt = Number(w.amount || 0);
+        if (newStatus === "APPROVED" && currentWinBal < wdAmt) {
+          if (!confirm(`⚠️ User ke Winning Wallet mein ₹${currentWinBal} hai (Request ₹${wdAmt}). Phir bhi Paid mark karein?`)) return;
+        }
+        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
+        let foundInTxns = false;
+        txns = txns.map(t => {
+          if (t && t.orderId === (w.reqId || reqId)) {
+            foundInTxns = true;
+            return { ...t, type: newStatus === "APPROVED" ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED", amt: newStatus === "APPROVED" ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt) };
+          }
+          return t;
+        });
+        if (!foundInTxns) {
+          txns.unshift({ type: newStatus === "APPROVED" ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`, orderId: w.reqId || reqId, refId: newStatus === "APPROVED" ? "PAID" : "REJECTED", amt: newStatus === "APPROVED" ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt), date: new Date().toLocaleString() });
+        }
+        const updateObj = { txns };
+        if (newStatus === "APPROVED") {
+          const newBal = Math.max(0, currentWinBal - wdAmt);
+          updateObj.winningBal = newBal;
+          updateObj.winningBalance = newBal;
+        }
+        await dbPatch("users/" + w.mobile, updateObj);
+      }
+      await dbPatch("withdrawals/" + reqId, { status: newStatus });
+      alert(newStatus === "APPROVED" ? "✅ Withdrawal Paid mark ho gaya aur balance deduct ho gaya!" : "❌ Withdrawal Reject kar diya gaya!");
+      forceLoadAll();
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  }
+
+  function renderUsers() {
+    const q = (document.getElementById("searchUser").value || "").toLowerCase();
+    const list = document.getElementById("usersList");
+    const keys = Object.keys(allUsers).filter(k => {
+      const u = allUsers[k];
+      return k.includes(q) || (u && u.name && u.name.toLowerCase().includes(q));
+    });
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Koi user nahi mila.</div>"; return; }
+    list.innerHTML = keys.map(k => {
+      const u = allUsers[k];
+      if (!u) return "";
+      const dep = u.depositBal ?? u.depositBalance ?? 0;
+      const win = u.winningBal ?? u.winningBalance ?? 0;
+      return `<div class="card">
+        <div class="row-between"><strong>👤 ${u.name || 'User'}</strong><span style="color:#ffd700; font-size:12px;">📱 ${k}</span></div>
+        <div style="font-size:12px; color:#ccc; margin:6px 0;">Deposit: <strong style="color:#28e04d;">₹${dep}</strong> | Winning: <strong style="color:#ffd700;">₹${win}</strong></div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}')">✏️ Edit Bal</button>
+          <button type="button" class="btn btn-del" onclick="deleteUser('${k}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function editUserBal(mob) {
+    const u = allUsers[mob];
+    if (!u) return;
+    const newDep = prompt("Naya Deposit Balance dalein:", u.depositBal ?? u.depositBalance ?? 0);
+    if (newDep === null) return;
+    const newWin = prompt("Naya Winning Balance dalein:", u.winningBal ?? u.winningBalance ?? 0);
+    if (newWin === null) return;
+    await dbPatch("users/" + mob, {
+      depositBal: Number(newDep), depositBalance: Number(newDep),
+      winningBal: Number(newWin), winningBalance: Number(newWin)
+    });
+    alert("✅ Balance update ho gaya!");
+    forceLoadAll();
+  }
+
+  async function deleteUser(mob) {
+    if (!confirm("User " + mob + " ko delete karein?")) return;
+    await fetch(`${DB_URL}/users/${mob}.json`, { method: "DELETE" });
+    alert("🗑️ User deleted!");
+    forceLoadAll();
+  }
+
+  async function saveSettings() {
+    const rates = {
+      slot: Number(document.getElementById("rate_slot").value),
+      aviator: Number(document.getElementById("rate_aviator").value),
+      chicken: Number(document.getElementById("rate_chicken").value),
+      car: Number(document.getElementById("rate_car").value),
+      dice: Number(document.getElementById("rate_dice").value),
+      color: Number(document.getElementById("rate_color").value)
+    };
+    await dbPut("settings/rates", rates);
+    alert("✅ Sabhi Game Win Rates Save Ho Gaye!");
+  }
+
+  forceLoadAll();
+  setInterval(forceLoadAll, 8000);
+
+  // ==================== CRICKET AUTO-LIMIT & RATE MODULE ====================
+  const CRIC_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
+
+  async function initAdminCricDropdown() {
     try {
       const [r1, r2] = await Promise.all([
-        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`),
-        fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`)
+        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_KEY}&offset=0`),
+        fetch(`https://api.cricapi.com/v1/matches?apikey=${CRIC_KEY}&offset=0`)
       ]);
       const j1 = await r1.json();
       const j2 = await r2.json();
-
-      const arr1 = (j1.status === "success" && Array.isArray(j1.data)) ? j1.data : [];
-      const arr2 = (j2.status === "success" && Array.isArray(j2.data)) ? j2.data : [];
-
-      const now = Date.now();
-      const oneDayAgo = now - (24 * 60 * 60 * 1000);
-      const sevenDaysAhead = now + (7 * 24 * 60 * 60 * 1000);
-
       const map = new Map();
-      [...arr1, ...arr2].forEach(m => {
-        if (!m || !m.id || map.has(m.id)) return;
-        const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
-        const hasScore = Array.isArray(m.score) && m.score.length > 0;
-        const st = String(m.status || "").toLowerCase();
-
-        const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
-        const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
-        const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 1800000) && mTime <= sevenDaysAhead);
-
-        if (isTrueLive || isUpcoming || isCompleted) {
-          map.set(m.id, { ...m, isTrueLive, isUpcoming, isCompleted, mTime });
-        }
+      [...(j1.data || []), ...(j2.data || [])].forEach(m => {
+        if (m && m.id && !m.matchEnded && !map.has(m.id)) map.set(m.id, m);
       });
 
-      const merged = Array.from(map.values());
-      if (merged.length > 0) {
-        merged.sort((a, b) => b.mTime - a.mTime);
-        matches = merged;
-        localStorage.setItem("bg_cric_v3_cache", JSON.stringify(matches));
-        localStorage.setItem("bg_cric_v3_time", String(Date.now()));
-        renderList();
-      } else if (cache) {
-        matches = JSON.parse(cache);
-        renderList();
-      } else {
-        box.innerHTML = `<div class="empty-msg">Abhi koi match data nahi mila. Refresh dabayein.</div>`;
-      }
-    } catch (e) {
-      if (cache) { matches = JSON.parse(cache); renderList(); }
-      else { box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`; }
-    }
-  }
-
-  function setFilter(mode, btn) {
-    filterMode = mode;
-    document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Real Live Matches" :
-      mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed Matches";
-    renderList();
-  }
-
-  function renderList() {
-    const box = document.getElementById("matchListContainer");
-    const list = matches.filter(m =>
-      filterMode === "live" ? m.isTrueLive :
-      filterMode === "upcoming" ? m.isUpcoming : m.isCompleted
-    );
-
-    if (!list.length) {
-      box.innerHTML = `<div class="empty-msg">${
-        filterMode === "live"
-          ? "Abhi is waqt koi real live match nahi chal raha hai.<br><b>Upcoming</b> ya <b>Completed</b> tab dekhein."
-          : "Is category mein abhi koi match nahi hai."
-      }</div>`;
-      return;
-    }
-
-    box.innerHTML = list.map(m => {
-      const sc = (m.score && m.score.length > 0)
-        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
-        : (m.status || `Starts: ${m.date || ""}`);
-      const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
-      return `<div class="match-item" onclick="openMatchById('${m.id}')">
-        <div class="m-left">
-          ${badge}
-          <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "T20").toUpperCase()}</span>
-          <div class="m-title">${m.name}</div>
-          <div class="m-score">${sc}</div>
-        </div>
-        <div class="open-pill">${m.isCompleted ? "Result →" : "Play →"}</div>
-      </div>`;
-    }).join("");
-  }
-
-  async function openMatchById(id) {
-    const m = matches.find(x => x.id === id);
-    if (m) {
-      await fetchMatchBetLimits(m.id);
-      openMatch(m);
-    }
-  }
-
- function checkLimitStatus(marketName, maxUsers, maxMoney) {
-    const st = matchBetsStats[marketName];
-    if (!st) return { blocked: false, reason: "" };
-    if (maxUsers > 0 && st.users.size >= maxUsers) return { blocked: true, reason: `Max ${maxUsers} Users Full` };
-    if (maxMoney > 0 && st.totalMoney >= maxMoney) return { blocked: true, reason: `Limit ₹${maxMoney} Full` };
-    return { blocked: false, reason: "" };
-  }
-
-  function openMatch(m) {
-    activeMatch = m;
-    document.getElementById("matchListScreen").style.display = "none";
-    document.getElementById("contestScreen").style.display = "block";
-
-    const ov = overrides[m.id] || {};
-    const maxUsersAllowed = Number(ov.maxUsers || 25);
-    const maxMoneyAllowed = Number(ov.maxMoney || 15000);
-
-    const tA = (m.teams && m.teams[0]) || "Team A";
-    const tB = (m.teams && m.teams[1]) || "Team B";
-
-    document.getElementById("cTitle").innerText = m.name;
-    document.getElementById("cStatus").innerText = m.status || m.venue || "";
-
-    const scoreArr = Array.isArray(m.score) ? m.score : [];
-    const last = scoreArr.length > 0 ? scoreArr[scoreArr.length - 1] : null;
-    const currRuns = last ? Number(last.r || 0) : 0;
-    const currOvers = last ? Number(last.o || 0) : 0;
-    const innCount = scoreArr.length;
-    const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
-
-    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
-    document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
-
-    const innText = scoreArr.length > 0
-      ? scoreArr.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
-      : "Match start hone par live score yahan aayega";
-    document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
-
-    const stLower = String(m.status || "").toLowerCase();
-    const autoBallRunning = stLower.includes("ball running") || stLower.includes("review") || stLower.includes("innings break") || stLower.includes("rain");
-    const globalLocked = Boolean(ov.locked || m.isCompleted || autoBallRunning);
-
-    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● AUTO-LIVE OPEN";
-    document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
-
-    const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
-    const limOddsA = checkLimitStatus(`${tA} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
-    const limOddsB = checkLimitStatus(`${tB} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
-
-    document.getElementById("oddsBody").innerHTML = `
-      <div class="contest-row">
-        <div class="runner-name">${tA}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || 'Suspended'}</div>` : ''}
-        </div>
-      </div>
-      <div class="contest-row">
-        <div class="runner-name">${tB}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || 'Suspended'}</div>` : ''}
-        </div>
-      </div>`;
-
-    document.getElementById("bmBody").innerHTML = `
-      <div class="contest-row">
-        <div class="runner-name">${tA}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${ov.bmABack || 84}', ${aB})"><span class="rate-main">${ov.bmABack || 84}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${ov.bmALay || 87}', ${aL})"><span class="rate-main">${ov.bmALay || 87}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
-        </div>
-      </div>
-      <div class="contest-row">
-        <div class="runner-name">${tB}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${ov.bmBBack || 110}', ${bB})"><span class="rate-main">${ov.bmBBack || 110}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${ov.bmBLay || 118}', ${bL})"><span class="rate-main">${ov.bmBLay || 118}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
-        </div>
-      </div>`;
-
-    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
-    const s6Yes = ov.sess6Yes || (Number(s6No) + 1);
-    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
-    const s10Yes = ov.sess10Yes || (Number(s10No) + 2);
-    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
-    const s15Yes = ov.sess15Yes || (Number(s15No) + 2);
-    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
-    const s20Yes = ov.sess20Yes || (Number(s20No) + 3);
-
-    const fancyRows = [
-      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: 100, yesRun: s6Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 6.0) },
-      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: 100, yesRun: s10Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 10.0) },
-      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: 100, yesRun: s15Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 15.0) },
-      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: 100, yesRun: s20Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 20.0) },
-      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 42, noRate: 110, yesRun: ov.bat1Yes || 41, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 34, noRate: 110, yesRun: ov.bat2Yes || 33, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 6, noRate: 115, yesRun: ov.bnd1Yes || 6, yesRate: 85, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 11, noRate: 115, yesRun: ov.pshipYes || 11, yesRate: 85, autoDone: (innCount > 1 || (last && Number(last.w || 0) >= 1)) }
-    ];
-
-    document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
-      const noMult = (1 + (f.noRate / 100)).toFixed(2);
-      const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
-      const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
-      const isRowLocked = globalLocked || f.autoDone || lim.blocked;
-      const lockText = f.autoDone ? "Over Complete" : lim.blocked ? lim.reason : "Suspended";
-
-      return `<div class="contest-row">
-        <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})">
-            <span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span>
-          </div>
-          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})">
-            <span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span>
-          </div>
-          ${isRowLocked ? `<div class="suspended-overlay">${lockText}</div>` : ''}
-        </div>
-      </div>`;
-    }).join("");
-
-    const dRate = ov.digitPayout || 9.75;
-    const digitBlocks = [
-      { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 10.0) },
-      { title: "1st Inning 15 Over Last Digit", done: (innCount > 1 || currOvers >= 15.0) },
-      { title: "1st Inning 20 Over Last Digit", done: (innCount > 1 || currOvers >= 20.0) },
-      { title: "2nd Inning 10 Over Last Digit", done: (innCount === 2 && currOvers >= 10.0) },
-      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 20.0) }
-    ];
-
-    document.getElementById("digitBody").innerHTML = digitBlocks.map(b => {
-      const lim = checkLimitStatus(b.title, maxUsersAllowed, maxMoneyAllowed);
-      if (globalLocked || b.done || lim.blocked) {
-        return `<div class="market-card">
-          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Over Completed' : lim.blocked ? lim.reason : 'Suspended'}</span></div>
-        </div>`;
-      }
-      let grid = "";
-      for (let d = 0; d <= 9; d++) {
-        grid += `<div class="digit-box" onclick="openBet('${b.title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})">
-          <span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span>
-        </div>`;
-      }
-      return `<div class="market-card">
-        <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div>
-        <div class="digit-grid">${grid}</div>
-      </div>`;
-    }).join("");
-
-    loadMyLockedBets(m.id);
-  }
-
-  function filterMarket(type, btn) {
-    document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
-    document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
-    document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
-    document.querySelector(".sec-digit").style.display = (type === "all" || type === "digit") ? "block" : "none";
-    document.querySelector(".sec-mybets").style.display = (type === "mybets") ? "block" : "none";
-  }
-
-  function openBet(marketName, side, lockedLine, oddMult) {
-    selBet = { marketName, side, lockedLine, oddMult: Number(oddMult) };
-    document.getElementById("betTitle").innerText = `${marketName} (${side}: ${lockedLine})`;
-    document.getElementById("betOddTag").innerText = `@ ${oddMult}x`;
-    document.getElementById("betModal").classList.add("open");
-    updateBetReturn();
-  }
-
-  function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
-
-  function updateBetReturn() {
-    if (!selBet) return;
-    const st = Number(document.getElementById("stakeInput").value || 0);
-    const ret = (st * selBet.oddMult).toFixed(0);
-    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${ret} (Line: ${selBet.lockedLine} @ ${selBet.oddMult}x)`;
-  }
-
-  async function placeBet() {
-    const st = Number(document.getElementById("stakeInput").value);
-    if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
-    if (st > userBal) return alert("Insufficient Balance!");
-
-    await fetchMatchBetLimits(activeMatch.id);
-    const ov = overrides[activeMatch.id] || {};
-    const limCheck = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
-    if (limCheck.blocked) {
-      alert("⚠️ Sorry! Is contest ki limit abhi poori ho gayi hai (" + limCheck.reason + ")");
-      openMatch(activeMatch);
-      return;
-    }
-
-    const lockedReturn = Number((st * selBet.oddMult).toFixed(2));
-    const betRecord = {
-      betId: "BET" + Date.now(),
-      matchId: activeMatch.id,
-      matchName: activeMatch.name,
-      mobile: mob,
-      userName: userNameStr,
-      market: selBet.marketName,
-      side: selBet.side,
-      lockedLine: selBet.lockedLine,
-      lockedOdd: selBet.oddMult,
-      stake: st,
-      lockedReturn: lockedReturn,
-      status: "OPEN",
-      time: new Date().toLocaleString("en-IN")
-    };
-
-    try {
-      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${betRecord.betId}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(betRecord)
+      const sel = document.getElementById("bgCric_matchSelect");
+      sel.innerHTML = "";
+      Array.from(map.values()).forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.text = (m.matchStarted ? "🔴 " : "🕒 ") + m.name;
+        sel.appendChild(opt);
       });
-      alert(`✅ Bet Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
-      document.getElementById("betModal").classList.remove("open");
-      await fetchMatchBetLimits(activeMatch.id);
-      openMatch(activeMatch);
+      bgCricLoadRates();
     } catch (e) {
-      alert("Network error! Bet save nahi ho payi.");
+      document.getElementById("bgCric_matchSelect").innerHTML = "<option>Matches load nahi ho paye</option>";
     }
   }
 
-  async function loadMyLockedBets(matchId) {
+  async function bgCricLoadRates() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
     try {
-      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
-      const data = (await r.json()) || {};
-      const myBets = Object.values(data).filter(b => b && b.mobile === mob).reverse();
-      const box = document.getElementById("myBetsList");
-      if (!myBets.length) {
-        box.innerHTML = `<div class="empty-msg">Abhi is match par aapki koi bet nahi hai.</div>`;
-        return;
-      }
-      box.innerHTML = myBets.map(b => `
-        <div class="bet-item-card">
-          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;">
-            <span>${b.market} (${b.side})</span>
-            <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
-          </div>
-          <div style="color:#ccc; margin-top:3px;">Locked Line: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> | Stake: ₹${b.stake}</div>
-          <div style="font-size:10px; color:#888; margin-top:2px;">${b.time} • Status: ${b.status}</div>
-        </div>
-      `).join("");
+      const ov = (await dbGet(`cricketControls/${id}`)) || {};
+      document.getElementById("bgCric_maxUsers").value = ov.maxUsers || 25;
+      document.getElementById("bgCric_maxMoney").value = ov.maxMoney || 15000;
+      document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
+      document.getElementById("bgCric_aBack").value = ov.teamABack || "";
+      document.getElementById("bgCric_aLay").value = ov.teamALay || "";
+      document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
+      document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
+      document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
+      document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
+      document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
+      document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
     } catch (e) {}
   }
- 
-  function goBack() {
-    activeMatch = null;
-    document.getElementById("contestScreen").style.display = "none";
-    document.getElementById("matchListScreen").style.display = "block";
+
+  async function bgCricSaveRates() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
+    const s6 = document.getElementById("bgCric_s6").value.split("/");
+    const s10 = document.getElementById("bgCric_s10").value.split("/");
+    const s15 = document.getElementById("bgCric_s15").value.split("/");
+    const s20 = document.getElementById("bgCric_s20").value.split("/");
+
+    const payload = {
+      maxUsers: Number(document.getElementById("bgCric_maxUsers").value || 25),
+      maxMoney: Number(document.getElementById("bgCric_maxMoney").value || 15000),
+      locked: document.getElementById("bgCric_lock").checked,
+      teamABack: document.getElementById("bgCric_aBack").value.trim(),
+      teamALay: document.getElementById("bgCric_aLay").value.trim(),
+      teamBBack: document.getElementById("bgCric_bBack").value.trim(),
+      teamBLay: document.getElementById("bgCric_bLay").value.trim(),
+      sess6No: s6[0] ? s6[0].trim() : "",
+      sess6Yes: s6[1] ? s6[1].trim() : "",
+      sess10No: s10[0] ? s10[0].trim() : "",
+      sess10Yes: s10[1] ? s10[1].trim() : "",
+      sess15No: s15[0] ? s15[0].trim() : "",
+      sess15Yes: s15[1] ? s15[1].trim() : "",
+      sess20No: s20[0] ? s20[0].trim() : "",
+      sess20Yes: s20[1] ? s20[1].trim() : ""
+    };
+
+    await dbPut(`cricketControls/${id}`, payload);
+    alert("✅ Auto-Limits & Cricket Rates Save Ho Gaye!");
   }
 
-  syncAdminAndStats();
-  loadMatches(false);
-  setInterval(syncAdminAndStats, 6000);
+  async function bgCricResetRates() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
+    await fetch(`${DB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
+    bgCricLoadRates();
+    alert("🗑️ Default settings reset ho gayi!");
+  }
+
+  initAdminCricDropdown();
 </script>
 </body>
 </html>
