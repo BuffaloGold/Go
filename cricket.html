@@ -3,24 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cricket Exchange - Buffalo Gold</title>
+  <title>Cricket Exchange & Contests - Buffalo Gold</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
     body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
     .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 10px; }
+
+    /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #260636; padding: 10px 12px; border-radius: 12px; border: 1px solid #75229e; }
     .user-info h3 { font-size: 14px; color: #ffd700; }
     .user-info span { font-size: 11px; color: #aaa; }
     .mini-wallet { text-align: right; cursor: pointer; }
     .mini-wallet div { font-size: 11px; color: #ccc; }
     .mini-wallet strong { font-size: 13px; color: #28e04d; }
+
+    /* SCREEN 1: MATCH LIST */
     .hero-box { background: linear-gradient(135deg, #4a0d66, #260636); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 2px; }
     .hero-box p { font-size: 11px; color: #ddd; }
     .refresh-btn { background: #ffd700; color: #000; border: none; padding: 7px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer; }
+
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
     .f-tab { flex: 1; padding: 8px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 11px; font-weight: 700; cursor: pointer; }
     .f-tab.active { background: #ffd700; color: #000; border-color: #ffd700; }
+
     .list-header { background: #260636; padding: 8px 12px; border-radius: 10px 10px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 700; color: #ffd700; display: flex; justify-content: space-between; }
     .match-list-box { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
     .match-item { padding: 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
@@ -32,23 +38,65 @@
     .m-score { font-size: 11px; color: #28e04d; font-weight: 600; }
     .open-pill { background: #ffd700; color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; }
     .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
+
+    /* SCREEN 2: FULL CONTESTS */
     #contestScreen { display: none; }
-    .back-bar { display: flex; justify-content: space-between; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
-    .score-banner { background: #220530; border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+    .back-bar { display: flex; justify-content: space-between; align-items: center; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
+
+    .score-banner { background: linear-gradient(145deg, #2d0740, #14021f); border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
     .big-runs { font-size: 19px; font-weight: 900; color: #ffd700; }
-    .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+    .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+    .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .market-pills::-webkit-scrollbar { display: none; }
+    .pill-btn { white-space: nowrap; padding: 7px 12px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .pill-btn.active { background: #28e04d; color: #000; border-color: #28e04d; }
+
     .market-card { background: #220530; border: 1px solid #6b1d91; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
-    .market-head { background: #2d0840; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; }
-    .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; }
-    .rate-boxes { display: flex; gap: 6px; }
-    .rate-btn { width: 58px; height: 38px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; font-weight: 800; font-size: 13px; }
+    .market-head { background: #2d0840; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
+    .cashout-tag { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .col-headers { display: flex; justify-content: flex-end; background: #1a0326; padding: 4px 10px; font-size: 10px; font-weight: 700; color: #bbb; gap: 6px; }
+    .col-headers span { width: 60px; text-align: center; }
+
+    .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; position: relative; }
+    .contest-row:last-child { border-bottom: none; }
+    .runner-name { font-size: 12px; font-weight: 700; color: #fff; flex: 1; padding-right: 6px; }
+    .runner-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+    .rate-boxes { display: flex; gap: 6px; position: relative; }
+    .rate-btn { width: 60px; height: 40px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; }
     .rate-back { background: #72bbef; }
     .rate-lay { background: #faa9ba; }
-    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; }
-    .digit-box { background: #72bbef; color: #000; border-radius: 6px; padding: 7px 4px; text-align: center; cursor: pointer; font-weight: 900; }
-    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; }
+    .rate-main { font-size: 13px; font-weight: 900; line-height: 1.1; }
+    .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
+
+    /* Suspended Overlay like Asia Exchange Screenshot */
+    .suspended-overlay {
+      position: absolute; inset: 0; background: rgba(20, 10, 28, 0.82);
+      border: 1px solid #ef4444; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fca5a5; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+    }
+
+    /* Last Digit 0-9 Grid */
+    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; background: #1b0429; }
+    .digit-box { background: #72bbef; color: #000; border-radius: 6px; padding: 7px 4px; text-align: center; cursor: pointer; }
+    .digit-box:active { transform: scale(0.95); background: #ffd700; }
+    .digit-num { font-size: 14px; font-weight: 900; display: block; }
+    .digit-odd { font-size: 10px; font-weight: 700; opacity: 0.85; }
+
+    /* My Bets Card */
+    .bet-item-card { padding: 10px; border-bottom: 1px solid #3c0c54; font-size: 12px; }
+    .bet-item-card:last-child { border-bottom: none; }
+
+    /* Bet Slip */
+    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.8); }
     .bet-modal.open { display: block; }
-    .bet-input { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; margin: 8px 0; }
+    .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
+    .quick-stakes { display: flex; gap: 6px; margin-bottom: 10px; }
+    .stake-chip { flex: 1; background: #3b0a52; color: #ffd700; border: 1px solid #75229e; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+    /* Bottom Nav */
     .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
     .nav-item { text-align: center; color: #bbb; font-size: 11px; cursor: pointer; flex: 1; }
     .nav-item.active { color: #ffd700; font-weight: bold; }
@@ -67,9 +115,10 @@
     </div>
   </div>
 
+  <!-- SCREEN 1: MATCH LIST -->
   <div id="matchListScreen">
     <div class="hero-box">
-      <div><h2>🏏 Cricket Exchange</h2><p>Sirf Real Live Matches & Contests</p></div>
+      <div><h2>🏏 Cricket Exchange</h2><p>Real Live Matches & All Contests</p></div>
       <button class="refresh-btn" onclick="loadMatches(true)">🔄 Refresh</button>
     </div>
 
@@ -83,28 +132,80 @@
     <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Live matches check ho rahe hain...</div></div>
   </div>
 
+  <!-- SCREEN 2: FULL CONTESTS -->
   <div id="contestScreen">
     <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● ODDS OPEN</span></div>
+
     <div class="score-banner">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><h4 id="cTitle">Match</h4><p id="cStatus" style="font-size:11px; color:#ccc; margin-top:3px;">Status</p></div>
-        <div style="text-align:right;"><div class="big-runs" id="cRuns">--/--</div><div id="cOvers" style="font-size:11px; color:#28e04d;">(-- Ov)</div></div>
+        <div style="flex:1; padding-right:8px;">
+          <h4 id="cTitle" style="font-size:14px;">Match</h4>
+          <p id="cStatus" style="font-size:11px; color:#ccc; margin-top:3px;">Status</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="big-runs" id="cRuns">--/--</div>
+          <div id="cOvers" style="font-size:11px; color:#28e04d; font-weight:700;">(-- Ov)</div>
+        </div>
       </div>
-      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">SCOREBOARD:</span><div id="cBalls"></div></div>
+      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">SCORE:</span><div id="cBalls"></div></div>
     </div>
-    <div class="market-card"><div class="market-head"><span>Match Odds</span><span>Back / Lay</span></div><div id="oddsBody"></div></div>
-    <div class="market-card"><div class="market-head"><span>Bookmaker 0%</span><span>Back / Lay</span></div><div id="bmBody"></div></div>
-    <div class="market-card"><div class="market-head"><span>Fancy / Session</span><span>No / Yes</span></div><div id="fancyBody"></div></div>
-    <div id="digitBody"></div>
+
+    <!-- Market Filter Tabs -->
+    <div class="market-pills">
+      <button class="pill-btn active" onclick="filterMarket('all', this)">All Markets</button>
+      <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
+      <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
+      <button class="pill-btn" onclick="filterMarket('fancy', this)">Fancy Markets</button>
+      <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
+      <button class="pill-btn" onclick="filterMarket('mybets', this)">📋 My Bets</button>
+    </div>
+
+    <!-- 1. Match Odds -->
+    <div class="market-card sec-odds">
+      <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
+      <div class="col-headers"><span>Back</span><span>Lay</span></div>
+      <div id="oddsBody"></div>
+    </div>
+
+    <!-- 2. Bookmaker 0% -->
+    <div class="market-card sec-bookmaker">
+      <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">0% Comm</span></div>
+      <div class="col-headers"><span>Back</span><span>Lay</span></div>
+      <div id="bmBody"></div>
+    </div>
+
+    <!-- 3. Full Fancy Markets (Over Runs, Player Runs, Boundaries, Partnership) -->
+    <div class="market-card sec-fancy">
+      <div class="market-head"><span>Fancy Markets (Session, Player & Boundaries)</span><span style="font-size:10px; color:#28e04d;">● LIVE</span></div>
+      <div class="col-headers"><span>No</span><span>Yes</span></div>
+      <div id="fancyBody"></div>
+    </div>
+
+    <!-- 4. All Over Last Digit Grids (1st & 2nd Inning) -->
+    <div id="digitBody" class="sec-digit"></div>
+
+    <!-- 5. My Locked Bets (Snapshot History) -->
+    <div class="market-card sec-mybets" style="display:none;">
+      <div class="market-head"><span>📋 My Placed Bets (Rate & Line Locked)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
+      <div id="myBetsList"><div class="empty-msg">Abhi is match par koi bet nahi lagi hai.</div></div>
+    </div>
   </div>
 </div>
 
+<!-- Bet Slip Modal -->
 <div class="bet-modal" id="betModal">
-  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;"><span id="betTitle">Bet</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
-  <input type="number" class="bet-input" id="stakeInput" value="100" />
+  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
+  <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180 (Rate & Run Lock ho jayega)</div>
+  <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateBetReturn()" placeholder="Enter Stake (Min ₹100)" />
+  <div class="quick-stakes">
+    <button class="stake-chip" onclick="setStake(100)">+100</button>
+    <button class="stake-chip" onclick="setStake(500)">+500</button>
+    <button class="stake-chip" onclick="setStake(1000)">+1K</button>
+    <button class="stake-chip" onclick="setStake(5000)">+5K</button>
+  </div>
   <div style="display:flex; gap:8px;">
-    <button style="flex:1; padding:10px; background:#4b5563; color:#fff; border:none; border-radius:8px;" onclick="document.getElementById('betModal').classList.remove('open')">Cancel</button>
-    <button style="flex:2; padding:10px; background:#28e04d; color:#000; border:none; border-radius:8px; font-weight:800;" onclick="placeBet()">Place Bet</button>
+    <button style="flex:1; padding:10px; background:#4b5563; color:#fff; border:none; border-radius:8px; font-weight:700;" onclick="document.getElementById('betModal').classList.remove('open')">Cancel</button>
+    <button style="flex:2; padding:10px; background:#28e04d; color:#000; border:none; border-radius:8px; font-weight:800;" onclick="placeBet()">Confirm & Lock Bet</button>
   </div>
 </div>
 
@@ -115,7 +216,6 @@
   <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
-
 <script>
   const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
@@ -124,9 +224,11 @@
   if (!mob) window.location.replace("index.html");
 
   let userBal = 0;
+  let userNameStr = "Player";
   try {
     const u = JSON.parse(localStorage.getItem("cachedUser") || "{}");
-    document.getElementById("userName").innerText = u.name || "Player";
+    userNameStr = u.name || "Player";
+    document.getElementById("userName").innerText = userNameStr;
     document.getElementById("userMob").innerText = mob || "-";
     const d = Number(u.depositBal ?? u.depositBalance ?? 0);
     const w = Number(u.winningBal ?? u.winningBalance ?? 0);
@@ -175,18 +277,12 @@
       const map = new Map();
       [...arr1, ...arr2].forEach(m => {
         if (!m || !m.id || map.has(m.id)) return;
-
         const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
         const hasScore = Array.isArray(m.score) && m.score.length > 0;
         const st = String(m.status || "").toLowerCase();
 
-        // Completed matches check
         const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
-
-        // Strict Live check: sirf wahi match jo aaj/24h ke andar ka hai aur sach-much live score chal raha hai
         const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
-
-        // Upcoming check: jo abhi start nahi hua aur aane wale 7 dino mein hai
         const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 1800000) && mTime <= sevenDaysAhead);
 
         if (isTrueLive || isUpcoming || isCompleted) {
@@ -243,12 +339,7 @@
       const sc = (m.score && m.score.length > 0)
         ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
         : (m.status || `Starts: ${m.date || ""}`);
-      const badge = m.isTrueLive
-        ? `<span class="b-live">● LIVE</span>`
-        : m.isUpcoming
-        ? `<span class="b-up">UPCOMING</span>`
-        : `<span class="b-done">COMPLETED</span>`;
-
+      const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
           ${badge}
@@ -279,6 +370,10 @@
     document.getElementById("cStatus").innerText = m.status || m.venue || "";
 
     const last = (m.score && m.score.length > 0) ? m.score[m.score.length - 1] : null;
+    const currRuns = last ? Number(last.r || 0) : 0;
+    const currOvers = last ? Number(last.o || 0) : 0;
+    const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
+
     document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
     document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
 
@@ -288,27 +383,197 @@
     document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
 
     const isLocked = Boolean(ov.locked || m.isCompleted);
-    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isLocked ? "🔒 LOCKED" : "● ODDS OPEN";
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isLocked ? "🔒 SUSPENDED" : "● ODDS OPEN";
     document.getElementById("oddsStatus").style.color = isLocked ? "#ff4d6d" : "#28e04d";
 
+    // 1. Match Odds
     const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
-    document.getElementById("oddsBody").innerHTML = isLocked ? `<div class="contest-row"><span>Market Closed</span></div>` : `
-      <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA}', ${aB})">${aB}</div><div class="rate-btn rate-lay" onclick="openBet('${tA}', ${aL})">${aL}</div></div></div>
-      <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB}', ${bB})">${bB}</div><div class="rate-btn rate-lay" onclick="openBet('${tB}', ${bL})">${bL}</div></div></div>`;
+    document.getElementById("oddsBody").innerHTML = `
+      <div class="contest-row">
+        <div class="runner-name">${tA}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
+          ${isLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>
+      <div class="contest-row">
+        <div class="runner-name">${tB}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
+          ${isLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>`;
 
-    document.getElementById("bmBody").innerHTML = isLocked ? `<div class="contest-row"><span>Suspended</span></div>` : `
-      <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} BM', ${aB})">${ov.bmABack || 84}</div><div class="rate-btn rate-lay" onclick="openBet('${tA} BM', ${aL})">${ov.bmALay || 87}</div></div></div>
-      <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} BM', ${bB})">${ov.bmBBack || 110}</div><div class="rate-btn rate-lay" onclick="openBet('${tB} BM', ${bL})">${ov.bmBLay || 118}</div></div></div>`;
+    // 2. Bookmaker
+    document.getElementById("bmBody").innerHTML = `
+      <div class="contest-row">
+        <div class="runner-name">${tA}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${ov.bmABack || 84}', ${aB})"><span class="rate-main">${ov.bmABack || 84}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${ov.bmALay || 87}', ${aL})"><span class="rate-main">${ov.bmALay || 87}</span><span class="rate-sub">Lay</span></div>
+          ${isLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>
+      <div class="contest-row">
+        <div class="runner-name">${tB}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${ov.bmBBack || 110}', ${bB})"><span class="rate-main">${ov.bmBBack || 110}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${ov.bmBLay || 118}', ${bL})"><span class="rate-main">${ov.bmBLay || 118}</span><span class="rate-sub">Lay</span></div>
+          ${isLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>`;
 
-    document.getElementById("fancyBody").innerHTML = isLocked ? `<div class="contest-row"><span>Session Closed</span></div>` : `
-      <div class="contest-row"><span>6 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('6 Ov No', 1.9)">${ov.sess6No || 48}</div><div class="rate-btn rate-back" onclick="openBet('6 Ov Yes', 1.9)">${ov.sess6Yes || 50}</div></div></div>
-      <div class="contest-row"><span>10 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('10 Ov No', 1.9)">${ov.sess10No || 82}</div><div class="rate-btn rate-back" onclick="openBet('10 Ov Yes', 1.9)">${ov.sess10Yes || 84}</div></div></div>
-      <div class="contest-row"><span>Inning Total Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('Total No', 1.9)">${ov.sess20No || 165}</div><div class="rate-btn rate-back" onclick="openBet('Total Yes', 1.9)">${ov.sess20Yes || 168}</div></div></div>`;
+    // 3. Full Fancy Markets (Line + Rate both shown like Screenshot)
+    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
+    const s6Yes = ov.sess6Yes || (Number(s6No) + 1);
+    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
+    const s10Yes = ov.sess10Yes || (Number(s10No) + 2);
+    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
+    const s15Yes = ov.sess15Yes || (Number(s15No) + 2);
+    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
+    const s20Yes = ov.sess20Yes || (Number(s20No) + 3);
 
+    const fancyRows = [
+      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: 100, yesRun: s6Yes, yesRate: 100 },
+      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: 100, yesRun: s10Yes, yesRate: 100 },
+      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: 100, yesRun: s15Yes, yesRate: 100 },
+      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: 100, yesRun: s20Yes, yesRate: 100 },
+      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 42, noRate: 110, yesRun: ov.bat1Yes || 41, yesRate: 90 },
+      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 34, noRate: 110, yesRun: ov.bat2Yes || 33, yesRate: 90 },
+      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 6, noRate: 115, yesRun: ov.bnd1Yes || 6, yesRate: 85 },
+      { title: `${tA} Opener 2 Boundaries Adv`, noRun: ov.bnd2No || 5, noRate: 100, yesRun: ov.bnd2Yes || 6, yesRate: 100 },
+      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 11, noRate: 115, yesRun: ov.pshipYes || 11, yesRate: 85 }
+    ];
+
+    document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
+      const noMult = (1 + (f.noRate / 100)).toFixed(2);
+      const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
+      return `<div class="contest-row">
+        <div><div class="runner-name">${f.title}</div><div class="runner-sub">Min 100 | Max 25K</div></div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})">
+            <span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span>
+          </div>
+          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})">
+            <span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span>
+          </div>
+          ${isLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>`;
+    }).join("");
+
+    // 4. All Over Last Digit Grids (1st & 2nd Inning)
     const dRate = ov.digitPayout || 9.75;
-    let dHtml = "";
-    for (let d = 0; d <= 9; d++) dHtml += `<div class="digit-box" onclick="openBet('Last Digit [${d}]', ${dRate})">${d}<br><small>${dRate}</small></div>`;
-    document.getElementById("digitBody").innerHTML = isLocked ? "" : `<div class="market-card"><div class="market-head"><span>Over Last Digit</span><span>${dRate}x</span></div><div class="digit-grid">${dHtml}</div></div>`;
+    const digitBlocks = [
+      "1st Inning 10 Over Last Digit",
+      "1st Inning 15 Over Last Digit",
+      "1st Inning 20 Over Last Digit",
+      "2nd Inning 10 Over Last Digit",
+      "2nd Inning 20 Over Last Digit"
+    ];
+
+    document.getElementById("digitBody").innerHTML = isLocked ? "" : digitBlocks.map(bTitle => {
+      let grid = "";
+      for (let d = 0; d <= 9; d++) {
+        grid += `<div class="digit-box" onclick="openBet('${bTitle}', 'DIGIT', 'Last Digit [${d}]', ${dRate})">
+          <span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span>
+        </div>`;
+      }
+      return `<div class="market-card">
+        <div class="market-head"><span>${bTitle}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div>
+        <div class="digit-grid">${grid}</div>
+      </div>`;
+    }).join("");
+
+    loadMyLockedBets(m.id);
+  }
+
+  function filterMarket(type, btn) {
+    document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
+    document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
+    document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
+    document.querySelector(".sec-digit").style.display = (type === "all" || type === "digit") ? "block" : "none";
+    document.querySelector(".sec-mybets").style.display = (type === "mybets") ? "block" : "none";
+  }
+
+  function openBet(marketName, side, lockedLine, oddMult) {
+    selBet = { marketName, side, lockedLine, oddMult: Number(oddMult) };
+    document.getElementById("betTitle").innerText = `${marketName} (${side}: ${lockedLine})`;
+    document.getElementById("betOddTag").innerText = `@ ${oddMult}x`;
+    document.getElementById("betModal").classList.add("open");
+    updateBetReturn();
+  }
+
+  function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
+
+  function updateBetReturn() {
+    if (!selBet) return;
+    const st = Number(document.getElementById("stakeInput").value || 0);
+    const ret = (st * selBet.oddMult).toFixed(0);
+    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${ret} (Line: ${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+  }
+
+  async function placeBet() {
+    const st = Number(document.getElementById("stakeInput").value);
+    if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
+    if (st > userBal) return alert("Insufficient Balance!");
+
+    const lockedReturn = Number((st * selBet.oddMult).toFixed(2));
+    const betRecord = {
+      betId: "BET" + Date.now(),
+      matchId: activeMatch.id,
+      matchName: activeMatch.name,
+      mobile: mob,
+      userName: userNameStr,
+      market: selBet.marketName,
+      side: selBet.side,
+      lockedLine: selBet.lockedLine,   // Yahan user ka run/line permanent lock ho gaya
+      lockedOdd: selBet.oddMult,       // Yahan user ka rate permanent lock ho gaya
+      stake: st,
+      lockedReturn: lockedReturn,      // Admin rate badalne par bhi return yahi rahega
+      status: "OPEN",
+      time: new Date().toLocaleString("en-IN")
+    };
+
+    try {
+      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${betRecord.betId}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(betRecord)
+      });
+      alert(`✅ Bet Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
+      document.getElementById("betModal").classList.remove("open");
+      loadMyLockedBets(activeMatch.id);
+    } catch (e) {
+      alert("Network error! Bet save nahi ho payi.");
+    }
+  }
+
+  async function loadMyLockedBets(matchId) {
+    try {
+      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
+      const data = (await r.json()) || {};
+      const myBets = Object.values(data).filter(b => b && b.mobile === mob).reverse();
+      const box = document.getElementById("myBetsList");
+      if (!myBets.length) {
+        box.innerHTML = `<div class="empty-msg">Abhi is match par aapki koi bet nahi hai.</div>`;
+        return;
+      }
+      box.innerHTML = myBets.map(b => `
+        <div class="bet-item-card">
+          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;">
+            <span>${b.market} (${b.side})</span>
+            <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
+          </div>
+          <div style="color:#ccc; margin-top:3px;">Locked Line: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> | Stake: ₹${b.stake}</div>
+          <div style="font-size:10px; color:#888; margin-top:2px;">${b.time} • Status: ${b.status}</div>
+        </div>
+      `).join("");
+    } catch (e) {}
   }
 
   function goBack() {
@@ -317,24 +582,9 @@
     document.getElementById("matchListScreen").style.display = "block";
   }
 
-  function openBet(title, odd) {
-    selBet = { title, odd };
-    document.getElementById("betTitle").innerText = title;
-    document.getElementById("betOddTag").innerText = "@ " + odd;
-    document.getElementById("betModal").classList.add("open");
-  }
-
-  function placeBet() {
-    const st = Number(document.getElementById("stakeInput").value);
-    if (!st || st < 100) return alert("Min bet ₹100");
-    if (st > userBal) return alert("Insufficient Balance!");
-    alert(`Bet Placed on ${selBet.title} @ ${selBet.odd} for ₹${st}`);
-    document.getElementById("betModal").classList.remove("open");
-  }
-
   syncAdmin();
   loadMatches(false);
   setInterval(syncAdmin, 6000);
-                                </script>
+</script>
 </body>
 </html>
