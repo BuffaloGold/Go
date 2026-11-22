@@ -19,7 +19,7 @@
     .hero-box p { font-size: 11px; color: #ddd; }
     .refresh-btn { background: #ffd700; color: #000; border: none; padding: 7px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer; }
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-    .f-tab { flex: 1; padding: 8px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .f-tab { flex: 1; padding: 8px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 11px; font-weight: 700; cursor: pointer; }
     .f-tab.active { background: #ffd700; color: #000; border-color: #ffd700; }
     .list-header { background: #260636; padding: 8px 12px; border-radius: 10px 10px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 700; color: #ffd700; display: flex; justify-content: space-between; }
     .match-list-box { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
@@ -27,16 +27,16 @@
     .m-left { flex: 1; padding-right: 10px; }
     .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
     .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
-    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 3px 0; }
+    .b-done { background: #6b7280; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 4px 0; }
     .m-score { font-size: 11px; color: #28e04d; font-weight: 600; }
     .open-pill { background: #ffd700; color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; }
-    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; }
+    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
     #contestScreen { display: none; }
     .back-bar { display: flex; justify-content: space-between; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
     .score-banner { background: #220530; border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
     .big-runs { font-size: 19px; font-weight: 900; color: #ffd700; }
     .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
-    .b-dot { width: 22px; height: 22px; border-radius: 50%; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; background: #2b073d; border: 1px solid #75229e; margin-left: 4px; }
     .market-card { background: #220530; border: 1px solid #6b1d91; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
     .market-head { background: #2d0840; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; }
     .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; }
@@ -69,16 +69,18 @@
 
   <div id="matchListScreen">
     <div class="hero-box">
-      <div><h2>🏏 Cricket Exchange</h2><p>Match par tap karein aur contests khelein</p></div>
+      <div><h2>🏏 Cricket Exchange</h2><p>Sirf Real Live Matches & Contests</p></div>
       <button class="refresh-btn" onclick="loadMatches(true)">🔄 Refresh</button>
     </div>
+
     <div class="filter-tabs">
-      <button class="f-tab active" onclick="setFilter('all', this)">All Matches</button>
-      <button class="f-tab" onclick="setFilter('live', this)">🔴 Live</button>
+      <button class="f-tab active" onclick="setFilter('live', this)">🔴 Live Now</button>
       <button class="f-tab" onclick="setFilter('upcoming', this)">🕒 Upcoming</button>
+      <button class="f-tab" onclick="setFilter('completed', this)">✅ Completed</button>
     </div>
-    <div class="list-header"><span>Live & Upcoming Matches</span><span>Tap →</span></div>
-    <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Loading matches...</div></div>
+
+    <div class="list-header"><span id="listHeading">🔴 Real Live Matches</span><span>Tap →</span></div>
+    <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Live matches check ho rahe hain...</div></div>
   </div>
 
   <div id="contestScreen">
@@ -88,7 +90,7 @@
         <div><h4 id="cTitle">Match</h4><p id="cStatus" style="font-size:11px; color:#ccc; margin-top:3px;">Status</p></div>
         <div style="text-align:right;"><div class="big-runs" id="cRuns">--/--</div><div id="cOvers" style="font-size:11px; color:#28e04d;">(-- Ov)</div></div>
       </div>
-      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">RECENT BALLS:</span><div id="cBalls"></div></div>
+      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">SCOREBOARD:</span><div id="cBalls"></div></div>
     </div>
     <div class="market-card"><div class="market-head"><span>Match Odds</span><span>Back / Lay</span></div><div id="oddsBody"></div></div>
     <div class="market-card"><div class="market-head"><span>Bookmaker 0%</span><span>Back / Lay</span></div><div id="bmBody"></div></div>
@@ -113,6 +115,7 @@
   <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
+
 <script>
   const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
@@ -132,7 +135,7 @@
     document.getElementById("topWin").innerText = "₹" + w;
   } catch (e) {}
 
-  let matches = [], overrides = {}, activeMatch = null, filterMode = "all", selBet = null;
+  let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
 
   async function syncAdmin() {
     try {
@@ -145,8 +148,8 @@
 
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
-    const cache = localStorage.getItem("bg_cric_v2_cache");
-    const cTime = Number(localStorage.getItem("bg_cric_v2_time") || 0);
+    const cache = localStorage.getItem("bg_cric_v3_cache");
+    const cTime = Number(localStorage.getItem("bg_cric_v3_time") || 0);
 
     if (!force && cache && Date.now() - cTime < 300000) {
       matches = JSON.parse(cache);
@@ -155,7 +158,6 @@
     }
 
     try {
-      // Current + Upcoming dono endpoints fetch karein
       const [r1, r2] = await Promise.all([
         fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`),
         fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`)
@@ -166,43 +168,48 @@
       const arr1 = (j1.status === "success" && Array.isArray(j1.data)) ? j1.data : [];
       const arr2 = (j2.status === "success" && Array.isArray(j2.data)) ? j2.data : [];
 
+      const now = Date.now();
+      const oneDayAgo = now - (24 * 60 * 60 * 1000);
+      const sevenDaysAhead = now + (7 * 24 * 60 * 60 * 1000);
+
       const map = new Map();
       [...arr1, ...arr2].forEach(m => {
         if (!m || !m.id || map.has(m.id)) return;
-        const hasScore = Array.isArray(m.score) && m.score.length > 0;
-        const stLower = String(m.status || "").toLowerCase();
-        const isEnded = Boolean(m.matchEnded || stLower.includes("won by") || stLower.includes("abandoned") || stLower.includes("no result"));
-        const isLive = Boolean(!isEnded && (m.matchStarted || hasScore || stLower.includes("opt to") || stLower.includes("need ")));
-        const isUp = Boolean(!isEnded && !isLive);
 
-        if (!isEnded) {
-          map.set(m.id, { ...m, isLive, isUp });
+        const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
+        const hasScore = Array.isArray(m.score) && m.score.length > 0;
+        const st = String(m.status || "").toLowerCase();
+
+        // Completed matches check
+        const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
+
+        // Strict Live check: sirf wahi match jo aaj/24h ke andar ka hai aur sach-much live score chal raha hai
+        const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
+
+        // Upcoming check: jo abhi start nahi hua aur aane wale 7 dino mein hai
+        const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 1800000) && mTime <= sevenDaysAhead);
+
+        if (isTrueLive || isUpcoming || isCompleted) {
+          map.set(m.id, { ...m, isTrueLive, isUpcoming, isCompleted, mTime });
         }
       });
 
       const merged = Array.from(map.values());
       if (merged.length > 0) {
-        merged.sort((a, b) => {
-          if (a.isLive !== b.isLive) return b.isLive ? 1 : -1;
-          return new Date(a.dateTimeGMT || a.date) - new Date(b.dateTimeGMT || b.date);
-        });
+        merged.sort((a, b) => b.mTime - a.mTime);
         matches = merged;
-        localStorage.setItem("bg_cric_v2_cache", JSON.stringify(matches));
-        localStorage.setItem("bg_cric_v2_time", String(Date.now()));
+        localStorage.setItem("bg_cric_v3_cache", JSON.stringify(matches));
+        localStorage.setItem("bg_cric_v3_time", String(Date.now()));
         renderList();
       } else if (cache) {
         matches = JSON.parse(cache);
         renderList();
       } else {
-        box.innerHTML = `<div class="empty-msg">API Limit / Error: ${j1.reason || j2.reason || "No active matches"}</div>`;
+        box.innerHTML = `<div class="empty-msg">Abhi koi match data nahi mila. Refresh dabayein.</div>`;
       }
     } catch (e) {
-      if (cache) {
-        matches = JSON.parse(cache);
-        renderList();
-      } else {
-        box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
-      }
+      if (cache) { matches = JSON.parse(cache); renderList(); }
+      else { box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`; }
     }
   }
 
@@ -210,15 +217,25 @@
     filterMode = mode;
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    document.getElementById("listHeading").innerText =
+      mode === "live" ? "🔴 Real Live Matches" :
+      mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed Matches";
     renderList();
   }
 
   function renderList() {
     const box = document.getElementById("matchListContainer");
-    const list = matches.filter(m => filterMode === "live" ? m.isLive : filterMode === "upcoming" ? m.isUp : true);
+    const list = matches.filter(m =>
+      filterMode === "live" ? m.isTrueLive :
+      filterMode === "upcoming" ? m.isUpcoming : m.isCompleted
+    );
 
     if (!list.length) {
-      box.innerHTML = `<div class="empty-msg">Is tab mein abhi koi match nahi hai. <b>All Matches</b> check karein.</div>`;
+      box.innerHTML = `<div class="empty-msg">${
+        filterMode === "live"
+          ? "Abhi is waqt koi real live match nahi chal raha hai.<br><b>Upcoming</b> ya <b>Completed</b> tab dekhein."
+          : "Is category mein abhi koi match nahi hai."
+      }</div>`;
       return;
     }
 
@@ -226,14 +243,20 @@
       const sc = (m.score && m.score.length > 0)
         ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
         : (m.status || `Starts: ${m.date || ""}`);
+      const badge = m.isTrueLive
+        ? `<span class="b-live">● LIVE</span>`
+        : m.isUpcoming
+        ? `<span class="b-up">UPCOMING</span>`
+        : `<span class="b-done">COMPLETED</span>`;
+
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
-          <span class="${m.isLive ? 'b-live' : 'b-up'}">${m.isLive ? '● LIVE' : 'UPCOMING'}</span>
+          ${badge}
           <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "T20").toUpperCase()}</span>
           <div class="m-title">${m.name}</div>
           <div class="m-score">${sc}</div>
         </div>
-        <div class="open-pill">Play →</div>
+        <div class="open-pill">${m.isCompleted ? "Result →" : "Play →"}</div>
       </div>`;
     }).join("");
   }
@@ -256,20 +279,20 @@
     document.getElementById("cStatus").innerText = m.status || m.venue || "";
 
     const last = (m.score && m.score.length > 0) ? m.score[m.score.length - 1] : null;
-    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isLive ? "LIVE" : "SOON");
+    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
     document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
 
     const innText = (m.score && m.score.length > 0)
       ? m.score.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
-      : "Ball-by-ball updates on match start";
+      : "Match start hone par live score yahan aayega";
     document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
 
-    const isLocked = Boolean(ov.locked);
-    document.getElementById("oddsStatus").innerText = isLocked ? "🔒 LOCKED" : "● ODDS OPEN";
+    const isLocked = Boolean(ov.locked || m.isCompleted);
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isLocked ? "🔒 LOCKED" : "● ODDS OPEN";
     document.getElementById("oddsStatus").style.color = isLocked ? "#ff4d6d" : "#28e04d";
 
     const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
-    document.getElementById("oddsBody").innerHTML = isLocked ? `<div class="contest-row"><span>Bets Locked by Admin</span></div>` : `
+    document.getElementById("oddsBody").innerHTML = isLocked ? `<div class="contest-row"><span>Market Closed</span></div>` : `
       <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA}', ${aB})">${aB}</div><div class="rate-btn rate-lay" onclick="openBet('${tA}', ${aL})">${aL}</div></div></div>
       <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB}', ${bB})">${bB}</div><div class="rate-btn rate-lay" onclick="openBet('${tB}', ${bL})">${bL}</div></div></div>`;
 
@@ -277,7 +300,7 @@
       <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} BM', ${aB})">${ov.bmABack || 84}</div><div class="rate-btn rate-lay" onclick="openBet('${tA} BM', ${aL})">${ov.bmALay || 87}</div></div></div>
       <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} BM', ${bB})">${ov.bmBBack || 110}</div><div class="rate-btn rate-lay" onclick="openBet('${tB} BM', ${bL})">${ov.bmBLay || 118}</div></div></div>`;
 
-    document.getElementById("fancyBody").innerHTML = isLocked ? `<div class="contest-row"><span>Session Locked</span></div>` : `
+    document.getElementById("fancyBody").innerHTML = isLocked ? `<div class="contest-row"><span>Session Closed</span></div>` : `
       <div class="contest-row"><span>6 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('6 Ov No', 1.9)">${ov.sess6No || 48}</div><div class="rate-btn rate-back" onclick="openBet('6 Ov Yes', 1.9)">${ov.sess6Yes || 50}</div></div></div>
       <div class="contest-row"><span>10 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('10 Ov No', 1.9)">${ov.sess10No || 82}</div><div class="rate-btn rate-back" onclick="openBet('10 Ov Yes', 1.9)">${ov.sess10Yes || 84}</div></div></div>
       <div class="contest-row"><span>Inning Total Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('Total No', 1.9)">${ov.sess20No || 165}</div><div class="rate-btn rate-back" onclick="openBet('Total Yes', 1.9)">${ov.sess20Yes || 168}</div></div></div>`;
@@ -285,7 +308,7 @@
     const dRate = ov.digitPayout || 9.75;
     let dHtml = "";
     for (let d = 0; d <= 9; d++) dHtml += `<div class="digit-box" onclick="openBet('Last Digit [${d}]', ${dRate})">${d}<br><small>${dRate}</small></div>`;
-    document.getElementById("digitBody").innerHTML = `<div class="market-card"><div class="market-head"><span>Over Last Digit</span><span>${dRate}x</span></div><div class="digit-grid">${dHtml}</div></div>`;
+    document.getElementById("digitBody").innerHTML = isLocked ? "" : `<div class="market-card"><div class="market-head"><span>Over Last Digit</span><span>${dRate}x</span></div><div class="digit-grid">${dHtml}</div></div>`;
   }
 
   function goBack() {
@@ -312,7 +335,6 @@
   syncAdmin();
   loadMatches(false);
   setInterval(syncAdmin, 6000);
-</script>
-  
+                                </script>
 </body>
 </html>
