@@ -450,41 +450,75 @@
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetFirebase()">🗑️ Reset Match to Auto-API</button>
   </div>
 </div>
+<!-- ==================== CRICKET BET RATE CONTROL (ONLY RATES) ==================== -->
+<div class="wrap" style="margin-top: 14px;">
+  <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Bet Rate Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Match select karke sirf Bet Rates aur Session Values set karein</p>
+
+    <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Match:</label>
+    <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
+      <option value="">Matches load ho rahe hain...</option>
+    </select>
+
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:6px 0 12px; cursor:pointer;">
+      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Lock / Suspend Bets for this Match
+    </label>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label style="font-size:11px; color:#72bbef;">Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
+      <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Bookmaker A (Back/Lay)</label><input type="text" id="bgCric_bmA" placeholder="84/87" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Bookmaker B (Back/Lay)</label><input type="text" id="bgCric_bmB" placeholder="110/118" /></div>
+      <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
+      <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
+      <div><label style="font-size:11px; color:#ccc;">Inning Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
+      <div><label style="font-size:11px; color:#ffd700;">Last Digit Payout</label><input type="number" step="0.05" id="bgCric_digit" placeholder="9.75" /></div>
+    </div>
+
+    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE CRICKET BET RATES</button>
+    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default Rates</button>
+  </div>
+</div>
 
 <script>
 (function() {
   const CRIC_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
 
-  async function initBgCric() {
+  async function initAdminCricDropdown() {
     try {
-      const res = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_KEY}&offset=0`);
-      const j = await res.json();
-      const list = (j.status === "success" && Array.isArray(j.data)) ? j.data : [];
+      const [r1, r2] = await Promise.all([
+        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_KEY}&offset=0`),
+        fetch(`https://api.cricapi.com/v1/matches?apikey=${CRIC_KEY}&offset=0`)
+      ]);
+      const j1 = await r1.json();
+      const j2 = await r2.json();
+      const map = new Map();
+      [...(j1.data || []), ...(j2.data || [])].forEach(m => {
+        if (m && m.id && !m.matchEnded && !map.has(m.id)) map.set(m.id, m);
+      });
+
       const sel = document.getElementById("bgCric_matchSelect");
       sel.innerHTML = "";
-      list.forEach(m => {
+      Array.from(map.values()).forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.text = (m.matchStarted && !m.matchEnded ? "🔴 " : "🕒 ") + m.name;
+        opt.text = (m.matchStarted ? "🔴 " : "🕒 ") + m.name;
         sel.appendChild(opt);
       });
-      window.bgCricLoadFromFirebase();
-    } catch (e) {
-      document.getElementById("bgCric_matchSelect").innerHTML = "<option>Matches load nahi ho paye</option>";
-    }
+      window.bgCricLoadRates();
+    } catch (e) {}
   }
 
-  window.bgCricLoadFromFirebase = async function() {
+  window.bgCricLoadRates = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
     try {
       const r = await fetch(`${FB_URL}/cricketControls/${id}.json?t=${Date.now()}`);
       const ov = (await r.json()) || {};
-      document.getElementById("bgCric_runs").value = ov.liveRuns || "";
-      document.getElementById("bgCric_overs").value = ov.liveOvers || "";
-      document.getElementById("bgCric_balls").value = ov.recentBalls || "";
-      document.getElementById("bgCric_status").value = ov.customStatus || "";
       document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
       document.getElementById("bgCric_aBack").value = ov.teamABack || "";
       document.getElementById("bgCric_aLay").value = ov.teamALay || "";
@@ -499,7 +533,7 @@
     } catch (e) {}
   };
 
-  window.bgCricSaveFirebase = async function() {
+  window.bgCricSaveRates = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
     const bmA = document.getElementById("bgCric_bmA").value.split("/");
@@ -509,10 +543,6 @@
     const s20 = document.getElementById("bgCric_s20").value.split("/");
 
     const payload = {
-      liveRuns: document.getElementById("bgCric_runs").value.trim(),
-      liveOvers: document.getElementById("bgCric_overs").value.trim(),
-      recentBalls: document.getElementById("bgCric_balls").value.trim(),
-      customStatus: document.getElementById("bgCric_status").value.trim(),
       locked: document.getElementById("bgCric_lock").checked,
       teamABack: document.getElementById("bgCric_aBack").value.trim(),
       teamALay: document.getElementById("bgCric_aLay").value.trim(),
@@ -536,18 +566,18 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    alert("✅ Cricket Rates & Score Firebase par Live Save Ho Gaye!");
+    alert("✅ Cricket Bet Rates Save Ho Gaye!");
   };
 
-  window.bgCricResetFirebase = async function() {
+  window.bgCricResetRates = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
     await fetch(`${FB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
-    window.bgCricLoadFromFirebase();
-    alert("🗑️ Reset ho gaya! Ab Auto-API score aur rates chalenge.");
+    window.bgCricLoadRates();
+    alert("🗑️ Default rates reset ho gaye!");
   };
 
-  initBgCric();
+  initAdminCricDropdown();
 })();
 </script>
 </body>
