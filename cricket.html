@@ -103,7 +103,7 @@
   </div>
 
   <div id="contestScreen">
-    <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● ODDS OPEN</span></div>
+    <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● LIVE OPEN</span></div>
 
     <div class="score-banner">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -215,11 +215,34 @@
 
       if (activeMatch) {
         await fetchMatchBetLimits(activeMatch.id);
-        openMatch(activeMatch);
+        await refreshActiveMatchScore(activeMatch.id);
       } else if (matches.length) {
         renderList();
       }
     } catch (e) {}
+  }
+
+  async function refreshActiveMatchScore(matchId) {
+    try {
+      const r = await fetch(`https://api.cricapi.com/v1/match_info?apikey=${API_KEY}&id=${matchId}`);
+      const j = await r.json();
+      if (j.status === "success" && j.data) {
+        const updated = {
+          ...activeMatch,
+          ...j.data,
+          isTrueLive: Boolean(!j.data.matchEnded && j.data.matchStarted),
+          isCompleted: Boolean(j.data.matchEnded)
+        };
+        activeMatch = updated;
+        matches = matches.map(x => x.id === matchId ? updated : x);
+        localStorage.setItem("bg_cric_v4_cache", JSON.stringify(matches));
+        openMatch(updated);
+      } else {
+        openMatch(activeMatch);
+      }
+    } catch (e) {
+      openMatch(activeMatch);
+    }
   }
 
   async function fetchMatchBetLimits(matchId) {
@@ -239,10 +262,10 @@
 
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
-    const cache = localStorage.getItem("bg_cric_v3_cache");
-    const cTime = Number(localStorage.getItem("bg_cric_v3_time") || 0);
+    const cache = localStorage.getItem("bg_cric_v4_cache");
+    const cTime = Number(localStorage.getItem("bg_cric_v4_time") || 0);
 
-    if (!force && cache && Date.now() - cTime < 180000) {
+    if (!force && cache && Date.now() - cTime < 30000) {
       matches = JSON.parse(cache);
       renderList();
       return;
@@ -283,8 +306,8 @@
       if (merged.length > 0) {
         merged.sort((a, b) => b.mTime - a.mTime);
         matches = merged;
-        localStorage.setItem("bg_cric_v3_cache", JSON.stringify(matches));
-        localStorage.setItem("bg_cric_v3_time", String(Date.now()));
+        localStorage.setItem("bg_cric_v4_cache", JSON.stringify(matches));
+        localStorage.setItem("bg_cric_v4_time", String(Date.now()));
         renderList();
       } else if (cache) {
         matches = JSON.parse(cache);
@@ -344,8 +367,9 @@
   async function openMatchById(id) {
     const m = matches.find(x => x.id === id);
     if (m) {
+      activeMatch = m;
       await fetchMatchBetLimits(m.id);
-      openMatch(m);
+      await refreshActiveMatchScore(m.id);
     }
   }
 
@@ -377,6 +401,7 @@
     const currRuns = last ? Number(last.r || 0) : 0;
     const currOvers = last ? Number(last.o || 0) : 0;
     const innCount = scoreArr.length;
+    const battingTeam = (innCount === 2) ? tB : tA;
     const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
 
     document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
@@ -387,11 +412,9 @@
       : "Match start hone par live score yahan aayega";
     document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
 
-    const stLower = String(m.status || "").toLowerCase();
-    const autoBallRunning = stLower.includes("ball running") || stLower.includes("review") || stLower.includes("innings break") || stLower.includes("rain");
-    const globalLocked = Boolean(ov.locked || m.isCompleted || autoBallRunning);
+    const globalLocked = Boolean(ov.locked || m.isCompleted);
 
-    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● AUTO-LIVE OPEN";
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● LIVE OPEN";
     document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
 
     let autoOddA = "1.80", autoOddB = "2.05", oddSpread = 0.03, sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
@@ -454,24 +477,26 @@
         </div>
       </div>`;
 
-    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
+    const s6No = ov.sess6No || Math.max(currRuns + 8, Math.round(crr * 6));
     const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
-    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
+    const s10No = ov.sess10No || Math.max(currRuns + 14, Math.round(crr * 10));
     const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
-    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
+    const s15No = ov.sess15No || Math.max(currRuns + 22, Math.round(crr * 15));
     const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
-    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
+    const s20No = ov.sess20No || Math.max(currRuns + 28, Math.round(crr * 20));
     const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
+    const s30No = Math.max(currRuns + 35, Math.round(crr * 30));
+    const s30Yes = s30No + sessGap + 1;
 
     const fancyRows = [
-      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 6.0) },
-      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 10.0) },
-      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 15.0) },
-      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 20.0) },
-      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 40, noRate: fancyPayout, yesRun: ov.bat1Yes || (40 + sessGap), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 32, noRate: fancyPayout, yesRun: ov.bat2Yes || (32 + sessGap), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 5, noRate: fancyPayout, yesRun: ov.bnd1Yes || (5 + Math.min(2, sessGap)), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 10, noRate: fancyPayout, yesRun: ov.pshipYes || (10 + Math.min(2, sessGap)), yesRate: fancyPayout, autoDone: (innCount > 1 || (last && Number(last.w || 0) >= 1)) }
+      { title: `6 Over Run (${battingTeam})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (currOvers >= 6.0) },
+      { title: `10 Over Run (${battingTeam})`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (currOvers >= 10.0) },
+      { title: `15 Over Run (${battingTeam})`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout, autoDone: (currOvers >= 15.0) },
+      { title: `20 Over Run (${battingTeam})`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout, autoDone: (currOvers >= 20.0) },
+      { title: `30 Over Run (${battingTeam})`, noRun: s30No, noRate: fancyPayout, yesRun: s30Yes, yesRate: fancyPayout, autoDone: (currOvers >= 30.0) },
+      { title: `${battingTeam} Batsman 1 Run Adv`, noRun: ov.bat1No || 40, noRate: fancyPayout, yesRun: ov.bat1Yes || (40 + sessGap), yesRate: fancyPayout, autoDone: false },
+      { title: `${battingTeam} Batsman 2 Run Adv`, noRun: ov.bat2No || 32, noRate: fancyPayout, yesRun: ov.bat2Yes || (32 + sessGap), yesRate: fancyPayout, autoDone: false },
+      { title: `Inning Total Boundaries (${battingTeam})`, noRun: ov.pshipNo || 24, noRate: fancyPayout, yesRun: ov.pshipYes || (24 + sessGap), yesRate: fancyPayout, autoDone: false }
     ];
 
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
@@ -498,10 +523,10 @@
     const dRate = ov.digitPayout || autoDigit;
     const digitBlocks = [
       { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 10.0) },
-      { title: "1st Inning 15 Over Last Digit", done: (innCount > 1 || currOvers >= 15.0) },
       { title: "1st Inning 20 Over Last Digit", done: (innCount > 1 || currOvers >= 20.0) },
       { title: "2nd Inning 10 Over Last Digit", done: (innCount === 2 && currOvers >= 10.0) },
-      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 20.0) }
+      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 20.0) },
+      { title: "2nd Inning 30 Over Last Digit", done: (innCount === 2 && currOvers >= 30.0) }
     ];
 
     document.getElementById("digitBody").innerHTML = digitBlocks.map(b => {
@@ -546,7 +571,7 @@
 
   function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
 
-  function updateBetReturn() {
+function updateBetReturn() {
     if (!selBet) return;
     const st = Number(document.getElementById("stakeInput").value || 0);
     const ret = (st * selBet.oddMult).toFixed(0);
@@ -558,7 +583,7 @@
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
     if (st > userBal) return alert("Insufficient Balance!");
 
-  await fetchMatchBetLimits(activeMatch.id);
+    await fetchMatchBetLimits(activeMatch.id);
     const ov = overrides[activeMatch.id] || {};
     const limCheck = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
     if (limCheck.blocked) {
@@ -630,7 +655,7 @@
 
   syncAdminAndStats();
   loadMatches(false);
-  setInterval(syncAdminAndStats, 6000);
+  setInterval(syncAdminAndStats, 15000);
 </script>
 </body>
 </html>
