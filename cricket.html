@@ -179,7 +179,13 @@
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
 <script>
-  const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
+  const API_KEYS = [
+    "b10ae8c8-70d1-442e-b709-98e66298e902",
+    "50c508e6-4781-4797-9b37-d82b24084c05",
+    "c0013804-077a-4936-83fc-0f8ced22c6b4",
+    "4a1610eb-70d8-4383-bdca-6adfb002ede1",
+    "ee11a023-7e7c-49f2-8163-b276d6f278bd"
+  ];
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
 
   const mob = localStorage.getItem("activeUser");
@@ -203,6 +209,24 @@
   let matchBetsStats = {};
   let cricketWinRate = 35;
 
+  // Smart Multi-Key Fetcher: Agar ek key ki limit khatam ho toh automatic agli key try karega
+  async function fetchCricWithRotation(endpoint) {
+    let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % API_KEYS.length;
+    for (let i = 0; i < API_KEYS.length; i++) {
+      const idx = (startIdx + i) % API_KEYS.length;
+      const key = API_KEYS[idx];
+      try {
+        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${key}&offset=0&t=${Date.now()}`);
+        const j = await r.json();
+        if (j && j.status === "success" && Array.isArray(j.data)) {
+          localStorage.setItem("bg_cric_key_idx", String(idx));
+          return j.data;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
   async function syncAdminAndStats() {
     try {
       const [rCtrl, rRate] = await Promise.all([
@@ -215,34 +239,13 @@
 
       if (activeMatch) {
         await fetchMatchBetLimits(activeMatch.id);
-        await refreshActiveMatchScore(activeMatch.id);
+        await loadMatches(false);
+        const updated = matches.find(x => x.id === activeMatch.id);
+        if (updated) openMatch(updated);
       } else if (matches.length) {
         renderList();
       }
     } catch (e) {}
-  }
-
-  async function refreshActiveMatchScore(matchId) {
-    try {
-      const r = await fetch(`https://api.cricapi.com/v1/match_info?apikey=${API_KEY}&id=${matchId}`);
-      const j = await r.json();
-      if (j.status === "success" && j.data) {
-        const updated = {
-          ...activeMatch,
-          ...j.data,
-          isTrueLive: Boolean(!j.data.matchEnded && j.data.matchStarted),
-          isCompleted: Boolean(j.data.matchEnded)
-        };
-        activeMatch = updated;
-        matches = matches.map(x => x.id === matchId ? updated : x);
-        localStorage.setItem("bg_cric_v4_cache", JSON.stringify(matches));
-        openMatch(updated);
-      } else {
-        openMatch(activeMatch);
-      }
-    } catch (e) {
-      openMatch(activeMatch);
-    }
   }
 
   async function fetchMatchBetLimits(matchId) {
@@ -260,34 +263,33 @@
     } catch (e) {}
   }
 
+  // Firebase Shared Cache + 5-Key Auto Rotation
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
-    const cache = localStorage.getItem("bg_cric_v4_cache");
-    const cTime = Number(localStorage.getItem("bg_cric_v4_time") || 0);
-
-    if (!force && cache && Date.now() - cTime < 30000) {
-      matches = JSON.parse(cache);
-      renderList();
-      return;
-    }
-
     try {
-      const [r1, r2] = await Promise.all([
-        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`),
-        fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`)
-      ]);
-      const j1 = await r1.json();
-      const j2 = await r2.json();
+      // 1. Pehle Firebase Shared Cache check karein (sabhi users ke liye ek hi API hit)
+      if (!force) {
+        const fbRes = await fetch(`${FB_URL}/sharedCricketCache.json?t=${Date.now()}`);
+        const fbCache = await fbRes.json();
+        if (fbCache && Array.isArray(fbCache.list) && fbCache.list.length > 0 && (Date.now() - Number(fbCache.updatedAt || 0) < 25000)) {
+          matches = fbCache.list;
+          renderList();
+          return;
+        }
+      }
 
-      const arr1 = (j1.status === "success" && Array.isArray(j1.data)) ? j1.data : [];
-      const arr2 = (j2.status === "success" && Array.isArray(j2.data)) ? j2.data : [];
+      // 2. Agar cache 25 sec purana hai toh 5 keys mein se active key se fetch karein
+      const [arr1, arr2] = await Promise.all([
+        fetchCricWithRotation("currentMatches"),
+        fetchCricWithRotation("matches")
+      ]);
 
       const now = Date.now();
       const oneDayAgo = now - (24 * 60 * 60 * 1000);
       const sevenDaysAhead = now + (7 * 24 * 60 * 60 * 1000);
 
       const map = new Map();
-      [...arr1, ...arr2].forEach(m => {
+      [...(arr1 || []), ...(arr2 || [])].forEach(m => {
         if (!m || !m.id || map.has(m.id)) return;
         const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
         const hasScore = Array.isArray(m.score) && m.score.length > 0;
@@ -306,18 +308,18 @@
       if (merged.length > 0) {
         merged.sort((a, b) => b.mTime - a.mTime);
         matches = merged;
-        localStorage.setItem("bg_cric_v4_cache", JSON.stringify(matches));
-        localStorage.setItem("bg_cric_v4_time", String(Date.now()));
         renderList();
-      } else if (cache) {
-        matches = JSON.parse(cache);
-        renderList();
+        // Firebase par save kar dein taaki dusre users ko API hit na karni pade
+        fetch(`${FB_URL}/sharedCricketCache.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedAt: Date.now(), list: matches })
+        }).catch(() => {});
       } else {
         box.innerHTML = `<div class="empty-msg">Abhi koi match data nahi mila. Refresh dabayein.</div>`;
       }
     } catch (e) {
-      if (cache) { matches = JSON.parse(cache); renderList(); }
-      else { box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`; }
+      box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
     }
   }
 
@@ -348,9 +350,11 @@
     }
 
     box.innerHTML = list.map(m => {
-      const sc = (m.score && m.score.length > 0)
+      const ov = overrides[m.id] || {};
+      const customSc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
+      const sc = customSc || ((m.score && m.score.length > 0)
         ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
-        : (m.status || `Starts: ${m.date || ""}`);
+        : (m.status || `Starts: ${m.date || ""}`));
       const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
@@ -369,7 +373,7 @@
     if (m) {
       activeMatch = m;
       await fetchMatchBetLimits(m.id);
-      await refreshActiveMatchScore(m.id);
+      openMatch(m);
     }
   }
 
@@ -398,14 +402,14 @@
 
     const scoreArr = Array.isArray(m.score) ? m.score : [];
     const last = scoreArr.length > 0 ? scoreArr[scoreArr.length - 1] : null;
-    const currRuns = last ? Number(last.r || 0) : 0;
-    const currOvers = last ? Number(last.o || 0) : 0;
-    const innCount = scoreArr.length;
+    const currRuns = ov.liveRuns ? Number(String(ov.liveRuns).split("/")[0] || 0) : (last ? Number(last.r || 0) : 0);
+    const currOvers = ov.liveOvers ? Number(ov.liveOvers) : (last ? Number(last.o || 0) : 0);
+    const innCount = ov.liveRuns ? 2 : scoreArr.length;
     const battingTeam = (innCount === 2) ? tB : tA;
     const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
 
-    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
-    document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
+    document.getElementById("cRuns").innerText = ov.liveRuns || (last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON"));
+    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (last ? `(${last.o} Ov)` : (m.date || ""));
 
     const innText = scoreArr.length > 0
       ? scoreArr.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
@@ -571,7 +575,7 @@
 
   function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
 
-function updateBetReturn() {
+  function updateBetReturn() {
     if (!selBet) return;
     const st = Number(document.getElementById("stakeInput").value || 0);
     const ret = (st * selBet.oddMult).toFixed(0);
@@ -655,7 +659,7 @@ function updateBetReturn() {
 
   syncAdminAndStats();
   loadMatches(false);
-  setInterval(syncAdminAndStats, 15000);
+  setInterval(syncAdminAndStats, 25000);
 </script>
 </body>
 </html>
