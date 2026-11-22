@@ -102,6 +102,8 @@
       <select id="rate_dice"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
       <label style="font-size:12px; color:#ccc;">🎨 Color Trading 3D (%):</label>
       <select id="rate_color"><option value="20">20% (High Profit)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo)</option></select>
+      <label style="font-size:12px; color:#ffd700; font-weight:bold;">🏏 Cricket Exchange Auto Win Rate (%):</label>
+      <select id="rate_cricket"><option value="20">20% (High Profit - Tight Odds)</option><option value="35" selected>35% (Balanced)</option><option value="50">50% (Medium)</option><option value="75">75% (Promo - High Payout)</option></select>
       <button type="button" class="btn btn-gold" style="margin-top:6px;" onclick="saveSettings()">SAVE ALL GAME RATES</button>
     </div>
   </div>
@@ -332,13 +334,13 @@
         if (ratesData.car) document.getElementById("rate_car").value = ratesData.car;
         if (ratesData.dice) document.getElementById("rate_dice").value = ratesData.dice;
         if (ratesData.color) document.getElementById("rate_color").value = ratesData.color;
+        if (ratesData.cricket) document.getElementById("rate_cricket").value = ratesData.cricket;
       }
     } catch (e) {
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
     }
   }
-
-  async function replyTicket(tktId) {
+   async function replyTicket(tktId) {
     const inp = document.getElementById("repInput_" + tktId);
     const msg = (inp.value || "").trim();
     if (!msg) return alert("Reply message likhein!");
@@ -398,31 +400,29 @@
     list.innerHTML = keys.map(k => {
       const u = allUsers[k];
       if (!u) return "";
-      const dep = u.depositBal ?? u.depositBalance ?? 0;
-      const win = u.winningBal ?? u.winningBalance ?? 0;
+      const dep = Number(u.depositBal ?? u.depositBalance ?? 0);
+      const win = Number(u.winningBal ?? u.winningBalance ?? 0);
       return `<div class="card">
         <div class="row-between"><strong>👤 ${u.name || 'User'}</strong><span style="color:#ffd700; font-size:12px;">📱 ${k}</span></div>
         <div style="font-size:12px; color:#ccc; margin:6px 0;">Deposit: <strong style="color:#28e04d;">₹${dep}</strong> | Winning: <strong style="color:#ffd700;">₹${win}</strong></div>
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="btn btn-green" style="flex:1;" onclick="editUserBal('${k}')">✏️ Edit Bal</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-green" style="flex:1;" onclick="adjustUserBal('${k}', 100)">+100</button>
+          <button type="button" class="btn btn-red" style="flex:1;" onclick="adjustUserBal('${k}', -100)">-100</button>
           <button type="button" class="btn btn-del" onclick="deleteUser('${k}')">🗑️</button>
         </div>
       </div>`;
     }).join("");
   }
 
-  async function editUserBal(mob) {
+  async function adjustUserBal(mob, delta) {
     const u = allUsers[mob];
     if (!u) return;
-    const newDep = prompt("Naya Deposit Balance dalein:", u.depositBal ?? u.depositBalance ?? 0);
-    if (newDep === null) return;
-    const newWin = prompt("Naya Winning Balance dalein:", u.winningBal ?? u.winningBalance ?? 0);
-    if (newWin === null) return;
+    const curDep = Number(u.depositBal ?? u.depositBalance ?? 0);
+    const newDep = Math.max(0, curDep + delta);
     await dbPatch("users/" + mob, {
-      depositBal: Number(newDep), depositBalance: Number(newDep),
-      winningBal: Number(newWin), winningBalance: Number(newWin)
+      depositBal: newDep,
+      depositBalance: newDep
     });
-    alert("✅ Balance update ho gaya!");
     forceLoadAll();
   }
 
@@ -440,10 +440,11 @@
       chicken: Number(document.getElementById("rate_chicken").value),
       car: Number(document.getElementById("rate_car").value),
       dice: Number(document.getElementById("rate_dice").value),
-      color: Number(document.getElementById("rate_color").value)
+      color: Number(document.getElementById("rate_color").value),
+      cricket: Number(document.getElementById("rate_cricket").value)
     };
     await dbPut("settings/rates", rates);
-    alert("✅ Sabhi Game Win Rates Save Ho Gaye!");
+    alert("✅ Sabhi Game aur Cricket Win Rates Save Ho Gaye!");
   }
 
   forceLoadAll();
