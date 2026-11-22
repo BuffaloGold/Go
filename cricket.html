@@ -145,30 +145,64 @@
 
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
-    const cache = localStorage.getItem("bg_cric_cache");
-    const cTime = Number(localStorage.getItem("bg_cric_time") || 0);
+    const cache = localStorage.getItem("bg_cric_v2_cache");
+    const cTime = Number(localStorage.getItem("bg_cric_v2_time") || 0);
+
     if (!force && cache && Date.now() - cTime < 300000) {
       matches = JSON.parse(cache);
       renderList();
       return;
     }
+
     try {
-      const r = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`);
-      const j = await r.json();
-      if (j.status === "success" && Array.isArray(j.data)) {
-        matches = j.data.map(m => ({ ...m, isLive: m.matchStarted && !m.matchEnded, isUp: !m.matchStarted }));
-        matches.sort((a, b) => (a.isLive === b.isLive) ? 0 : b.isLive ? 1 : -1);
-        localStorage.setItem("bg_cric_cache", JSON.stringify(matches));
-        localStorage.setItem("bg_cric_time", String(Date.now()));
+      // Current + Upcoming dono endpoints fetch karein
+      const [r1, r2] = await Promise.all([
+        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`),
+        fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`)
+      ]);
+      const j1 = await r1.json();
+      const j2 = await r2.json();
+
+      const arr1 = (j1.status === "success" && Array.isArray(j1.data)) ? j1.data : [];
+      const arr2 = (j2.status === "success" && Array.isArray(j2.data)) ? j2.data : [];
+
+      const map = new Map();
+      [...arr1, ...arr2].forEach(m => {
+        if (!m || !m.id || map.has(m.id)) return;
+        const hasScore = Array.isArray(m.score) && m.score.length > 0;
+        const stLower = String(m.status || "").toLowerCase();
+        const isEnded = Boolean(m.matchEnded || stLower.includes("won by") || stLower.includes("abandoned") || stLower.includes("no result"));
+        const isLive = Boolean(!isEnded && (m.matchStarted || hasScore || stLower.includes("opt to") || stLower.includes("need ")));
+        const isUp = Boolean(!isEnded && !isLive);
+
+        if (!isEnded) {
+          map.set(m.id, { ...m, isLive, isUp });
+        }
+      });
+
+      const merged = Array.from(map.values());
+      if (merged.length > 0) {
+        merged.sort((a, b) => {
+          if (a.isLive !== b.isLive) return b.isLive ? 1 : -1;
+          return new Date(a.dateTimeGMT || a.date) - new Date(b.dateTimeGMT || b.date);
+        });
+        matches = merged;
+        localStorage.setItem("bg_cric_v2_cache", JSON.stringify(matches));
+        localStorage.setItem("bg_cric_v2_time", String(Date.now()));
         renderList();
       } else if (cache) {
         matches = JSON.parse(cache);
         renderList();
       } else {
-        box.innerHTML = `<div class="empty-msg">API Limit / Error: ${j.reason || "Try later"}</div>`;
+        box.innerHTML = `<div class="empty-msg">API Limit / Error: ${j1.reason || j2.reason || "No active matches"}</div>`;
       }
     } catch (e) {
-      box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
+      if (cache) {
+        matches = JSON.parse(cache);
+        renderList();
+      } else {
+        box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
+      }
     }
   }
 
@@ -182,13 +216,20 @@
   function renderList() {
     const box = document.getElementById("matchListContainer");
     const list = matches.filter(m => filterMode === "live" ? m.isLive : filterMode === "upcoming" ? m.isUp : true);
-    if (!list.length) { box.innerHTML = `<div class="empty-msg">Koi match nahi mila. All Matches dabayein.</div>`; return; }
-    box.innerHTML = list.map((m, i) => {
-      const ov = overrides[m.id] || {};
-      const sc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : (m.score && m.score[0] ? `${m.score[0].r}/${m.score[0].w} (${m.score[0].o} Ov)` : (m.status || m.date));
+
+    if (!list.length) {
+      box.innerHTML = `<div class="empty-msg">Is tab mein abhi koi match nahi hai. <b>All Matches</b> check karein.</div>`;
+      return;
+    }
+
+    box.innerHTML = list.map(m => {
+      const sc = (m.score && m.score.length > 0)
+        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
+        : (m.status || `Starts: ${m.date || ""}`);
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
           <span class="${m.isLive ? 'b-live' : 'b-up'}">${m.isLive ? '● LIVE' : 'UPCOMING'}</span>
+          <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "T20").toUpperCase()}</span>
           <div class="m-title">${m.name}</div>
           <div class="m-score">${sc}</div>
         </div>
@@ -206,31 +247,40 @@
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
+
     const ov = overrides[m.id] || {};
     const tA = (m.teams && m.teams[0]) || "Team A";
     const tB = (m.teams && m.teams[1]) || "Team B";
 
     document.getElementById("cTitle").innerText = m.name;
-    document.getElementById("cStatus").innerText = ov.customStatus || m.status || "";
-    const last = m.score && m.score[m.score.length - 1];
-    document.getElementById("cRuns").innerText = ov.liveRuns || (last ? `${last.r}/${last.w}` : "SOON");
-    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (last ? `(${last.o} Ov)` : m.date);
+    document.getElementById("cStatus").innerText = m.status || m.venue || "";
 
-    const balls = (ov.recentBalls || "1,4,0,6,1,2").split(",");
-    document.getElementById("cBalls").innerHTML = balls.slice(-6).map(b => `<span class="b-dot">${b.trim()}</span>`).join("");
+    const last = (m.score && m.score.length > 0) ? m.score[m.score.length - 1] : null;
+    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isLive ? "LIVE" : "SOON");
+    document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
+
+    const innText = (m.score && m.score.length > 0)
+      ? m.score.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
+      : "Ball-by-ball updates on match start";
+    document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
+
+    const isLocked = Boolean(ov.locked);
+    document.getElementById("oddsStatus").innerText = isLocked ? "🔒 LOCKED" : "● ODDS OPEN";
+    document.getElementById("oddsStatus").style.color = isLocked ? "#ff4d6d" : "#28e04d";
 
     const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
-    document.getElementById("oddsBody").innerHTML = `
+    document.getElementById("oddsBody").innerHTML = isLocked ? `<div class="contest-row"><span>Bets Locked by Admin</span></div>` : `
       <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA}', ${aB})">${aB}</div><div class="rate-btn rate-lay" onclick="openBet('${tA}', ${aL})">${aL}</div></div></div>
       <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB}', ${bB})">${bB}</div><div class="rate-btn rate-lay" onclick="openBet('${tB}', ${bL})">${bL}</div></div></div>`;
 
-    document.getElementById("bmBody").innerHTML = `
+    document.getElementById("bmBody").innerHTML = isLocked ? `<div class="contest-row"><span>Suspended</span></div>` : `
       <div class="contest-row"><span>${tA}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} BM', ${aB})">${ov.bmABack || 84}</div><div class="rate-btn rate-lay" onclick="openBet('${tA} BM', ${aL})">${ov.bmALay || 87}</div></div></div>
       <div class="contest-row"><span>${tB}</span><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} BM', ${bB})">${ov.bmBBack || 110}</div><div class="rate-btn rate-lay" onclick="openBet('${tB} BM', ${bL})">${ov.bmBLay || 118}</div></div></div>`;
 
-    document.getElementById("fancyBody").innerHTML = `
+    document.getElementById("fancyBody").innerHTML = isLocked ? `<div class="contest-row"><span>Session Locked</span></div>` : `
       <div class="contest-row"><span>6 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('6 Ov No', 1.9)">${ov.sess6No || 48}</div><div class="rate-btn rate-back" onclick="openBet('6 Ov Yes', 1.9)">${ov.sess6Yes || 50}</div></div></div>
-      <div class="contest-row"><span>10 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('10 Ov No', 1.9)">${ov.sess10No || 82}</div><div class="rate-btn rate-back" onclick="openBet('10 Ov Yes', 1.9)">${ov.sess10Yes || 84}</div></div></div>`;
+      <div class="contest-row"><span>10 Over Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('10 Ov No', 1.9)">${ov.sess10No || 82}</div><div class="rate-btn rate-back" onclick="openBet('10 Ov Yes', 1.9)">${ov.sess10Yes || 84}</div></div></div>
+      <div class="contest-row"><span>Inning Total Run (${tA})</span><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('Total No', 1.9)">${ov.sess20No || 165}</div><div class="rate-btn rate-back" onclick="openBet('Total Yes', 1.9)">${ov.sess20Yes || 168}</div></div></div>`;
 
     const dRate = ov.digitPayout || 9.75;
     let dHtml = "";
@@ -261,6 +311,8 @@
 
   syncAdmin();
   loadMatches(false);
+  setInterval(syncAdmin, 6000);
 </script>
+  
 </body>
 </html>
