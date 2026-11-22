@@ -88,7 +88,7 @@
 
   <div id="matchListScreen">
     <div class="hero-box">
-      <div><h2>🏏 Cricket Exchange</h2><p>Direct Ball-by-Ball Live Matches</p></div>
+      <div><h2>🏏 Cricket Exchange</h2><p>Live, Upcoming & All Contests</p></div>
       <button class="refresh-btn" onclick="loadMatches(true)">🔄 Refresh</button>
     </div>
 
@@ -98,12 +98,12 @@
       <button class="f-tab" onclick="setFilter('completed', this)">✅ Completed</button>
     </div>
 
-    <div class="list-header"><span id="listHeading">🔴 Ball-to-Ball Live Matches</span><span>Tap →</span></div>
-    <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Live matches load ho rahe hain...</div></div>
+    <div class="list-header"><span id="listHeading">🔴 Live Matches</span><span>Tap →</span></div>
+    <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Matches load ho rahe hain...</div></div>
   </div>
 
   <div id="contestScreen">
-    <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● LIVE BALL-BY-BALL</span></div>
+    <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● LIVE OPEN</span></div>
 
     <div class="score-banner">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -116,7 +116,7 @@
           <div id="cOvers" style="font-size:11px; color:#28e04d; font-weight:700;">(-- Ov)</div>
         </div>
       </div>
-      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">LIVE:</span><div id="cBalls"></div></div>
+      <div class="ball-strip"><span style="font-size:10px; color:#ffd700; font-weight:800;">SCORE:</span><div id="cBalls"></div></div>
     </div>
 
     <div class="market-pills">
@@ -179,7 +179,7 @@
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
 <script>
-  const BACKUP_KEYS = [
+  const API_KEYS = [
     "b10ae8c8-70d1-442e-b709-98e66298e902",
     "50c508e6-4781-4797-9b37-d82b24084c05",
     "c0013804-077a-4936-83fc-0f8ced22c6b4",
@@ -211,101 +211,44 @@
   let lastScoreSignature = "";
   let ballChangeLockUntil = 0;
 
-    // Multi-Proxy + Direct Cricbuzz & ESPNcricinfo Free Ball-to-Ball Engine
-  async function fetchCricbuzzDirect() {
-    // Source 1: ESPNcricinfo Official Public Live Feed (No Key Needed, Exact Ball-by-Ball)
-    try {
-      const espnTarget = "https://hs-consumer-api.espncricinfo.com/v1/pages/matches/current?lang=en&latest=true";
-      const proxyUrls = [
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(espnTarget)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(espnTarget)}&t=${Date.now()}`
-      ];
-
-      for (const pUrl of proxyUrls) {
-        try {
-          const ctrl = new AbortController();
-          const tid = setTimeout(() => ctrl.abort(), 3500);
-          const r = await fetch(pUrl, { signal: ctrl.signal });
-          clearTimeout(tid);
-          const data = await r.json();
-          if (data && Array.isArray(data.matches) && data.matches.length > 0) {
-            return data.matches.map(m => {
-              const teams = Array.isArray(m.teams) ? m.teams : [];
-              const t1 = (teams[0] && teams[0].team && teams[0].team.longName) || "Team A";
-              const t2 = (teams[1] && teams[1].team && teams[1].team.longName) || "Team B";
-              const state = String(m.state || "").toUpperCase();
-              const statusText = m.statusText || m.status || "";
-
-              const scoreList = [];
-              teams.forEach(t => {
-                if (t && t.score) {
-                  // e.g. "216/6" and scoreInfo "(38.3/50 ov, target 314)"
-                  const parts = String(t.score).split("/");
-                  const runs = Number(parts[0] || 0);
-                  const wkts = Number(parts[1] || 0);
-                  const ovMatch = String(t.scoreInfo || "").match(/([\d.]+)\s*ov/i);
-                  const overs = ovMatch ? Number(ovMatch[1]) : 0;
-                  scoreList.push({
-                    inning: (t.team && t.team.abbreviation ? t.team.abbreviation : t.team.longName) + " Inning",
-                    r: runs,
-                    w: wkts,
-                    o: overs,
-                    rawText: `${t.score} ${t.scoreInfo || ""}`.trim()
-                  });
-                }
-              });
-
-              const isCompleted = state === "POST" || statusText.toLowerCase().includes("won by") || statusText.toLowerCase().includes("drawn") || statusText.toLowerCase().includes("tied");
-              const isUpcoming = state === "PRE" || (!isCompleted && scoreList.length === 0 && state !== "LIVE");
-              const isTrueLive = state === "LIVE" && !isCompleted;
-
-              return {
-                id: "espn_" + (m.objectId || m.id),
-                name: `${t1} vs ${t2}${m.title ? ", " + m.title : ""}`,
-                teams: [t1, t2],
-                matchType: m.format || "LIVE",
-                status: statusText || state,
-                score: scoreList,
-                recentBalls: scoreList.map(s => `${s.inning}: ${s.rawText}`).join(" | "),
-                isTrueLive,
-                isUpcoming,
-                isCompleted,
-                mTime: m.startTime ? new Date(m.startTime).getTime() : Date.now()
-              };
-            });
-          }
-        } catch (e) {}
-      }
-    } catch (e) {}
-    return null;
-  }
-      
-
-  async function fetchBackupCricAPI() {
-    let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % BACKUP_KEYS.length;
-    for (let i = 0; i < BACKUP_KEYS.length; i++) {
-      const idx = (startIdx + i) % BACKUP_KEYS.length;
+  async function fetchCricEndpoint(endpoint) {
+    let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % API_KEYS.length;
+    for (let i = 0; i < API_KEYS.length; i++) {
+      const idx = (startIdx + i) % API_KEYS.length;
       try {
-        const r = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${BACKUP_KEYS[idx]}&offset=0&t=${Date.now()}`);
+        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${API_KEYS[idx]}&offset=0&t=${Date.now()}`);
         const j = await r.json();
         if (j && j.status === "success" && Array.isArray(j.data)) {
           localStorage.setItem("bg_cric_key_idx", String(idx));
-          return j.data.map(m => {
-            const st = String(m.status || "").toLowerCase();
-            const isCompleted = Boolean(m.matchEnded || st.includes("won by"));
-            const hasScore = Array.isArray(m.score) && m.score.length > 0;
-            return {
-              ...m,
-              isTrueLive: Boolean(!isCompleted && m.matchStarted && hasScore),
-              isUpcoming: Boolean(!isCompleted && !m.matchStarted),
-              isCompleted,
-              mTime: Date.now()
-            };
-          });
+          return j.data;
         }
       } catch (e) {}
     }
-    return null;
+    return [];
+  }
+
+  function buildUnifiedMatches(currArr, allArr) {
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    const tenDaysAhead = now + (10 * 24 * 60 * 60 * 1000);
+    const map = new Map();
+
+    [...(currArr || []), ...(allArr || [])].forEach(m => {
+      if (!m || !m.id || map.has(m.id)) return;
+      const mTime = m.dateTimeGMT ? new Date(m.dateTimeGMT + (m.dateTimeGMT.endsWith("Z") ? "" : "Z")).getTime() : now;
+      const st = String(m.status || "").toLowerCase();
+      const hasScore = Array.isArray(m.score) && m.score.length > 0;
+
+      const isCompleted = Boolean(m.matchEnded || st.includes("won by") || st.includes("drawn") || st.includes("tied") || st.includes("no result") || st.includes("abandoned"));
+      const isTrueLive = Boolean(!isCompleted && m.matchStarted && hasScore && mTime >= oneDayAgo);
+      const isUpcoming = Boolean(!isCompleted && !m.matchStarted && mTime >= (now - 3600000) && mTime <= tenDaysAhead);
+
+      if (isTrueLive || isUpcoming || isCompleted) {
+        map.set(m.id, { ...m, isTrueLive, isUpcoming, isCompleted, mTime });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => (b.mTime || 0) - (a.mTime || 0));
   }
 
   async function fastLivePulse() {
@@ -322,44 +265,11 @@
       const fbCache = await rCache.json();
       let liveList = (fbCache && Array.isArray(fbCache.list)) ? fbCache.list : [];
 
-      if (!fbCache || (Date.now() - Number(fbCache.updatedAt || 0) >= 3000)) {
-        let freshList = await fetchCricbuzzDirect();
-        if (!freshList || freshList.length === 0) {
-          freshList = await fetchBackupCricAPI();
-        }
-        if (Array.isArray(freshList) && freshList.length > 0) {
-          liveList = freshList;
-          fetch(`${FB_URL}/sharedCricketCache.json`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ updatedAt: Date.now(), list: liveList })
-          }).catch(() => {});
-        }
-      }
-
-      if (liveList.length > 0) matches = liveList;
-
-      if (activeMatch) {
-        const fresh = matches.find(x => x.id === activeMatch.id) || matches.find(x => x.name === activeMatch.name);
-        if (fresh) {
-          const newSig = JSON.stringify(fresh.score || []) + "|" + (fresh.status || "");
-          if (lastScoreSignature && newSig !== lastScoreSignature) {
-            ballChangeLockUntil = Date.now() + 2500;
-          }
-          lastScoreSignature = newSig;
-          activeMatch = fresh;
-        }
-        await fetchMatchBetLimits(activeMatch.id);
-        openMatch(activeMatch);
-      } else if (matches.length) {
-        renderList();
-      }
-    } catch (e) {}
-  }
-
-  async function fetchMatchBetLimits(matchId) {
-    try {
-      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
+      if (!fbCache || (Date.now() - Number(fbCache.updatedAt || 0) >= 6000)) {
+        const currArr = await fetchCricEndpoint("currentMatches");
+        if (currArr.length > 0) {
+          liveList = buildUnifiedMatches(currArr, liveList);
+          fetch(`${FB_URL}/sharedCricketCache.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ updatedAt: Date.now(), list: liveList }) }).catch(() => {}); } }  if (liveList.length > 0) matches = liveList;  if (activeMatch) { const fresh = matches.find(x => x.id === activeMatch.id); if (fresh) { const newSig = JSON.stringify(fresh.score \vert{}\vert{} []) + "\vert{}" + (fresh.status \vert{}\vert{} ""); if (lastScoreSignature && newSig !== lastScoreSignature) { ballChangeLockUntil = Date.now() + 3000; } lastScoreSignature = newSig; activeMatch = fresh; } await fetchMatchBetLimits(activeMatch.id); openMatch(activeMatch); } else if (matches.length) { renderList(); } } catch (e) {} }  async function fetchMatchBetLimits(matchId) { try { const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
       const betsObj = (await r.json()) || {};
       const stats = {};
       Object.values(betsObj).forEach(b => {
@@ -374,21 +284,26 @@
 
   async function loadMatches(force) {
     const box = document.getElementById("matchListContainer");
-    box.innerHTML = `<div class="empty-msg">⚡ Ball-to-Ball Live Feed connect ho raha hai...</div>`;
-    let list = await fetchCricbuzzDirect();
-    if (!list || list.length === 0) {
-      list = await fetchBackupCricAPI();
-    }
-    if (list && list.length > 0) {
-      matches = list;
-      renderList();
-      fetch(`${FB_URL}/sharedCricketCache.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedAt: Date.now(), list: matches })
-      }).catch(() => {});
-    } else {
-      box.innerHTML = `<div class="empty-msg">Abhi koi live match nahi mila. Refresh dabayein.</div>`;
+    box.innerHTML = `<div class="empty-msg">Matches load ho rahe hain...</div>`;
+    try {
+      const [currArr, allArr] = await Promise.all([
+        fetchCricEndpoint("currentMatches"),
+        fetchCricEndpoint("matches")
+      ]);
+      const merged = buildUnifiedMatches(currArr, allArr);
+      if (merged.length > 0) {
+        matches = merged;
+        renderList();
+        fetch(`${FB_URL}/sharedCricketCache.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedAt: Date.now(), list: matches })
+        }).catch(() => {});
+      } else {
+        box.innerHTML = `<div class="empty-msg">Abhi koi match data nahi mila. Refresh dabayein.</div>`;
+      }
+    } catch (e) {
+      box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
     }
   }
 
@@ -397,7 +312,7 @@
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Ball-to-Ball Live Matches" :
+      mode === "live" ? "🔴 Live Matches" :
       mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed Matches";
     renderList();
   }
@@ -412,7 +327,7 @@
     if (!list.length) {
       box.innerHTML = `<div class="empty-msg">${
         filterMode === "live"
-          ? "Abhi is waqt koi real live match nahi chal raha hai.<br><b>Upcoming</b> ya <b>Completed</b> tab dekhein."
+          ? "Abhi is waqt koi live match nahi chal raha hai.<br><b>Upcoming</b> ya <b>Completed</b> tab dekhein."
           : "Is category mein abhi koi match nahi hai."
       }</div>`;
       return;
@@ -422,13 +337,12 @@
       const ov = overrides[m.id] || {};
       const customSc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
       const sc = customSc || ((m.score && m.score.length > 0)
-        ? m.score.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
-        : (m.status || ""));
-      const badge = m.isTrueLive ? `<span class="b-live">● BALL-BY-BALL</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
+        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" \vert{} ") : (m.status \vert{}\vert{} `Starts: ${m.date || ""}`));
+      const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
           ${badge}
-          <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "LIVE").toUpperCase()}</span>
+          <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "T20").toUpperCase()}</span>
           <div class="m-title">${m.name}</div>
           <div class="m-score">${sc}</div>
         </div>
@@ -467,7 +381,7 @@
     const tB = (m.teams && m.teams[1]) || "Team B";
 
     document.getElementById("cTitle").innerText = m.name;
-    document.getElementById("cStatus").innerText = m.status || "";
+    document.getElementById("cStatus").innerText = m.status || m.venue || "";
 
     const scoreArr = Array.isArray(m.score) ? m.score : [];
     const last = scoreArr.length > 0 ? scoreArr[scoreArr.length - 1] : null;
@@ -478,18 +392,18 @@
     const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
 
     document.getElementById("cRuns").innerText = ov.liveRuns || (last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON"));
-    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (last ? `(${last.o} Ov)` : "");
+    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (last ? `(${last.o} Ov)` : (m.date || ""));
 
-    const innText = m.recentBalls
-      ? `Recent: ${m.recentBalls}`
-      : (scoreArr.length > 0 ? scoreArr.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ") : "Ball-by-ball live active");
+    const innText = scoreArr.length > 0
+      ? scoreArr.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
+      : "Match start hone par score yahan aayega";
     document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d; font-weight:700;">${innText}</span>`;
 
     const isBallRunning = Date.now() < ballChangeLockUntil;
     const globalLocked = Boolean(ov.locked || m.isCompleted || isBallRunning);
     const lockBannerText = isBallRunning ? "BALL RUNNING" : "Suspended";
 
-    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isBallRunning ? "⚡ BALL RUNNING" : globalLocked ? "🔒 SUSPENDED" : "● LIVE BALL-BY-BALL";
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : isBallRunning ? "⚡ BALL RUNNING" : globalLocked ? "🔒 SUSPENDED" : "● LIVE OPEN";
     document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
 
     let autoOddA = "1.80", autoOddB = "2.05", oddSpread = 0.03, sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
@@ -552,26 +466,27 @@
         </div>
       </div>`;
 
-    const s6No = ov.sess6No || Math.max(currRuns + 8, Math.round(crr * 6));
+    const s6No = ov.sess6No || Math.max(currRuns + 12, Math.round(crr * 6));
     const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
-    const s10No = ov.sess10No || Math.max(currRuns + 14, Math.round(crr * 10));
+    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
     const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
-    const s15No = ov.sess15No || Math.max(currRuns + 22, Math.round(crr * 15));
+    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
     const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
-    const s20No = ov.sess20No || Math.max(currRuns + 28, Math.round(crr * 20));
+    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
     const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
-    const s30No = Math.max(currRuns + 35, Math.round(crr * 30));
+    const s30No = Math.max(currRuns + 42, Math.round(crr * 30));
     const s30Yes = s30No + sessGap + 1;
 
+    // 2-Over Safety Buffer Lock (taaki Cricbuzz delay se koi cheat na kar sake)
     const fancyRows = [
-      { title: `6 Over Run (${battingTeam})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (currOvers >= 6.0) },
-      { title: `10 Over Run (${battingTeam})`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (currOvers >= 10.0) },
-      { title: `15 Over Run (${battingTeam})`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout, autoDone: (currOvers >= 15.0) },
-      { title: `20 Over Run (${battingTeam})`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout, autoDone: (currOvers >= 20.0) },
-      { title: `30 Over Run (${battingTeam})`, noRun: s30No, noRate: fancyPayout, yesRun: s30Yes, yesRate: fancyPayout, autoDone: (currOvers >= 30.0) },
-      { title: `${battingTeam} Batsman 1 Run Adv`, noRun: ov.bat1No || 40, noRate: fancyPayout, yesRun: ov.bat1Yes || (40 + sessGap), yesRate: fancyPayout, autoDone: false },
-      { title: `${battingTeam} Batsman 2 Run Adv`, noRun: ov.bat2No || 32, noRate: fancyPayout, yesRun: ov.bat2Yes || (32 + sessGap), yesRate: fancyPayout, autoDone: false },
-      { title: `Inning Total Boundaries (${battingTeam})`, noRun: ov.pshipNo || 24, noRate: fancyPayout, yesRun: ov.pshipYes || (24 + sessGap), yesRate: fancyPayout, autoDone: false }
+      { title: `6 Over Run (${battingTeam})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (currOvers >= 4.2) },
+      { title: `10 Over Run (${battingTeam})`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (currOvers >= 8.2) },
+      { title: `15 Over Run (${battingTeam})`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout, autoDone: (currOvers >= 13.2) },
+      { title: `20 Over Run (${battingTeam})`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout, autoDone: (currOvers >= 18.2) },
+      { title: `30 Over Run (${battingTeam})`, noRun: s30No, noRate: fancyPayout, yesRun: s30Yes, yesRate: fancyPayout, autoDone: (currOvers >= 28.2) },
+      { title: `${battingTeam} Batsman 1 Run Adv`, noRun: ov.bat1No || 42, noRate: fancyPayout, yesRun: ov.bat1Yes || (42 + sessGap), yesRate: fancyPayout, autoDone: false },
+      { title: `${battingTeam} Batsman 2 Run Adv`, noRun: ov.bat2No || 34, noRate: fancyPayout, yesRun: ov.bat2Yes || (34 + sessGap), yesRate: fancyPayout, autoDone: false },
+      { title: `Inning Total Boundaries (${battingTeam})`, noRun: ov.pshipNo || 26, noRate: fancyPayout, yesRun: ov.pshipYes || (26 + sessGap), yesRate: fancyPayout, autoDone: false }
     ];
 
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
@@ -579,7 +494,7 @@
       const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
       const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
       const isRowLocked = globalLocked || f.autoDone || lim.blocked;
-      const lockText = f.autoDone ? "Over Complete" : lim.blocked ? lim.reason : lockBannerText;
+      const lockText = f.autoDone ? "Market Closed" : lim.blocked ? lim.reason : lockBannerText;
 
       return `<div class="contest-row">
         <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
@@ -597,18 +512,18 @@
 
     const dRate = ov.digitPayout || autoDigit;
     const digitBlocks = [
-      { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 10.0) },
-      { title: "1st Inning 20 Over Last Digit", done: (innCount > 1 || currOvers >= 20.0) },
-      { title: "2nd Inning 10 Over Last Digit", done: (innCount === 2 && currOvers >= 10.0) },
-      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 20.0) },
-      { title: "2nd Inning 30 Over Last Digit", done: (innCount === 2 && currOvers >= 30.0) }
+      { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 8.2) },
+      { title: "1st Inning 20 Over Last Digit", done: (innCount > 1 || currOvers >= 18.2) },
+      { title: "2nd Inning 10 Over Last Digit", done: (innCount === 2 && currOvers >= 8.2) },
+      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 18.2) },
+      { title: "2nd Inning 30 Over Last Digit", done: (innCount === 2 && currOvers >= 28.2) }
     ];
 
     document.getElementById("digitBody").innerHTML = digitBlocks.map(b => {
       const lim = checkLimitStatus(b.title, maxUsersAllowed, maxMoneyAllowed);
       if (globalLocked || b.done || lim.blocked) {
         return `<div class="market-card">
-          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Over Completed' : lim.blocked ? lim.reason : lockBannerText}</span></div>
+          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Market Closed' : lim.blocked ? lim.reason : lockBannerText}</span></div>
         </div>`;
       }
       let grid = "";
@@ -637,7 +552,7 @@
   }
 
   function openBet(marketName, side, lockedLine, oddMult) {
-    if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 2 second baad bet lagayein.");
+    if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 3 second baad bet lagayein.");
     selBet = { marketName, side, lockedLine, oddMult: Number(oddMult), sigAtOpen: lastScoreSignature };
     document.getElementById("betTitle").innerText = `${marketName} (${side}: ${lockedLine})`;
     document.getElementById("betOddTag").innerText = `@ ${oddMult}x`;
@@ -661,9 +576,9 @@
 
     const btn = document.querySelector("#betModal button:last-child");
     btn.disabled = true;
-    btn.innerText = "⏳ Verifying Live Ball...";
+    btn.innerText = "⏳ Matching Bet (4s)...";
 
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 4000));
     await fastLivePulse();
 
     btn.disabled = false;
@@ -706,7 +621,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(betRecord)
       });
-      alert(`✅ Bet Verified & Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
+      alert(`✅ Bet Matched & Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
       await fetchMatchBetLimits(activeMatch.id);
       openMatch(activeMatch);
@@ -745,7 +660,7 @@
   }
 
   loadMatches(true);
-  setInterval(fastLivePulse, 3000);
+  setInterval(fastLivePulse, 6000);
 </script>
 </body>
 </html>
