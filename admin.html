@@ -406,63 +406,30 @@
   forceLoadAll();
   setInterval(forceLoadAll, 8000);
 </script>
-
-<!-- ==================== CRICKET LIVE SCORE & RATE CONTROL (EXTRA PANEL) ==================== -->
+<!-- ==================== CRICKET AUTO-LIMIT & RATE CONTROL ==================== -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
-    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Live Score & Bet Rate Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Yahan se set kiya gaya rate aur score sabhi users ke mobile par live dikhega</p>
-
-    <label style="font-size:11px; color:#ffd700; font-weight:bold;">1. Match Chunein:</label>
-    <select id="bgCric_matchSelect" onchange="bgCricLoadFromFirebase()">
-      <option value="">Matches load ho rahe hain...</option>
-    </select>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div><label style="font-size:11px; color:#ccc;">Runs / Wickets</label><input type="text" id="bgCric_runs" placeholder="e.g. 118/3" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Overs</label><input type="text" id="bgCric_overs" placeholder="e.g. 14.2" /></div>
-    </div>
-
-    <label style="font-size:11px; color:#ccc;">Recent 6 Balls (Comma se likhein)</label>
-    <input type="text" id="bgCric_balls" placeholder="e.g. 1,4,0,6,W,2" />
-
-    <label style="font-size:11px; color:#ccc;">Live Status / Commentary Line</label>
-    <input type="text" id="bgCric_status" placeholder="e.g. Need 24 runs in 12 balls" />
-
-    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:6px 0 12px; cursor:pointer;">
-      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Ball Running (Lock All Bets)
-    </label>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div><label style="font-size:11px; color:#72bbef;">Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
-      <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Bookmaker A (Back/Lay)</label><input type="text" id="bgCric_bmA" placeholder="84/87" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Bookmaker B (Back/Lay)</label><input type="text" id="bgCric_bmB" placeholder="110/118" /></div>
-      <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
-      <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Inning Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
-      <div><label style="font-size:11px; color:#ffd700;">Last Digit Rate</label><input type="number" step="0.05" id="bgCric_digit" placeholder="9.75" /></div>
-    </div>
-
-    <button type="button" class="btn btn-gold" onclick="bgCricSaveFirebase()">✅ SAVE CRICKET RATES TO LIVE SITE</button>
-    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetFirebase()">🗑️ Reset Match to Auto-API</button>
-  </div>
-</div>
-<!-- ==================== CRICKET BET RATE CONTROL (ONLY RATES) ==================== -->
-<div class="wrap" style="margin-top: 14px;">
-  <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
-    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Bet Rate Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Match select karke sirf Bet Rates aur Session Values set karein</p>
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Auto-Limit & Rate Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Over complete hone par auto-suspend hoga + Max Users/Paisa limit set karein</p>
 
     <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Match:</label>
     <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
       <option value="">Matches load ho rahe hain...</option>
     </select>
 
-    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:6px 0 12px; cursor:pointer;">
-      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Lock / Suspend Bets for this Match
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#260636; padding:8px; border-radius:8px; margin-bottom:10px; border:1px solid #6b1d91;">
+      <div>
+        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Users / Contest</label>
+        <input type="number" id="bgCric_maxUsers" placeholder="e.g. 25" style="margin-bottom:0;" />
+      </div>
+      <div>
+        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Paisa (₹) / Contest</label>
+        <input type="number" id="bgCric_maxMoney" placeholder="e.g. 15000" style="margin-bottom:0;" />
+      </div>
+    </div>
+
+    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#ff4d6d; font-weight:bold; margin:4px 0 12px; cursor:pointer;">
+      <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Emergency Manual Lock (All Markets)
     </label>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
@@ -470,16 +437,14 @@
       <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
       <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
       <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Bookmaker A (Back/Lay)</label><input type="text" id="bgCric_bmA" placeholder="84/87" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Bookmaker B (Back/Lay)</label><input type="text" id="bgCric_bmB" placeholder="110/118" /></div>
       <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
       <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
-      <div><label style="font-size:11px; color:#ccc;">Inning Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
-      <div><label style="font-size:11px; color:#ffd700;">Last Digit Payout</label><input type="number" step="0.05" id="bgCric_digit" placeholder="9.75" /></div>
+      <div><label style="font-size:11px; color:#ccc;">15 Over Run (No/Yes)</label><input type="text" id="bgCric_s15" placeholder="122/124" /></div>
+      <div><label style="font-size:11px; color:#ccc;">20 Over Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
     </div>
 
-    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE CRICKET BET RATES</button>
-    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default Rates</button>
+    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
+    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
   </div>
 </div>
 
@@ -519,46 +484,44 @@
     try {
       const r = await fetch(`${FB_URL}/cricketControls/${id}.json?t=${Date.now()}`);
       const ov = (await r.json()) || {};
+      document.getElementById("bgCric_maxUsers").value = ov.maxUsers || 25;
+      document.getElementById("bgCric_maxMoney").value = ov.maxMoney || 15000;
       document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
       document.getElementById("bgCric_aBack").value = ov.teamABack || "";
       document.getElementById("bgCric_aLay").value = ov.teamALay || "";
       document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
       document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
-      document.getElementById("bgCric_bmA").value = ov.bmABack ? `${ov.bmABack}/${ov.bmALay}` : "";
-      document.getElementById("bgCric_bmB").value = ov.bmBBack ? `${ov.bmBBack}/${ov.bmBLay}` : "";
       document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
       document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
+      document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
       document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
-      document.getElementById("bgCric_digit").value = ov.digitPayout || "";
     } catch (e) {}
   };
 
   window.bgCricSaveRates = async function() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
-    const bmA = document.getElementById("bgCric_bmA").value.split("/");
-    const bmB = document.getElementById("bgCric_bmB").value.split("/");
     const s6 = document.getElementById("bgCric_s6").value.split("/");
     const s10 = document.getElementById("bgCric_s10").value.split("/");
+    const s15 = document.getElementById("bgCric_s15").value.split("/");
     const s20 = document.getElementById("bgCric_s20").value.split("/");
 
     const payload = {
+      maxUsers: Number(document.getElementById("bgCric_maxUsers").value || 25),
+      maxMoney: Number(document.getElementById("bgCric_maxMoney").value || 15000),
       locked: document.getElementById("bgCric_lock").checked,
       teamABack: document.getElementById("bgCric_aBack").value.trim(),
       teamALay: document.getElementById("bgCric_aLay").value.trim(),
       teamBBack: document.getElementById("bgCric_bBack").value.trim(),
       teamBLay: document.getElementById("bgCric_bLay").value.trim(),
-      bmABack: bmA[0] ? bmA[0].trim() : "",
-      bmALay: bmA[1] ? bmA[1].trim() : "",
-      bmBBack: bmB[0] ? bmB[0].trim() : "",
-      bmBLay: bmB[1] ? bmB[1].trim() : "",
       sess6No: s6[0] ? s6[0].trim() : "",
       sess6Yes: s6[1] ? s6[1].trim() : "",
       sess10No: s10[0] ? s10[0].trim() : "",
       sess10Yes: s10[1] ? s10[1].trim() : "",
+      sess15No: s15[0] ? s15[0].trim() : "",
+      sess15Yes: s15[1] ? s15[1].trim() : "",
       sess20No: s20[0] ? s20[0].trim() : "",
-      sess20Yes: s20[1] ? s20[1].trim() : "",
-      digitPayout: document.getElementById("bgCric_digit").value.trim()
+      sess20Yes: s20[1] ? s20[1].trim() : ""
     };
 
     await fetch(`${FB_URL}/cricketControls/${id}.json`, {
@@ -566,7 +529,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    alert("✅ Cricket Bet Rates Save Ho Gaye!");
+    alert("✅ Auto-Limits & Rates Save Ho Gaye!");
   };
 
   window.bgCricResetRates = async function() {
@@ -574,7 +537,7 @@
     if (!id) return;
     await fetch(`${FB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
     window.bgCricLoadRates();
-    alert("🗑️ Default rates reset ho gaye!");
+    alert("🗑️ Default settings reset ho gayi!");
   };
 
   initAdminCricDropdown();
