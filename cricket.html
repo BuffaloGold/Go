@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cricket Exchange - Buffalo Gold</title>
+  <title>Cricket Exchange & Live Score - Buffalo Gold</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-    body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 80px; }
+    body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
     .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 12px; }
 
-    /* Top Bar matching game.html */
+    /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #260636; padding: 10px 14px; border-radius: 14px; border: 1px solid #75229e; }
     .user-info h3 { font-size: 14px; color: #ffd700; }
     .user-info span { font-size: 11px; color: #aaa; }
@@ -17,11 +17,65 @@
     .mini-wallet div { font-size: 11px; color: #ccc; }
     .mini-wallet strong { font-size: 13px; color: #28e04d; }
 
-    /* Banner */
-    .promo-banner { background: linear-gradient(135deg, #4a0d66, #2d0842); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .promo-banner h2 { color: #ffd700; font-size: 16px; margin-bottom: 2px; }
-    .promo-banner p { font-size: 11px; color: #ddd; }
-    .live-pill { background: #28e04d; color: #000; font-weight: 800; font-size: 11px; padding: 5px 9px; border-radius: 8px; }
+    /* Live Ball-by-Ball Scoreboard */
+    .live-score-card {
+      background: linear-gradient(145deg, #2d0740, #160221);
+      border: 2px solid #ffd700;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.18);
+    }
+
+    .score-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .live-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #28e04d; text-transform: uppercase; }
+    .blink-dot { width: 8px; height: 8px; background: #28e04d; border-radius: 50%; animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    .crr-tag { font-size: 11px; color: #ffd700; background: rgba(255,215,0,0.12); padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+
+    .teams-score { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .team-box h4 { font-size: 15px; color: #fff; margin-bottom: 2px; }
+    .team-box p { font-size: 11px; color: #bbb; }
+    .big-score { text-align: right; }
+    .big-score .runs { font-size: 22px; font-weight: 900; color: #ffd700; }
+    .big-score .overs { font-size: 12px; color: #ddd; }
+
+    /* Ball-by-Ball Strip */
+    .balls-strip {
+      background: #14021f;
+      border: 1px solid #59167a;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .balls-label { font-size: 11px; color: #aaa; font-weight: 700; }
+    .balls-list { display: flex; gap: 5px; }
+    .ball-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2e0942;
+      color: #fff;
+      border: 1px solid #75229e;
+    }
+    .ball-4 { background: #2563eb; border-color: #60a5fa; color: #fff; }
+    .ball-6 { background: #16a34a; border-color: #4ade80; color: #fff; }
+    .ball-W { background: #dc2626; border-color: #f87171; color: #fff; }
+    .ball-0 { background: #374151; border-color: #6b7280; color: #d1d5db; }
+
+    /* Players & Live Commentary */
+    .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; margin-bottom: 8px; background: rgba(255,255,255,0.04); padding: 8px; border-radius: 8px; }
+    .players-grid div span { color: #ffd700; font-weight: 700; }
+    .comm-box { font-size: 11px; color: #e5e7eb; background: #240533; padding: 6px 10px; border-radius: 6px; border-left: 3px solid #28e04d; }
 
     /* Sports Tabs */
     .sports-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
@@ -32,10 +86,11 @@
     .section-bar { background: #260636; padding: 8px 12px; border-radius: 10px 10px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 700; color: #ffd700; display: flex; justify-content: space-between; }
     .odds-labels { display: flex; gap: 38px; padding-right: 14px; }
 
-    /* Match List (No Casino Grid Below) */
+    /* Match List */
     .match-list { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
-    .match-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #3c0c54; }
+    .match-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #3c0c54; cursor: pointer; }
     .match-row:last-child { border-bottom: none; }
+    .match-row.selected-match { background: #310845; }
     .match-info { flex: 1; padding-right: 8px; }
     .match-status { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
     .badge-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 4px; }
@@ -43,7 +98,7 @@
     .badge-fancy { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid #ffd700; font-size: 9px; padding: 0 4px; border-radius: 4px; }
     .match-time { font-size: 10px; color: #aaa; }
     .match-title { font-size: 13px; font-weight: 700; color: #fff; }
-    .match-series { font-size: 10px; color: #bbb; margin-top: 2px; }
+    .match-series { font-size: 10px; color: #28e04d; margin-top: 2px; font-weight: 600; }
 
     /* Odds Boxes */
     .odds-group { display: flex; gap: 5px; }
@@ -85,14 +140,47 @@
     </div>
   </div>
 
-  <div class="promo-banner">
-    <div>
-      <h2>🏏 Cricket Exchange</h2>
-      <p>Match Winner • Session • Fancy Odds</p>
+  <!-- Live Ball-by-Ball Scoreboard -->
+  <div class="live-score-card" id="scoreCard">
+    <div class="score-top">
+      <div class="live-indicator"><span class="blink-dot"></span> <span id="liveStatusText">BALL BY BALL LIVE</span></div>
+      <div class="crr-tag" id="crrDisplay">CRR: 9.85</div>
     </div>
-    <div class="live-pill">IN-PLAY</div>
+
+    <div class="teams-score">
+      <div class="team-box">
+        <h4 id="scoreMatchTitle">India v Australia</h4>
+        <p id="scoreSeriesText">T20 International • 1st Inn</p>
+      </div>
+      <div class="big-score">
+        <div class="runs" id="scoreRuns">142/3</div>
+        <div class="overs" id="scoreOvers">(14.2 Ov)</div>
+      </div>
+    </div>
+
+    <div class="balls-strip">
+      <span class="balls-label">THIS OVER:</span>
+      <div class="balls-list" id="ballsContainer">
+        <span class="ball-circle ball-1">1</span>
+        <span class="ball-circle ball-4">4</span>
+        <span class="ball-circle ball-0">0</span>
+        <span class="ball-circle ball-6">6</span>
+        <span class="ball-circle ball-1">1</span>
+        <span class="ball-circle ball-2">2</span>
+      </div>
+    </div>
+
+    <div class="players-grid">
+      <div>🏏 <span id="bat1">Suryakumar* 48(24)</span><br>🏏 <span id="bat2">Hardik 22(12)</span></div>
+      <div style="text-align:right;">⚾ <span id="bowler">M. Starc 2.2-0-26-1</span><br>🎯 <span id="lastBallTag">Last: 4 Runs!</span></div>
+    </div>
+
+    <div class="comm-box" id="commText">
+      14.2 Ov: Starc to Suryakumar, FOUR! Crisp drive through extra cover!
+    </div>
   </div>
 
+  <!-- Sports Tabs -->
   <div class="sports-tabs">
     <button class="tab-btn active" onclick="filterSport('all', this)">🔥 All</button>
     <button class="tab-btn" onclick="filterSport('cricket', this)">🏏 Cricket</button>
@@ -101,7 +189,7 @@
   </div>
 
   <div class="section-bar">
-    <span>Matches</span>
+    <span>Tap Match for Live Score</span>
     <div class="odds-labels">
       <span>Back</span>
       <span>Lay</span>
@@ -139,6 +227,9 @@
 </div>
 
 <script>
+  // Optional: Apni CricAPI free key yahan dalne par real live API score bhi fetch hoga
+  const CRIC_API_KEY = ""; 
+
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
@@ -157,22 +248,164 @@
   } catch (e) {}
 
   const matchesData = [
-    { sport: "cricket", live: true, fancy: true, time: "In-Play • 14.2 Ov", title: "India v Australia", series: "T20 International Series", back: "1.78", bVol: "45K", lay: "1.80", lVol: "32K" },
-    { sport: "cricket", live: true, fancy: true, time: "In-Play • 8.4 Ov", title: "Mumbai Indians v Chennai Super Kings", series: "Indian Premier League", back: "1.92", bVol: "80K", lay: "1.94", lVol: "61K" },
-    { sport: "cricket", live: true, fancy: true, time: "In-Play • 2nd Inn", title: "England v South Africa", series: "ODI Series", back: "2.10", bVol: "24K", lay: "2.14", lVol: "19K" },
-    { sport: "cricket", live: false, fancy: true, time: "Today, 7:30 PM", title: "RCB v Kolkata Knight Riders", series: "Indian Premier League", back: "1.86", bVol: "50K", lay: "1.88", lVol: "42K" },
-    { sport: "soccer", live: true, fancy: false, time: "In-Play • 64'", title: "Real Madrid v FC Barcelona", series: "La Liga", back: "2.05", bVol: "30K", lay: "2.08", lVol: "28K" },
-    { sport: "tennis", live: true, fancy: false, time: "In-Play • Set 2", title: "Carlos Alcaraz v Jannik Sinner", series: "ATP Masters", back: "1.72", bVol: "22K", lay: "1.75", lVol: "20K" }
+    {
+      id: "m1",
+      sport: "cricket",
+      live: true,
+      fancy: true,
+      time: "In-Play • 14.2 Ov",
+      title: "India v Australia",
+      series: "T20 International Series",
+      runs: 142,
+      wickets: 3,
+      overNum: 14,
+      ballNum: 2,
+      bat1: "Suryakumar* 48(24)",
+      bat2: "Hardik 22(12)",
+      bowler: "M. Starc 2.2-0-26-1",
+      recentBalls: ["1", "4", "0", "6", "1", "4"],
+      comm: "14.2 Ov: Starc to Suryakumar, FOUR! Lofted cleanly over mid-off!",
+      back: "1.78", bVol: "45K", lay: "1.80", lVol: "32K"
+    },
+    {
+      id: "m2",
+      sport: "cricket",
+      live: true,
+      fancy: true,
+      time: "In-Play • 8.4 Ov",
+      title: "Mumbai Indians v Chennai Super Kings",
+      series: "Indian Premier League",
+      runs: 78,
+      wickets: 1,
+      overNum: 8,
+      ballNum: 4,
+      bat1: "Rohit Sharma* 41(26)",
+      bat2: "Tilak Varma 19(14)",
+      bowler: "R. Jadeja 1.4-0-12-0",
+      recentBalls: ["1", "1", "6", "0"],
+      comm: "8.4 Ov: Jadeja to Rohit, dot ball defended back down the pitch.",
+      back: "1.92", bVol: "80K", lay: "1.94", lVol: "61K"
+    },
+    {
+      id: "m3",
+      sport: "cricket",
+      live: true,
+      fancy: true,
+      time: "In-Play • 31.1 Ov",
+      title: "England v South Africa",
+      series: "ODI Series",
+      runs: 189,
+      wickets: 4,
+      overNum: 31,
+      ballNum: 1,
+      bat1: "Joe Root* 67(72)",
+      bat2: "Harry Brook 34(28)",
+      bowler: "K. Rabada 6.1-0-38-2",
+      recentBalls: ["2"],
+      comm: "31.1 Ov: Rabada to Root, tucked away for a quick couple.",
+      back: "2.10", bVol: "24K", lay: "2.14", lVol: "19K"
+    },
+    {
+      id: "m4",
+      sport: "cricket",
+      live: false,
+      fancy: true,
+      time: "Today, 7:30 PM",
+      title: "RCB v Kolkata Knight Riders",
+      series: "Indian Premier League",
+      runs: 0,
+      wickets: 0,
+      overNum: 0,
+      ballNum: 0,
+      bat1: "Match Starts 7:30 PM",
+      bat2: "Toss at 7:00 PM",
+      bowler: "M. Chinnaswamy Stadium",
+      recentBalls: ["-", "-", "-", "-", "-", "-"],
+      comm: "Pre-match odds open! Place your Match Winner & Fancy bets now.",
+      back: "1.86", bVol: "50K", lay: "1.88", lVol: "42K"
+    },
+    {
+      id: "m5",
+      sport: "soccer",
+      live: true,
+      fancy: false,
+      time: "In-Play • 64'",
+      title: "Real Madrid v FC Barcelona",
+      series: "La Liga",
+      runs: 2,
+      wickets: 1,
+      overNum: 64,
+      ballNum: 0,
+      bat1: "Real Madrid: 2 Goals",
+      bat2: "Barcelona: 1 Goal",
+      bowler: "2nd Half • 64th Min",
+      recentBalls: ["⚽", "🟨", "⚽"],
+      comm: "64': Real Madrid leading 2-1 in El Clasico!",
+      back: "2.05", bVol: "30K", lay: "2.08", lVol: "28K"
+    }
   ];
 
+  let activeMatchId = "m1";
   let selectedBet = null;
+
+  function updateScoreboard(match) {
+    activeMatchId = match.id;
+    document.getElementById("scoreMatchTitle").innerText = match.title;
+    document.getElementById("scoreSeriesText").innerText = match.series;
+
+    if (match.sport === "soccer") {
+      document.getElementById("scoreRuns").innerText = `${match.runs} - ${match.wickets}`;
+      document.getElementById("scoreOvers").innerText = `(${match.overNum}')`;
+      document.getElementById("crrDisplay").innerText = "2ND HALF";
+    } else if (!match.live) {
+      document.getElementById("scoreRuns").innerText = "UPCOMING";
+      document.getElementById("scoreOvers").innerText = match.time;
+      document.getElementById("crrDisplay").innerText = "TOSS SOON";
+    } else {
+      const oversStr = `${match.overNum}.${match.ballNum}`;
+      const totalBalls = match.overNum * 6 + match.ballNum;
+      const crr = totalBalls > 0 ? ((match.runs / totalBalls) * 6).toFixed(2) : "0.00";
+      document.getElementById("scoreRuns").innerText = `${match.runs}/${match.wickets}`;
+      document.getElementById("scoreOvers").innerText = `(${oversStr} Ov)`;
+      document.getElementById("crrDisplay").innerText = `CRR: ${crr}`;
+    }
+
+    document.getElementById("bat1").innerText = match.bat1;
+    document.getElementById("bat2").innerText = match.bat2;
+    document.getElementById("bowler").innerText = match.bowler;
+    document.getElementById("commText").innerText = match.comm;
+
+    const lastVal = match.recentBalls[match.recentBalls.length - 1] || "-";
+    document.getElementById("lastBallTag").innerText = `Last Ball: ${lastVal}`;
+
+    const ballsContainer = document.getElementById("ballsContainer");
+    ballsContainer.innerHTML = "";
+    match.recentBalls.slice(-6).forEach(b => {
+      const span = document.createElement("span");
+      span.className = `ball-circle ball-${b}`;
+      span.innerText = b;
+      ballsContainer.appendChild(span);
+    });
+  }
 
   function renderMatches(filter = "all") {
     const container = document.getElementById("matchContainer");
     container.innerHTML = "";
     matchesData.filter(m => filter === "all" || m.sport === filter).forEach(m => {
       const row = document.createElement("div");
-      row.className = "match-row";
+      row.className = "match-row" + (m.id === activeMatchId ? " selected-match" : "");
+      row.onclick = (e) => {
+        if (!e.target.closest(".odd-box")) {
+          updateScoreboard(m);
+          renderMatches(filter);
+          document.getElementById("scoreCard").scrollIntoView({ behavior: "smooth" });
+        }
+      };
+
+      const liveScoreMini = m.live && m.sport === "cricket"
+        ? ` • ${m.runs}/${m.wickets} (${m.overNum}.${m.ballNum})`
+        : "";
+
       row.innerHTML = `
         <div class="match-info">
           <div class="match-status">
@@ -181,7 +414,7 @@
             <span class="match-time">${m.time}</span>
           </div>
           <div class="match-title">${m.title}</div>
-          <div class="match-series">${m.series}</div>
+          <div class="match-series">${m.series}${liveScoreMini}</div>
         </div>
         <div class="odds-group">
           <div class="odd-box odd-back" onclick="openBetSlip('${m.title}', 'BACK', '${m.back}')">
@@ -197,6 +430,49 @@
       container.appendChild(row);
     });
   }
+
+  // Live Ball-by-Ball Auto-Updater (Har 4 second mein next ball simulate/update karta hai)
+  const ballOutcomes = [
+    { code: "0", runs: 0, wkt: 0, text: "Dot ball! Good length delivery, defended solidly." },
+    { code: "1", runs: 1, wkt: 0, text: "Pushed into the gap at mid-on for a single." },
+    { code: "2", runs: 2, wkt: 0, text: "Quick running between the wickets, 2 runs taken!" },
+    { code: "4", runs: 4, wkt: 0, text: "FOUR! Smashed past point to the boundary!" },
+    { code: "6", runs: 6, wkt: 0, text: "SIX! Huge hit over long-on into the crowd!" },
+    { code: "W", runs: 0, wkt: 1, text: "OUT! Caught in the deep! Big wicket falls!" }
+  ];
+
+  setInterval(() => {
+    matchesData.forEach(m => {
+      if (m.live && m.sport === "cricket" && m.wickets < 10) {
+        const pick = ballOutcomes[Math.floor(Math.random() * ballOutcomes.length)];
+        m.runs += pick.runs;
+        m.wickets += pick.wkt;
+        m.ballNum += 1;
+        if (m.ballNum >= 6) {
+          m.overNum += 1;
+          m.ballNum = 0;
+          m.recentBalls = [pick.code];
+        } else {
+          m.recentBalls.push(pick.code);
+        }
+        m.time = `In-Play • ${m.overNum}.${m.ballNum} Ov`;
+        m.comm = `${m.overNum}.${m.ballNum} Ov: ${pick.text}`;
+
+        // Slight live odds movement
+        const shift = (Math.random() * 0.04 - 0.02);
+        const newBack = Math.max(1.05, (parseFloat(m.back) + shift)).toFixed(2);
+        m.back = newBack;
+        m.lay = (parseFloat(newBack) + 0.02).toFixed(2);
+      }
+    });
+
+    const current = matchesData.find(m => m.id === activeMatchId);
+    if (current) updateScoreboard(current);
+
+    const activeTab = document.querySelector(".tab-btn.active");
+    const sportFilter = activeTab ? activeTab.innerText.toLowerCase() : "all";
+    renderMatches(sportFilter.includes("cricket") ? "cricket" : sportFilter.includes("soccer") ? "soccer" : sportFilter.includes("tennis") ? "tennis" : "all");
+  }, 4000);
 
   function filterSport(sport, btn) {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -234,6 +510,8 @@
     closeBetSlip();
   }
 
+  // Initial load
+  updateScoreboard(matchesData[0]);
   renderMatches("all");
 </script>
 </body>
