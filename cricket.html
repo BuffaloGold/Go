@@ -178,7 +178,6 @@
   <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
-
 <script>
   const API_KEYS = [
     "b10ae8c8-70d1-442e-b709-98e66298e902",
@@ -228,19 +227,25 @@
   let cricketWinRate = 35;
   let lastScoreSignature = "";
   let ballChangeLockUntil = 0;
+  let lastApiError = "";
 
   async function fetchCricEndpoint(endpoint) {
     let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % API_KEYS.length;
     for (let i = 0; i < API_KEYS.length; i++) {
       const idx = (startIdx + i) % API_KEYS.length;
       try {
-        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${API_KEYS[idx]}&offset=0&t=${Date.now()}`);
+        const r = await fetch(`https://api.cricapi.com/v1/${endpoint}?apikey=${API_KEYS[idx]}&offset=0`);
         const j = await r.json();
         if (j && j.status === "success" && Array.isArray(j.data)) {
           localStorage.setItem("bg_cric_key_idx", String(idx));
+          lastApiError = "";
           return j.data;
+        } else {
+          lastApiError = `Key ${idx + 1}: ${(j && j.reason) || "Failed"}`;
         }
-      } catch (e) {}
+      } catch (e) {
+        lastApiError = `Network Error`;
+      }
     }
     return [];
   }
@@ -269,33 +274,54 @@
     return Array.from(map.values()).sort((a, b) => (b.mTime || 0) - (a.mTime || 0));
   }
 
+  async function loadMatches(force) {
+    const box = document.getElementById("matchListContainer");
+    try {
+      const fbRes = await fetch(`${FB_URL}/sharedCricketCache.json?t=${Date.now()}`);
+      const fbCache = await fbRes.json();
+      const cacheAge = fbCache ? (Date.now() - Number(fbCache.updatedAt || 0)) : 999999;
+
+      if (fbCache && Array.isArray(fbCache.list) && fbCache.list.length > 0) {
+        matches = fbCache.list;
+        renderList();
+        if (!force && cacheAge < 60000) return;
+      }
+
+      const [currArr, allArr] = await Promise.all([
+        fetchCricEndpoint("currentMatches"),
+        fetchCricEndpoint("matches")
+      ]);
+
+      const merged = buildUnifiedMatches(currArr, allArr);
+      if (merged.length > 0) {
+        matches = merged;
+        renderList();
+        fetch(`${FB_URL}/sharedCricketCache.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updatedAt: Date.now(), list: matches })
+        }).catch(() => {});
+      } else if (matches.length === 0) {
+        box.innerHTML = `<div class="empty-msg">API Status: ${lastApiError || "Koi match nahi mila"}</div>`;
+      }
+    } catch (e) {
+      if (matches.length === 0) {
+        box.innerHTML = `<div class="empty-msg">Connection Error! Refresh dabayein.</div>`;
+      }
+    }
+  }
+
   async function fastLivePulse() {
     try {
-      const [rCtrl, rRate, rCache] = await Promise.all([
+      const [rCtrl, rRate] = await Promise.all([
         fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
-        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`),
-        fetch(`${FB_URL}/sharedCricketCache.json?t=${Date.now()}`)
+        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
       ]);
       overrides = (await rCtrl.json()) || {};
       const rateObj = (await rRate.json()) || {};
       cricketWinRate = Number(rateObj.cricket || 35);
 
-      const fbCache = await rCache.json();
-      let liveList = (fbCache && Array.isArray(fbCache.list)) ? fbCache.list : [];
-
-      if (!fbCache || (Date.now() - Number(fbCache.updatedAt || 0) >= 6000)) {
-        const currArr = await fetchCricEndpoint("currentMatches");
-        if (currArr.length > 0) {
-          liveList = buildUnifiedMatches(currArr, liveList);
-          fetch(`${FB_URL}/sharedCricketCache.json`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ updatedAt: Date.now(), list: liveList })
-          }).catch(() => {});
-        }
-      }
-
-      if (liveList.length > 0) matches = liveList;
+      await loadMatches(false);
 
       if (activeMatch) {
         const fresh = matches.find(x => x.id === activeMatch.id);
@@ -309,8 +335,6 @@
         }
         await fetchMatchBetLimits(activeMatch.id);
         openMatch(activeMatch);
-      } else if (matches.length) {
-        renderList();
       }
     } catch (e) {}
   }
@@ -328,31 +352,6 @@
       });
       matchBetsStats = stats;
     } catch (e) {}
-  }
-
-  async function loadMatches(force) {
-    const box = document.getElementById("matchListContainer");
-    box.innerHTML = `<div class="empty-msg">Matches load ho rahe hain...</div>`;
-    try {
-      const [currArr, allArr] = await Promise.all([
-        fetchCricEndpoint("currentMatches"),
-        fetchCricEndpoint("matches")
-      ]);
-      const merged = buildUnifiedMatches(currArr, allArr);
-      if (merged.length > 0) {
-        matches = merged;
-        renderList();
-        fetch(`${FB_URL}/sharedCricketCache.json`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updatedAt: Date.now(), list: matches })
-        }).catch(() => {});
-      } else {
-        box.innerHTML = `<div class="empty-msg">Abhi koi match data nahi mila. Refresh dabayein.</div>`;
-      }
-    } catch (e) {
-      box.innerHTML = `<div class="empty-msg">Network Error! Refresh dabayein.</div>`;
-    }
   }
 
   function setFilter(mode, btn) {
@@ -586,7 +585,6 @@
         <div class="digit-grid">${grid}</div>
       </div>`;
     }).join("");
-
     loadMyLockedBets(m.id);
   }
 
@@ -709,8 +707,8 @@
   }
 
   syncUserWallet();
-  loadMatches(true);
-  setInterval(fastLivePulse, 6000);
+  loadMatches(false);
+  setInterval(fastLivePulse, 60000);
 </script>
 </body>
 </html>
