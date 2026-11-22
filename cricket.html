@@ -17,17 +17,8 @@
     .mini-wallet div { font-size: 11px; color: #ccc; }
     .mini-wallet strong { font-size: 13px; color: #28e04d; }
 
-    /* ==================== SCREEN 1: MATCH LIST ==================== */
-    .hero-box {
-      background: linear-gradient(135deg, #4a0d66, #260636);
-      border: 1.5px solid #ffd700;
-      border-radius: 14px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    /* SCREEN 1: MATCH LIST */
+    .hero-box { background: linear-gradient(135deg, #4a0d66, #260636); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 2px; }
     .hero-box p { font-size: 11px; color: #ddd; }
     .refresh-btn { background: #ffd700; color: #000; border: none; padding: 7px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer; }
@@ -40,15 +31,7 @@
     .list-header span:last-child { color: #aaa; font-size: 11px; }
 
     .match-list-box { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
-    .match-item {
-      padding: 12px;
-      border-bottom: 1px solid #3c0c54;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
+    .match-item { padding: 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     .match-item:last-child { border-bottom: none; }
     .match-item:active { background: #36094d; }
 
@@ -64,36 +47,41 @@
     .m-right { text-align: right; }
     .open-pill { background: linear-gradient(135deg, #ffd700, #f59e0b); color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; display: inline-block; }
     .m-date { font-size: 10px; color: #bbb; margin-top: 4px; }
-
     .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; }
 
-    /* ==================== SCREEN 2: MATCH CONTESTS ==================== */
+    /* SCREEN 2: MATCH CONTESTS & LIVE SCORE */
     #contestScreen { display: none; }
-
-    .back-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #2b073d;
-      border: 1.5px solid #ffd700;
-      padding: 9px 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
+    .back-bar { display: flex; align-items: center; justify-content: space-between; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; }
     .back-bar span { font-size: 13px; font-weight: 800; color: #ffd700; }
 
-    .score-banner {
-      background: linear-gradient(135deg, #2d0740, #160221);
-      border: 1.5px solid #75229e;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-    .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .score-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
-    .score-innings { font-size: 12px; color: #ffd700; font-weight: 700; }
-    .score-status { font-size: 11px; color: #ccc; margin-top: 4px; }
+    .score-banner { background: linear-gradient(145deg, #2d0740, #14021f); border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 16px rgba(255, 215, 0, 0.15); }
+    .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .live-pill-wrap { display: flex; align-items: center; gap: 6px; }
+    .blink-dot { width: 8px; height: 8px; background: #28e04d; border-radius: 50%; animation: blink 1s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    .score-main-grid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+    .score-title { font-size: 14px; font-weight: 800; color: #fff; line-height: 1.3; }
+    .score-sub-info { font-size: 11px; color: #bbb; margin-top: 3px; }
+
+    .live-box-right { background: #180324; border: 1px solid #75229e; border-radius: 10px; padding: 6px 10px; text-align: right; min-width: 115px; }
+    .big-runs { font-size: 19px; font-weight: 900; color: #ffd700; }
+    .big-overs { font-size: 11px; color: #28e04d; font-weight: 700; }
+    .big-crr { font-size: 10px; color: #ccc; margin-top: 1px; }
+
+    .innings-list { margin-bottom: 8px; }
+    .inn-chip { display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 5px 9px; border-radius: 6px; font-size: 11px; margin-bottom: 4px; }
+    .inn-chip strong { color: #ffd700; }
+
+    .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+    .ball-strip-lbl { font-size: 10px; font-weight: 800; color: #ffd700; }
+    .ball-circles { display: flex; gap: 5px; }
+    .b-dot { width: 22px; height: 22px; border-radius: 50%; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; background: #2b073d; border: 1px solid #75229e; color: #fff; }
+    .b-4 { background: #2563eb; border-color: #60a5fa; }
+    .b-6 { background: #16a34a; border-color: #4ade80; }
+    .b-W { background: #dc2626; border-color: #f87171; }
+
+    .score-status { font-size: 11px; color: #e5e7eb; background: #240533; padding: 6px 9px; border-radius: 6px; border-left: 3px solid #28e04d; }
 
     .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
     .market-pills::-webkit-scrollbar { display: none; }
@@ -117,10 +105,10 @@
     .rate-btn { width: 58px; height: 38px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
     .rate-back { background: #72bbef; color: #000; }
     .rate-lay { background: #faa9ba; color: #000; }
+    .rate-locked { background: #374151; color: #9ca3af; width: 122px; height: 38px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
     .rate-main { font-size: 13px; font-weight: 800; }
     .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 600; }
 
-    /* Last Digit 0-9 Grid */
     .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; background: #1b0429; }
     .digit-box { background: #72bbef; color: #000; border-radius: 6px; padding: 7px 4px; text-align: center; cursor: pointer; }
     .digit-box:active { transform: scale(0.95); background: #ffd700; }
@@ -149,7 +137,6 @@
 <body>
 
 <div class="container">
-  <!-- Top User & Wallet Bar -->
   <div class="top-bar">
     <div class="user-info">
       <h3 id="userName">Player</h3>
@@ -161,7 +148,7 @@
     </div>
   </div>
 
-  <!-- ==================== SCREEN 1: MATCH LIST ==================== -->
+  <!-- SCREEN 1: MATCH LIST -->
   <div id="matchListScreen">
     <div class="hero-box">
       <div>
@@ -187,34 +174,52 @@
     </div>
   </div>
 
-  <!-- ==================== SCREEN 2: MATCH CONTESTS ==================== -->
+  <!-- SCREEN 2: MATCH CONTESTS -->
   <div id="contestScreen">
     <div class="back-bar" onclick="goBackToList()">
       <span>← Back to All Matches</span>
-      <span style="font-size:11px; color:#28e04d;">● ODDS OPEN</span>
+      <span style="font-size:11px; color:#28e04d;" id="oddsStatusBadge">● ODDS OPEN</span>
     </div>
 
-    <!-- Selected Match Live Score -->
     <div class="score-banner">
       <div class="score-header">
-        <span class="b-live" id="cBadge">LIVE</span>
-        <span style="font-size:11px; color:#ffd700;" id="cType">T20</span>
+        <div class="live-pill-wrap">
+          <span class="blink-dot"></span>
+          <span class="b-live" id="cBadge">LIVE</span>
+        </div>
+        <span style="font-size:11px; color:#ffd700; font-weight:700;" id="cType">T20</span>
       </div>
-      <div class="score-title" id="cTitle">Match Name</div>
-      <div class="score-innings" id="cScore">Score loading...</div>
-      <div class="score-status" id="cStatus">Status</div>
+
+      <div class="score-main-grid">
+        <div>
+          <div class="score-title" id="cTitle">Match Name</div>
+          <div class="score-sub-info" id="cTimeVenue">Venue & Time</div>
+        </div>
+        <div class="live-box-right">
+          <div class="big-runs" id="cBigRuns">--/--</div>
+          <div class="big-overs" id="cBigOvers">(-- Ov)</div>
+          <div class="big-crr" id="cBigCrr">CRR: --</div>
+        </div>
+      </div>
+
+      <div class="innings-list" id="cInningsList"></div>
+
+      <div class="ball-strip">
+        <span class="ball-strip-lbl">RECENT BALLS:</span>
+        <div class="ball-circles" id="cRecentBalls"></div>
+      </div>
+
+      <div class="score-status" id="cStatus">Match status...</div>
     </div>
 
-    <!-- Contest Category Tabs -->
     <div class="market-pills">
       <button class="pill-btn active" onclick="filterMarket('all', this)">All Contests</button>
       <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
       <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
       <button class="pill-btn" onclick="filterMarket('fancy', this)">Fancy / Session</button>
-      <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit (9.75)</button>
+      <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
     </div>
 
-    <!-- 1. Match Odds -->
     <div class="market-card sec-odds">
       <div class="market-head">
         <div class="market-head-title">Match Odds <span class="cashout-tag">CASHOUT</span></div>
@@ -224,7 +229,6 @@
       <div id="matchOddsBody"></div>
     </div>
 
-    <!-- 2. Bookmaker 0% -->
     <div class="market-card sec-bookmaker">
       <div class="market-head">
         <div class="market-head-title">Bookmaker 0% <span class="cashout-tag">CASHOUT</span></div>
@@ -234,17 +238,15 @@
       <div id="bookmakerBody"></div>
     </div>
 
-    <!-- 3. Fancy / Session Markets -->
     <div class="market-card sec-fancy">
       <div class="market-head">
         <div class="market-head-title">Fancy Markets (Over Runs & Boundaries)</div>
-        <span style="font-size:10px; color:#28e04d;">● OPEN</span>
+        <span style="font-size:10px; color:#28e04d;">● LIVE</span>
       </div>
       <div class="col-headers"><span>No</span><span>Yes</span></div>
       <div id="fancyBody"></div>
     </div>
 
-    <!-- 4. Over Last Digit (0 to 9 @ 9.75) -->
     <div id="digitMarketsContainer" class="sec-digit"></div>
   </div>
 </div>
@@ -276,9 +278,8 @@
   <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
   <div class="nav-item" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
-</div>
-
-<script>
+  </div>
+  <script>
   const CRIC_API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
 
   const mobile = localStorage.getItem("activeUser");
@@ -299,59 +300,57 @@
   } catch (e) {}
 
   let allMatches = [];
+  let activeMatchObj = null;
   let listFilter = "all";
   let selectedBet = null;
+
+  function getAdminOverrides() {
+    try {
+      return JSON.parse(localStorage.getItem("bg_cricket_admin_overrides") || "{}");
+    } catch (e) {
+      return {};
+    }
+  }
 
   async function loadAllRealMatches(force = false) {
     const cleanKey = CRIC_API_KEY.trim().toLowerCase();
     const cachedJson = sessionStorage.getItem("cricMergedCache");
     const cachedTime = Number(sessionStorage.getItem("cricMergedTime") || 0);
 
-    // 2-minute cache taaki daily 100 hits safe rahein
-    if (!force && cachedJson && (Date.now() - cachedTime < 120000)) {
+    if (!force && cachedJson && (Date.now() - cachedTime < 60000)) {
       allMatches = JSON.parse(cachedJson);
       renderMatchList();
+      if (activeMatchObj) {
+        const updated = allMatches.find(x => x.id === activeMatchObj.id);
+        if (updated) openMatchContests(updated);
+      }
       return;
     }
 
     try {
-      // 1. Live / Current Matches fetch karein
-      const resLive = await fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${cleanKey}&offset=0`);
+      const [resLive, resUp] = await Promise.all([
+        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${cleanKey}&offset=0`),
+        fetch(`https://api.cricapi.com/v1/matches?apikey=${cleanKey}&offset=0`)
+      ]);
       const jsonLive = await resLive.json();
-
-      // 2. Upcoming Schedule Matches fetch karein
-      const resUp = await fetch(`https://api.cricapi.com/v1/matches?apikey=${cleanKey}&offset=0`);
       const jsonUp = await resUp.json();
 
       const liveArr = (jsonLive.status === "success" && Array.isArray(jsonLive.data)) ? jsonLive.data : [];
       const upArr = (jsonUp.status === "success" && Array.isArray(jsonUp.data)) ? jsonUp.data : [];
 
-      // Dono ko merge karein aur duplicate IDs hatayein
       const mapById = new Map();
-
       liveArr.forEach(m => {
         if (!m.matchEnded) {
-          mapById.set(m.id, {
-            ...m,
-            isLive: Boolean(m.matchStarted && !m.matchEnded),
-            isUpcoming: Boolean(!m.matchStarted)
-          });
+          mapById.set(m.id, { ...m, isLive: Boolean(m.matchStarted && !m.matchEnded), isUpcoming: Boolean(!m.matchStarted) });
         }
       });
-
       upArr.forEach(m => {
         if (!m.matchEnded && !mapById.has(m.id)) {
-          mapById.set(m.id, {
-            ...m,
-            isLive: Boolean(m.matchStarted && !m.matchEnded),
-            isUpcoming: Boolean(!m.matchStarted)
-          });
+          mapById.set(m.id, { ...m, isLive: Boolean(m.matchStarted && !m.matchEnded), isUpcoming: Boolean(!m.matchStarted) });
         }
       });
 
       let merged = Array.from(mapById.values());
-
-      // Pehle Live matches, phir Upcoming matches date ke hisab se sort karein
       merged.sort((a, b) => {
         if (a.isLive !== b.isLive) return b.isLive ? 1 : -1;
         return new Date(a.dateTimeGMT || a.date) - new Date(b.dateTimeGMT || b.date);
@@ -361,6 +360,11 @@
       sessionStorage.setItem("cricMergedCache", JSON.stringify(allMatches));
       sessionStorage.setItem("cricMergedTime", String(Date.now()));
       renderMatchList();
+
+      if (activeMatchObj) {
+        const updated = allMatches.find(x => x.id === activeMatchObj.id);
+        if (updated) openMatchContests(updated);
+      }
     } catch (e) {
       document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Internet connection check karein aur Refresh dabayein.</div>`;
     }
@@ -386,6 +390,7 @@
   function renderMatchList() {
     const box = document.getElementById("matchListContainer");
     box.innerHTML = "";
+    const overrides = getAdminOverrides();
 
     const filtered = allMatches.filter(m => {
       if (listFilter === "live") return m.isLive;
@@ -399,7 +404,9 @@
     }
 
     filtered.forEach(m => {
-      const scoreStr = (m.score && m.score.length > 0)
+      const ov = overrides[m.id] || {};
+      const customScore = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
+      const scoreStr = customScore || ((m.score && m.score.length > 0)
         ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
         : (m.status || "Starts: " + formatMatchDate(m));
 
@@ -426,11 +433,14 @@
     });
   }
 
-// ==================== OPEN CONTESTS FOR TAPPED MATCH ====================
   function openMatchContests(m) {
+    activeMatchObj = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
     window.scrollTo(0, 0);
+
+    const overrides = getAdminOverrides();
+    const ov = overrides[m.id] || {};
 
     const teams = (m.teams && m.teams.length >= 2) ? m.teams : (m.name ? m.name.split(" vs ") : ["Team A", "Team B"]);
     const teamA = (teams[0] || "Team A").trim();
@@ -442,88 +452,115 @@
 
     document.getElementById("cType").innerText = (m.matchType || "T20").toUpperCase();
     document.getElementById("cTitle").innerText = m.name;
-    document.getElementById("cStatus").innerText = m.status || m.venue || "";
+    document.getElementById("cTimeVenue").innerText = `${formatMatchDate(m)} • ${m.venue || ""}`;
+    document.getElementById("cStatus").innerText = ov.customStatus || m.status || "Match in progress";
+
+    const isLocked = Boolean(ov.locked);
+    document.getElementById("oddsStatusBadge").innerText = isLocked ? "🔒 BALL RUNNING / LOCKED" : "● ODDS OPEN";
+    document.getElementById("oddsStatusBadge").style.color = isLocked ? "#ff4d6d" : "#28e04d";
 
     let currRuns = 0;
     let currOvers = 0;
-    if (m.score && m.score.length > 0) {
-      document.getElementById("cScore").innerText = m.score.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o} Ov)`).join("  |  ");
+    const innListDiv = document.getElementById("cInningsList");
+    innListDiv.innerHTML = "";
+
+    if (ov.liveRuns) {
+      document.getElementById("cBigRuns").innerText = ov.liveRuns;
+      document.getElementById("cBigOvers").innerText = `(${ov.liveOvers || "0.0"} Ov)`;
+      const rNum = Number(String(ov.liveRuns).split("/")[0] || 0);
+      const oNum = Number(ov.liveOvers || 0);
+      currRuns = rNum;
+      currOvers = oNum;
+      document.getElementById("cBigCrr").innerText = `CRR: ${oNum > 0 ? (rNum / oNum).toFixed(2) : "0.00"}`;
+    } else if (m.score && m.score.length > 0) {
       const lastInn = m.score[m.score.length - 1];
       currRuns = Number(lastInn.r || 0);
       currOvers = Number(lastInn.o || 0);
+      document.getElementById("cBigRuns").innerText = `${lastInn.r}/${lastInn.w}`;
+      document.getElementById("cBigOvers").innerText = `(${lastInn.o} Ov)`;
+      document.getElementById("cBigCrr").innerText = `CRR: ${currOvers > 0 ? (currRuns / currOvers).toFixed(2) : "0.00"}`;
+
+      m.score.forEach(s => {
+        innListDiv.innerHTML += `<div class="inn-chip"><span>${s.inning}</span><strong>${s.r}/${s.w} (${s.o} Ov)</strong></div>`;
+      });
     } else {
-      document.getElementById("cScore").innerText = "Match Time: " + formatMatchDate(m);
+      document.getElementById("cBigRuns").innerText = m.isLive ? "0/0" : "SOON";
+      document.getElementById("cBigOvers").innerText = m.isLive ? "(0.0 Ov)" : formatMatchDate(m);
+      document.getElementById("cBigCrr").innerText = m.isLive ? "CRR: 0.00" : "PRE-MATCH";
     }
 
-    const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
-    const favBack = currRuns > 80 ? "1.55" : "1.84";
-    const favLay = (parseFloat(favBack) + 0.02).toFixed(2);
-    const dogBack = currRuns > 80 ? "2.68" : "2.10";
-    const dogLay = (parseFloat(dogBack) + 0.04).toFixed(2);
+    const ballsStr = ov.recentBalls || (m.isLive ? "1,0,4,1,2,6" : "-,-,-,-,-,-");
+    const ballsDiv = document.getElementById("cRecentBalls");
+    ballsDiv.innerHTML = "";
+    ballsStr.split(",").map(x => x.trim()).filter(Boolean).slice(-6).forEach(b => {
+      ballsDiv.innerHTML += `<span class="b-dot b-${b}">${b}</span>`;
+    });
+
+    const favBack = ov.teamABack || (currRuns > 80 ? "1.55" : "1.84");
+    const favLay = ov.teamALay || (parseFloat(favBack) + 0.02).toFixed(2);
+    const dogBack = ov.teamBBack || (currRuns > 80 ? "2.68" : "2.10");
+    const dogLay = ov.teamBLay || (parseFloat(dogBack) + 0.04).toFixed(2);
 
     // 1. Match Odds
-    document.getElementById("matchOddsBody").innerHTML = `
+    document.getElementById("matchOddsBody").innerHTML = isLocked ? `
+      <div class="contest-row"><div class="runner-name">${teamA}</div><div class="rate-locked">BALL RUNNING</div></div>
+      <div class="contest-row"><div class="runner-name">${teamB}</div><div class="rate-locked">BALL RUNNING</div></div>
+    ` : `
       <div class="contest-row">
         <div class="runner-name">${teamA}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBetSlip('${teamA} (Match Odds)', 'BACK', ${favBack})">
-            <span class="rate-main">${favBack}</span><span class="rate-sub">Back</span>
-          </div>
-          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamA} (Match Odds)', 'LAY', ${favLay})">
-            <span class="rate-main">${favLay}</span><span class="rate-sub">Lay</span>
-          </div>
+          <div class="rate-btn rate-back" onclick="openBetSlip('${teamA} (Match Odds)', 'BACK', ${favBack})"><span class="rate-main">${favBack}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamA} (Match Odds)', 'LAY', ${favLay})"><span class="rate-main">${favLay}</span><span class="rate-sub">Lay</span></div>
         </div>
       </div>
       <div class="contest-row">
         <div class="runner-name">${teamB}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBetSlip('${teamB} (Match Odds)', 'BACK', ${dogBack})">
-            <span class="rate-main">${dogBack}</span><span class="rate-sub">Back</span>
-          </div>
-          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamB} (Match Odds)', 'LAY', ${dogLay})">
-            <span class="rate-main">${dogLay}</span><span class="rate-sub">Lay</span>
-          </div>
+          <div class="rate-btn rate-back" onclick="openBetSlip('${teamB} (Match Odds)', 'BACK', ${dogBack})"><span class="rate-main">${dogBack}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamB} (Match Odds)', 'LAY', ${dogLay})"><span class="rate-main">${dogLay}</span><span class="rate-sub">Lay</span></div>
         </div>
       </div>
     `;
 
     // 2. Bookmaker
-    const bmA = Math.round((parseFloat(favBack) - 1) * 100);
-    const bmB = Math.round((parseFloat(dogBack) - 1) * 100);
-    document.getElementById("bookmakerBody").innerHTML = `
+    const bmABack = ov.bmABack || Math.round((parseFloat(favBack) - 1) * 100);
+    const bmALay = ov.bmALay || (Number(bmABack) + 3);
+    const bmBBack = ov.bmBBack || Math.round((parseFloat(dogBack) - 1) * 100);
+    const bmBLay = ov.bmBLay || (Number(bmBBack) + 8);
+
+    document.getElementById("bookmakerBody").innerHTML = isLocked ? `
+      <div class="contest-row"><div class="runner-name">${teamA}</div><div class="rate-locked">SUSPENDED</div></div>
+      <div class="contest-row"><div class="runner-name">${teamB}</div><div class="rate-locked">SUSPENDED</div></div>
+    ` : `
       <div class="contest-row">
         <div class="runner-name">${teamA}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBetSlip('${teamA} (Bookmaker)', 'BACK', ${favBack})">
-            <span class="rate-main">${bmA}</span><span class="rate-sub">Back</span>
-          </div>
-          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamA} (Bookmaker)', 'LAY', ${favLay})">
-            <span class="rate-main">${bmA + 3}</span><span class="rate-sub">Lay</span>
-          </div>
+          <div class="rate-btn rate-back" onclick="openBetSlip('${teamA} (Bookmaker)', 'BACK', ${favBack})"><span class="rate-main">${bmABack}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamA} (Bookmaker)', 'LAY', ${favLay})"><span class="rate-main">${bmALay}</span><span class="rate-sub">Lay</span></div>
         </div>
       </div>
       <div class="contest-row">
         <div class="runner-name">${teamB}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBetSlip('${teamB} (Bookmaker)', 'BACK', ${dogBack})">
-            <span class="rate-main">${bmB}</span><span class="rate-sub">Back</span>
-          </div>
-          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamB} (Bookmaker)', 'LAY', ${dogLay})">
-            <span class="rate-main">${bmB + 8}</span><span class="rate-sub">Lay</span>
-          </div>
+          <div class="rate-btn rate-back" onclick="openBetSlip('${teamB} (Bookmaker)', 'BACK', ${dogBack})"><span class="rate-main">${bmBBack}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBetSlip('${teamB} (Bookmaker)', 'LAY', ${dogLay})"><span class="rate-main">${bmBLay}</span><span class="rate-sub">Lay</span></div>
         </div>
       </div>
     `;
 
-    // 3. Fancy / Session Markets
-    const next6 = currOvers < 6 ? Math.max(currRuns + 10, Math.round(crr * 6)) : Math.round(currRuns + (crr * 2));
-    const next10 = currOvers < 10 ? Math.max(currRuns + 15, Math.round(crr * 10)) : Math.round(currRuns + (crr * 4));
-    const next20 = currOvers < 20 ? Math.max(currRuns + 25, Math.round(crr * 20)) : Math.round(currRuns + 35);
+    // 3. Fancy / Session
+    const crrVal = currOvers > 0 ? (currRuns / currOvers) : 8.2;
+    const s1No = ov.sess6No || Math.max(currRuns + 12, Math.round(crrVal * 6));
+    const s1Yes = ov.sess6Yes || (Number(s1No) + 2);
+    const s2No = ov.sess10No || Math.max(currRuns + 20, Math.round(crrVal * 10));
+    const s2Yes = ov.sess10Yes || (Number(s2No) + 2);
+    const s3No = ov.sess20No || Math.max(currRuns + 35, Math.round(crrVal * 20));
+    const s3Yes = ov.sess20Yes || (Number(s3No) + 3);
 
     const fancyList = [
-      { title: `${currOvers < 6 ? '6 Over' : 'Next 2 Over'} Run (${teamA})`, no: next6, yes: next6 + 2 },
-      { title: `${currOvers < 10 ? '10 Over' : 'Next 5 Over'} Run (${teamA})`, no: next10, yes: next10 + 2 },
-      { title: `Inning Total Run Adv (${teamA})`, no: next20, yes: next20 + 3 },
+      { title: `6 Over Run (${teamA})`, no: s1No, yes: s1Yes },
+      { title: `10 Over Run (${teamA})`, no: s2No, yes: s2Yes },
+      { title: `Inning Total Run Adv (${teamA})`, no: s3No, yes: s3Yes },
       { title: `Top Batsman Runs (${teamA})`, no: 38, yes: 40 },
       { title: `Inning Total Boundaries (4s & 6s)`, no: 19, yes: 21 }
     ];
@@ -531,25 +568,21 @@
     const fancyBody = document.getElementById("fancyBody");
     fancyBody.innerHTML = "";
     fancyList.forEach(f => {
-      fancyBody.innerHTML += `
+      fancyBody.innerHTML += isLocked ? `
+        <div class="contest-row"><div class="runner-name">${f.title}</div><div class="rate-locked">BALL RUNNING</div></div>
+      ` : `
         <div class="contest-row">
-          <div>
-            <div class="runner-name">${f.title}</div>
-            <div class="runner-sub">Min: 100 | Max: 25K</div>
-          </div>
+          <div><div class="runner-name">${f.title}</div><div class="runner-sub">Min: 100 | Max: 25K</div></div>
           <div class="rate-boxes">
-            <div class="rate-btn rate-lay" onclick="openBetSlip('${f.title} [NO ${f.no}]', 'NO', 1.90)">
-              <span class="rate-main">${f.no}</span><span class="rate-sub">100</span>
-            </div>
-            <div class="rate-btn rate-back" onclick="openBetSlip('${f.title} [YES ${f.yes}]', 'YES', 1.90)">
-              <span class="rate-main">${f.yes}</span><span class="rate-sub">100</span>
-            </div>
+            <div class="rate-btn rate-lay" onclick="openBetSlip('${f.title} [NO ${f.no}]', 'NO', 1.90)"><span class="rate-main">${f.no}</span><span class="rate-sub">100</span></div>
+            <div class="rate-btn rate-back" onclick="openBetSlip('${f.title} [YES ${f.yes}]', 'YES', 1.90)"><span class="rate-main">${f.yes}</span><span class="rate-sub">100</span></div>
           </div>
         </div>
       `;
     });
 
-    // 4. Over Last Digit (0 to 9 @ 9.75)
+    // 4. Last Digit
+    const digitRate = ov.digitPayout || 9.75;
     const digitSessions = [
       `1st Inning 10 Over Last Digit`,
       `1st Inning 15 Over Last Digit`,
@@ -563,19 +596,11 @@
     digitSessions.forEach(sName => {
       let gridHtml = "";
       for (let d = 0; d <= 9; d++) {
-        gridHtml += `
-          <div class="digit-box" onclick="openBetSlip('${m.name} | ${sName} -> [${d}]', 'DIGIT ${d}', 9.75)">
-            <span class="digit-num">${d}</span>
-            <span class="digit-odd">9.75</span>
-          </div>
-        `;
+        gridHtml += `<div class="digit-box" onclick="openBetSlip('${m.name} | ${sName} -> [${d}]', 'DIGIT ${d}', ${digitRate})"><span class="digit-num">${d}</span><span class="digit-odd">${digitRate}</span></div>`;
       }
       digitContainer.innerHTML += `
         <div class="market-card">
-          <div class="market-head">
-            <div class="market-head-title">${sName}</div>
-            <span style="font-size:10px; color:#28e04d;">9.75x Payout</span>
-          </div>
+          <div class="market-head"><div class="market-head-title">${sName}</div><span style="font-size:10px; color:#28e04d;">${digitRate}x Payout</span></div>
           <div class="digit-grid">${gridHtml}</div>
         </div>
       `;
@@ -583,6 +608,7 @@
   }
 
   function goBackToList() {
+    activeMatchObj = null;
     closeBetSlip();
     document.getElementById("contestScreen").style.display = "none";
     document.getElementById("matchListScreen").style.display = "block";
@@ -592,7 +618,6 @@
   function filterMarket(type, btn) {
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-
     document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
     document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
     document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
@@ -610,30 +635,16 @@
   function updateReturn() {
     if (!selectedBet) return;
     const stake = Number(document.getElementById("stakeInput").value || 0);
-    const ret = (stake * selectedBet.odd).toFixed(0);
-    document.getElementById("potentialWinText").innerText = `Potential Return: ₹${ret} (${selectedBet.odd}x)`;
+    document.getElementById("potentialWinText").innerText = `Potential Return: ₹${(stake * selectedBet.odd).toFixed(0)} (${selectedBet.odd}x)`;
   }
 
-  function closeBetSlip() {
-    document.getElementById("betModal").classList.remove("open");
-  }
-
-  function setStake(val) {
-    document.getElementById("stakeInput").value = val;
-    updateReturn();
-  }
+  function closeBetSlip() { document.getElementById("betModal").classList.remove("open"); }
+  function setStake(val) { document.getElementById("stakeInput").value = val; updateReturn(); }
 
   function confirmBet() {
     const stake = Number(document.getElementById("stakeInput").value);
-    if (!stake || stake < 100) {
-      alert("Minimum bet ₹100 hai!");
-      return;
-    }
-    if (stake > userBal) {
-      alert("Insufficient balance! Pehle Wallet mein deposit karein.");
-      location.href = "wallet.html";
-      return;
-    }
+    if (!stake || stake < 100) { alert("Minimum bet ₹100 hai!"); return; }
+    if (stake > userBal) { alert("Insufficient balance! Pehle Wallet mein deposit karein."); location.href = "wallet.html"; return; }
     alert(`Bet Placed!\n${selectedBet.title}\nRate: ${selectedBet.odd}x | Stake: ₹${stake}`);
     closeBetSlip();
   }
