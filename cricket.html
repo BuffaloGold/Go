@@ -179,6 +179,179 @@
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
 
+        filterMode === "live"
+          ? "Abhi is waqt koi real live match nahi chal raha hai.<br><b>Upcoming</b> ya <b>Completed</b> tab dekhein."
+          : "Is category mein abhi koi match nahi hai."
+      }</div>`;
+      return;
+    }
+
+    box.innerHTML = list.map(m => {
+      const sc = (m.score && m.score.length > 0)
+        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
+        : (m.status || `Starts: ${m.date || ""}`);
+      const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
+      return `<div class="match-item" onclick="openMatchById('${m.id}')">
+        <div class="m-left">
+          ${badge}
+          <span style="font-size:10px; color:#ffd700; margin-left:5px;">${(m.matchType || "T20").toUpperCase()}</span>
+          <div class="m-title">${m.name}</div>
+          <div class="m-score">${sc}</div>
+        </div>
+        <div class="open-pill">${m.isCompleted ? "Result →" : "Play →"}</div>
+      </div>`;
+    }).join("");
+  }
+
+  async function openMatchById(id) {
+    const m = matches.find(x => x.id === id);
+    if (m) {
+      await fetchMatchBetLimits(m.id);
+      openMatch(m);
+    }
+  }
+
+  function checkLimitStatus(marketName, maxUsers, maxMoney) {
+    const st = matchBetsStats[marketName];
+    if (!st) return { blocked: false, reason: "" };
+    if (maxUsers > 0 && st.users.size >= maxUsers) return { blocked: true, reason: `Max ${maxUsers} Users Full` };
+    if (maxMoney > 0 && st.totalMoney >= maxMoney) return { blocked: true, reason: `Limit ₹${maxMoney} Full` };
+    return { blocked: false, reason: "" };
+  }
+
+  function openMatch(m) {
+    activeMatch = m;
+    document.getElementById("matchListScreen").style.display = "none";
+    document.getElementById("contestScreen").style.display = "block";
+
+    const ov = overrides[m.id] || {};
+    const maxUsersAllowed = Number(ov.maxUsers || 25);
+    const maxMoneyAllowed = Number(ov.maxMoney || 15000);
+
+    const tA = (m.teams && m.teams[0]) || "Team A";
+    const tB = (m.teams && m.teams[1]) || "Team B";
+
+    document.getElementById("cTitle").innerText = m.name;
+    document.getElementById("cStatus").innerText = m.status || m.venue || "";
+
+    const scoreArr = Array.isArray(m.score) ? m.score : [];
+    const last = scoreArr.length > 0 ? scoreArr[scoreArr.length - 1] : null;
+    const currRuns = last ? Number(last.r || 0) : 0;
+    const currOvers = last ? Number(last.o || 0) : 0;
+    const innCount = scoreArr.length;
+    const crr = currOvers > 0 ? (currRuns / currOvers) : 8.2;
+
+    document.getElementById("cRuns").innerText = last ? `${last.r}/${last.w}` : (m.isTrueLive ? "LIVE" : "SOON");
+    document.getElementById("cOvers").innerText = last ? `(${last.o} Ov)` : (m.date || "");
+
+    const innText = scoreArr.length > 0
+      ? scoreArr.map(s => `${s.inning}: ${s.r}/${s.w} (${s.o})`).join(" | ")
+      : "Match start hone par live score yahan aayega";
+    document.getElementById("cBalls").innerHTML = `<span style="font-size:11px; color:#28e04d;">${innText}</span>`;
+
+    const stLower = String(m.status || "").toLowerCase();
+    const autoBallRunning = stLower.includes("ball running") || stLower.includes("review") || stLower.includes("innings break") || stLower.includes("rain");
+    const globalLocked = Boolean(ov.locked || m.isCompleted || autoBallRunning);
+
+    document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● AUTO-LIVE OPEN";
+    document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
+
+    const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
+    const limOddsA = checkLimitStatus(`${tA} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
+    const limOddsB = checkLimitStatus(`${tB} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
+
+    document.getElementById("oddsBody").innerHTML = `
+      <div class="contest-row">
+        <div class="runner-name">${tA}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
+          ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || 'Suspended'}</div>` : ''}
+        </div>
+      </div>
+      <div class="contest-row">
+        <div class="runner-name">${tB}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
+          ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || 'Suspended'}</div>` : ''}
+        </div>
+      </div>`;
+
+    document.getElementById("bmBody").innerHTML = `
+      <div class="contest-row">
+        <div class="runner-name">${tA}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${ov.bmABack || 84}', ${aB})"><span class="rate-main">${ov.bmABack || 84}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${ov.bmALay || 87}', ${aL})"><span class="rate-main">${ov.bmALay || 87}</span><span class="rate-sub">Lay</span></div>
+          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>
+      <div class="contest-row">
+        <div class="runner-name">${tB}</div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${ov.bmBBack || 110}', ${bB})"><span class="rate-main">${ov.bmBBack || 110}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${ov.bmBLay || 118}', ${bL})"><span class="rate-main">${ov.bmBLay || 118}</span><span class="rate-sub">Lay</span></div>
+          ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
+        </div>
+      </div>`;
+
+    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
+    const s6Yes = ov.sess6Yes || (Number(s6No) + 1);
+    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
+    const s10Yes = ov.sess10Yes || (Number(s10No) + 2);
+    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
+    const s15Yes = ov.sess15Yes || (Number(s15No) + 2);
+    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
+    const s20Yes = ov.sess20Yes || (Number(s20No) + 3);
+
+    const fancyRows = [
+      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: 100, yesRun: s6Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 6.0) },
+      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: 100, yesRun: s10Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 10.0) },
+      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: 100, yesRun: s15Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 15.0) },
+      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: 100, yesRun: s20Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 20.0) },
+      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 42, noRate: 110, yesRun: ov.bat1Yes || 41, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 34, noRate: 110, yesRun: ov.bat2Yes || 33, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 6, noRate: 115, yesRun: ov.bnd1Yes || 6, yesRate: 85, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 11, noRate: 115, yesRun: ov.pshipYes || 11, yesRate: 85, autoDone: (innCount > 1 || (last && Number(last.w || 0) >= 1)) }
+    ];
+
+    document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
+      const noMult = (1 + (f.noRate / 100)).toFixed(2);
+      const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
+      const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
+      const isRowLocked = globalLocked || f.autoDone || lim.blocked;
+      const lockText = f.autoDone ? "Over Complete" : lim.blocked ? lim.reason : "Suspended";
+
+      return `<div class="contest-row">
+        <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})">
+            <span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span>
+          </div>
+          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})">
+            <span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span>
+          </div>
+          ${isRowLocked ? `<div class="suspended-overlay">${lockText}</div>` : ''}
+        </div>
+      </div>`;
+    }).join("");
+
+    const dRate = ov.digitPayout || 9.75;
+    const digitBlocks = [
+      { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 10.0) },
+      { title: "1st Inning 15 Over Last Digit", done: (innCount > 1 || currOvers >= 15.0) },
+      { title: "1st Inning 20 Over Last Digit", done: (innCount > 1 || currOvers >= 20.0) },
+      { title: "2nd Inning 10 Over Last Digit", done: (innCount === 2 && currOvers >= 10.0) },
+      { title: "2nd Inning 20 Over Last Digit", done: (innCount === 2 && currOvers >= 20.0) }
+    ];
+
+    document.getElementById("digitBody").innerHTML = digitBlocks.map(b => {
+      const lim = checkLimitStatus(b.title, maxUsersAllowed, maxMoneyAllowed);
+      if (globalLocked || b.done || lim.blocked) {
+        return `<div class="market-card">
+          <div class="market-head"><span>${b.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${b.done ? 'Over Completed' : lim.blocked ? lim.reason : 'Suspended'}</span></div>
+        </div>`;
 <script>
   const API_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
@@ -202,11 +375,18 @@
 
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {};
+  let cricketWinRate = 35;
 
   async function syncAdminAndStats() {
     try {
-      const r = await fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`);
-      overrides = (await r.json()) || {};
+      const [rCtrl, rRate] = await Promise.all([
+        fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
+      ]);
+      overrides = (await rCtrl.json()) || {};
+      const rateObj = (await rRate.json()) || {};
+      cricketWinRate = Number(rateObj.cricket || 35);
+
       if (activeMatch) {
         await fetchMatchBetLimits(activeMatch.id);
         openMatch(activeMatch);
@@ -388,7 +568,23 @@
     document.getElementById("oddsStatus").innerText = m.isCompleted ? "✅ MATCH ENDED" : globalLocked ? "🔒 SUSPENDED" : "● AUTO-LIVE OPEN";
     document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
 
-    const aB = ov.teamABack || "1.84", aL = ov.teamALay || "1.86", bB = ov.teamBBack || "2.10", bL = ov.teamBLay || "2.14";
+    // Auto Win-Rate Engine (Admin ke 20%, 35%, 50%, 75% setting ke hisab se auto-rates)
+    let autoOddA = "1.80", autoOddB = "2.05", oddSpread = 0.03, sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
+    if (cricketWinRate <= 20) {
+      autoOddA = "1.65"; autoOddB = "1.95"; oddSpread = 0.04; sessGap = 4; fancyPayout = 85; autoDigit = 8.50;
+    } else if (cricketWinRate <= 35) {
+      autoOddA = "1.80"; autoOddB = "2.05"; oddSpread = 0.03; sessGap = 2; fancyPayout = 95; autoDigit = 9.25;
+    } else if (cricketWinRate <= 50) {
+      autoOddA = "1.90"; autoOddB = "2.12"; oddSpread = 0.02; sessGap = 1; fancyPayout = 100; autoDigit = 9.50;
+    } else {
+      autoOddA = "1.98"; autoOddB = "2.20"; oddSpread = 0.02; sessGap = 1; fancyPayout = 105; autoDigit = 9.85;
+    }
+
+    const aB = ov.teamABack || autoOddA;
+    const aL = ov.teamALay || (parseFloat(aB) + oddSpread).toFixed(2);
+    const bB = ov.teamBBack || autoOddB;
+    const bL = ov.teamBLay || (parseFloat(bB) + oddSpread + 0.02).toFixed(2);
+
     const limOddsA = checkLimitStatus(`${tA} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
     const limOddsB = checkLimitStatus(`${tB} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
 
@@ -410,42 +606,47 @@
         </div>
       </div>`;
 
+    const bmA_B = ov.bmABack || Math.round((parseFloat(aB) - 1) * 100);
+    const bmA_L = ov.bmALay || (Number(bmA_B) + Math.round(oddSpread * 100));
+    const bmB_B = ov.bmBBack || Math.round((parseFloat(bB) - 1) * 100);
+    const bmB_L = ov.bmBLay || (Number(bmB_B) + Math.round((oddSpread + 0.03) * 100));
+
     document.getElementById("bmBody").innerHTML = `
       <div class="contest-row">
         <div class="runner-name">${tA}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${ov.bmABack || 84}', ${aB})"><span class="rate-main">${ov.bmABack || 84}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${ov.bmALay || 87}', ${aL})"><span class="rate-main">${ov.bmALay || 87}</span><span class="rate-sub">Lay</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${bmA_B}', ${aB})"><span class="rate-main">${bmA_B}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${bmA_L}', ${aL})"><span class="rate-main">${bmA_L}</span><span class="rate-sub">Lay</span></div>
           ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
         </div>
       </div>
       <div class="contest-row">
         <div class="runner-name">${tB}</div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${ov.bmBBack || 110}', ${bB})"><span class="rate-main">${ov.bmBBack || 110}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${ov.bmBLay || 118}', ${bL})"><span class="rate-main">${ov.bmBLay || 118}</span><span class="rate-sub">Lay</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${bmB_B}', ${bB})"><span class="rate-main">${bmB_B}</span><span class="rate-sub">Back</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${bmB_L}', ${bL})"><span class="rate-main">${bmB_L}</span><span class="rate-sub">Lay</span></div>
           ${globalLocked ? '<div class="suspended-overlay">Suspended</div>' : ''}
         </div>
       </div>`;
 
     const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
-    const s6Yes = ov.sess6Yes || (Number(s6No) + 1);
+    const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
     const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
-    const s10Yes = ov.sess10Yes || (Number(s10No) + 2);
+    const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
     const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
-    const s15Yes = ov.sess15Yes || (Number(s15No) + 2);
+    const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
     const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
-    const s20Yes = ov.sess20Yes || (Number(s20No) + 3);
+    const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
 
     const fancyRows = [
-      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: 100, yesRun: s6Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 6.0) },
-      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: 100, yesRun: s10Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 10.0) },
-      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: 100, yesRun: s15Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 15.0) },
-      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: 100, yesRun: s20Yes, yesRate: 100, autoDone: (innCount > 1 || currOvers >= 20.0) },
-      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 42, noRate: 110, yesRun: ov.bat1Yes || 41, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 34, noRate: 110, yesRun: ov.bat2Yes || 33, yesRate: 90, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 6, noRate: 115, yesRun: ov.bnd1Yes || 6, yesRate: 85, autoDone: (innCount > 1 || currOvers >= 18.0) },
-      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 11, noRate: 115, yesRun: ov.pshipYes || 11, yesRate: 85, autoDone: (innCount > 1 || (last && Number(last.w || 0) >= 1)) }
+      { title: `6 Over Run ${tA}`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 6.0) },
+      { title: `10 Over Run ${tA}`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 10.0) },
+      { title: `15 Over Run ${tA}`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 15.0) },
+      { title: `20 Over Run ${tA} Adv`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 20.0) },
+      { title: `${tA} Opener 1 Run Adv`, noRun: ov.bat1No || 40, noRate: fancyPayout, yesRun: ov.bat1Yes || (40 + sessGap), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `${tA} Opener 2 Run Adv`, noRun: ov.bat2No || 32, noRate: fancyPayout, yesRun: ov.bat2Yes || (32 + sessGap), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `${tA} Opener 1 Boundaries Adv`, noRun: ov.bnd1No || 5, noRate: fancyPayout, yesRun: ov.bnd1Yes || (5 + Math.min(2, sessGap)), yesRate: fancyPayout, autoDone: (innCount > 1 || currOvers >= 18.0) },
+      { title: `1st Wkt P'ship Boundaries ${tA} Adv`, noRun: ov.pshipNo || 10, noRate: fancyPayout, yesRun: ov.pshipYes || (10 + Math.min(2, sessGap)), yesRate: fancyPayout, autoDone: (innCount > 1 || (last && Number(last.w || 0) >= 1)) }
     ];
 
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
@@ -469,7 +670,7 @@
       </div>`;
     }).join("");
 
-    const dRate = ov.digitPayout || 9.75;
+    const dRate = ov.digitPayout || autoDigit;
     const digitBlocks = [
       { title: "1st Inning 10 Over Last Digit", done: (innCount > 1 || currOvers >= 10.0) },
       { title: "1st Inning 15 Over Last Digit", done: (innCount > 1 || currOvers >= 15.0) },
