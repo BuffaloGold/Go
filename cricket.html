@@ -178,6 +178,7 @@
   <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
+
 <script>
   const API_KEYS = [
     "b10ae8c8-70d1-442e-b709-98e66298e902",
@@ -193,8 +194,9 @@
 
   let userBal = 0;
   let userNameStr = "Player";
-  try {
-    const u = JSON.parse(localStorage.getItem("cachedUser") || "{}");
+
+  function renderUserBox(u) {
+    if (!u) return;
     userNameStr = u.name || "Player";
     document.getElementById("userName").innerText = userNameStr;
     document.getElementById("userMob").innerText = mob || "-";
@@ -203,7 +205,23 @@
     userBal = d + w;
     document.getElementById("topDep").innerText = "₹" + d;
     document.getElementById("topWin").innerText = "₹" + w;
+  }
+
+  try {
+    renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}"));
   } catch (e) {}
+
+  async function syncUserWallet() {
+    if (!mob) return;
+    try {
+      const r = await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`);
+      const u = await r.json();
+      if (u) {
+        localStorage.setItem("cachedUser", JSON.stringify(u));
+        renderUserBox(u);
+      }
+    } catch (e) {}
+  }
 
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {};
@@ -269,7 +287,37 @@
         const currArr = await fetchCricEndpoint("currentMatches");
         if (currArr.length > 0) {
           liveList = buildUnifiedMatches(currArr, liveList);
-          fetch(`${FB_URL}/sharedCricketCache.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ updatedAt: Date.now(), list: liveList }) }).catch(() => {}); } }  if (liveList.length > 0) matches = liveList;  if (activeMatch) { const fresh = matches.find(x => x.id === activeMatch.id); if (fresh) { const newSig = JSON.stringify(fresh.score \vert{}\vert{} []) + "\vert{}" + (fresh.status \vert{}\vert{} ""); if (lastScoreSignature && newSig !== lastScoreSignature) { ballChangeLockUntil = Date.now() + 3000; } lastScoreSignature = newSig; activeMatch = fresh; } await fetchMatchBetLimits(activeMatch.id); openMatch(activeMatch); } else if (matches.length) { renderList(); } } catch (e) {} }  async function fetchMatchBetLimits(matchId) { try { const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
+          fetch(`${FB_URL}/sharedCricketCache.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updatedAt: Date.now(), list: liveList })
+          }).catch(() => {});
+        }
+      }
+
+      if (liveList.length > 0) matches = liveList;
+
+      if (activeMatch) {
+        const fresh = matches.find(x => x.id === activeMatch.id);
+        if (fresh) {
+          const newSig = JSON.stringify(fresh.score || []) + "|" + (fresh.status || "");
+          if (lastScoreSignature && newSig !== lastScoreSignature) {
+            ballChangeLockUntil = Date.now() + 3000;
+          }
+          lastScoreSignature = newSig;
+          activeMatch = fresh;
+        }
+        await fetchMatchBetLimits(activeMatch.id);
+        openMatch(activeMatch);
+      } else if (matches.length) {
+        renderList();
+      }
+    } catch (e) {}
+  }
+
+  async function fetchMatchBetLimits(matchId) {
+    try {
+      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
       const betsObj = (await r.json()) || {};
       const stats = {};
       Object.values(betsObj).forEach(b => {
@@ -337,7 +385,8 @@
       const ov = overrides[m.id] || {};
       const customSc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
       const sc = customSc || ((m.score && m.score.length > 0)
-        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" \vert{} ") : (m.status \vert{}\vert{} `Starts: ${m.date || ""}`));
+        ? m.score.map(s => `${s.r}/${s.w} (${s.o} Ov)`).join(" | ")
+        : (m.status || `Starts: ${m.date || ""}`));
       const badge = m.isTrueLive ? `<span class="b-live">● LIVE</span>` : m.isUpcoming ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
         <div class="m-left">
@@ -368,7 +417,8 @@
     if (maxMoney > 0 && st.totalMoney >= maxMoney) return { blocked: true, reason: `Limit ₹${maxMoney} Full` };
     return { blocked: false, reason: "" };
   }
-    function openMatch(m) {
+
+  function openMatch(m) {
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
@@ -477,7 +527,6 @@
     const s30No = Math.max(currRuns + 42, Math.round(crr * 30));
     const s30Yes = s30No + sessGap + 1;
 
-    // 2-Over Safety Buffer Lock (taaki Cricbuzz delay se koi cheat na kar sake)
     const fancyRows = [
       { title: `6 Over Run (${battingTeam})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout, autoDone: (currOvers >= 4.2) },
       { title: `10 Over Run (${battingTeam})`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout, autoDone: (currOvers >= 8.2) },
@@ -659,6 +708,7 @@
     document.getElementById("matchListScreen").style.display = "block";
   }
 
+  syncUserWallet();
   loadMatches(true);
   setInterval(fastLivePulse, 6000);
 </script>
