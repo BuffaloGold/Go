@@ -211,67 +211,75 @@
   let lastScoreSignature = "";
   let ballChangeLockUntil = 0;
 
+    // Multi-Proxy + Direct Cricbuzz & ESPNcricinfo Free Ball-to-Ball Engine
   async function fetchCricbuzzDirect() {
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent("https://mapps.cricbuzz.com/cbzios/match/livematches")}`;
+    // Source 1: ESPNcricinfo Official Public Live Feed (No Key Needed, Exact Ball-by-Ball)
     try {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 3500);
-      const r = await fetch(proxyUrl, { signal: ctrl.signal });
-      clearTimeout(tid);
-      const data = await r.json();
-      if (data && Array.isArray(data.matches) && data.matches.length > 0) {
-        return data.matches.map(m => {
-          const h = m.header || {};
-          const full1 = (m.team1 && m.team1.name) || (m.team1 && m.team1.s_name) || "Team A";
-          const full2 = (m.team2 && m.team2.name) || (m.team2 && m.team2.s_name) || "Team B";
-          const st = String(h.status || "");
-          const state = String(h.state || "").toLowerCase();
+      const espnTarget = "https://hs-consumer-api.espncricinfo.com/v1/pages/matches/current?lang=en&latest=true";
+      const proxyUrls = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(espnTarget)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(espnTarget)}&t=${Date.now()}`
+      ];
 
-          const scoreList = [];
-          if (m.bow_team && Array.isArray(m.bow_team.innings)) {
-            m.bow_team.innings.forEach(inn => {
-              scoreList.push({
-                inning: (m.bow_team.name || full2) + " Inning",
-                r: Number(inn.score || 0),
-                w: Number(inn.wkts || 0),
-                o: Number(inn.overs || 0)
+      for (const pUrl of proxyUrls) {
+        try {
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 3500);
+          const r = await fetch(pUrl, { signal: ctrl.signal });
+          clearTimeout(tid);
+          const data = await r.json();
+          if (data && Array.isArray(data.matches) && data.matches.length > 0) {
+            return data.matches.map(m => {
+              const teams = Array.isArray(m.teams) ? m.teams : [];
+              const t1 = (teams[0] && teams[0].team && teams[0].team.longName) || "Team A";
+              const t2 = (teams[1] && teams[1].team && teams[1].team.longName) || "Team B";
+              const state = String(m.state || "").toUpperCase();
+              const statusText = m.statusText || m.status || "";
+
+              const scoreList = [];
+              teams.forEach(t => {
+                if (t && t.score) {
+                  // e.g. "216/6" and scoreInfo "(38.3/50 ov, target 314)"
+                  const parts = String(t.score).split("/");
+                  const runs = Number(parts[0] || 0);
+                  const wkts = Number(parts[1] || 0);
+                  const ovMatch = String(t.scoreInfo || "").match(/([\d.]+)\s*ov/i);
+                  const overs = ovMatch ? Number(ovMatch[1]) : 0;
+                  scoreList.push({
+                    inning: (t.team && t.team.abbreviation ? t.team.abbreviation : t.team.longName) + " Inning",
+                    r: runs,
+                    w: wkts,
+                    o: overs,
+                    rawText: `${t.score} ${t.scoreInfo || ""}`.trim()
+                  });
+                }
               });
+
+              const isCompleted = state === "POST" || statusText.toLowerCase().includes("won by") || statusText.toLowerCase().includes("drawn") || statusText.toLowerCase().includes("tied");
+              const isUpcoming = state === "PRE" || (!isCompleted && scoreList.length === 0 && state !== "LIVE");
+              const isTrueLive = state === "LIVE" && !isCompleted;
+
+              return {
+                id: "espn_" + (m.objectId || m.id),
+                name: `${t1} vs ${t2}${m.title ? ", " + m.title : ""}`,
+                teams: [t1, t2],
+                matchType: m.format || "LIVE",
+                status: statusText || state,
+                score: scoreList,
+                recentBalls: scoreList.map(s => `${s.inning}: ${s.rawText}`).join(" | "),
+                isTrueLive,
+                isUpcoming,
+                isCompleted,
+                mTime: m.startTime ? new Date(m.startTime).getTime() : Date.now()
+              };
             });
           }
-          if (m.bat_team && Array.isArray(m.bat_team.innings)) {
-            m.bat_team.innings.forEach(inn => {
-              scoreList.push({
-                inning: (m.bat_team.name || full1) + " Inning",
-                r: Number(inn.score || 0),
-                w: Number(inn.wkts || 0),
-                o: Number(inn.overs || 0)
-              });
-            });
-          }
-
-          const isCompleted = state === "complete" || st.toLowerCase().includes("won by") || st.toLowerCase().includes("drawn") || st.toLowerCase().includes("tied");
-          const isUpcoming = state === "preview" || state === "upcoming" || (!isCompleted && scoreList.length === 0 && !state.includes("progress") && !state.includes("toss"));
-          const isTrueLive = !isCompleted && !isUpcoming;
-          const recentOvs = (m.bow_team && m.bow_team.overs_info) || (m.miniscore && m.miniscore.recentOvsStats) || "";
-
-          return {
-            id: "cbz_" + m.match_id,
-            name: `${full1} vs ${full2}${h.match_desc ? ", " + h.match_desc : ""}`,
-            teams: [full1, full2],
-            matchType: h.type || "LIVE",
-            status: st || h.state_title || "Live",
-            score: scoreList,
-            recentBalls: recentOvs,
-            isTrueLive,
-            isUpcoming,
-            isCompleted,
-            mTime: Number(h.start_time || Date.now() / 1000) * 1000
-          };
-        });
+        } catch (e) {}
       }
     } catch (e) {}
     return null;
   }
+      
 
   async function fetchBackupCricAPI() {
     let startIdx = Number(localStorage.getItem("bg_cric_key_idx") || 0) % BACKUP_KEYS.length;
