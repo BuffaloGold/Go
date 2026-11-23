@@ -244,6 +244,26 @@
 
   function parseCricbuzzListHtml(html) {
     const seen = new Set(), list = [];
+
+    // Cricbuzz JSON se har match ID ka exact start timestamp (IST time) nikaalna
+    const startMap = {};
+    for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
+      const mId = tm[1];
+      if (startMap[mId]) continue;
+      let ms = Number(tm[2]);
+      if (ms < 1e12) ms *= 1000;
+      const dt = new Date(ms);
+      if (!isNaN(dt.getTime())) {
+        const now = new Date();
+        const isToday = dt.toDateString() === now.toDateString();
+        const tmrw = new Date(now.getTime() + 86400000);
+        const isTmrw = dt.toDateString() === tmrw.toDateString();
+        const dayTag = isToday ? "Today" : isTmrw ? "Tomorrow" : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+        const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase();
+        startMap[mId] = `🕒 ${dayTag}, ${timeStr} IST`;
+      }
+    }
+
     const mainBody = html.split(/All Live Now|LIVE MATCHES|All Matches/i)[1] || html;
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
@@ -258,8 +278,13 @@
       const hasLiveAction = scores.length > 0 || /\b(trail by|lead by|need \d+ runs|Day \d+|Session|Innings Break|Lunch|Tea|opt to|elected to|batting)\b/i.test(sub);
       const type = isDone ? "completed" : hasLiveAction ? "live" : "upcoming";
 
-      const stM = sub.match(/(Match drawn|[A-Za-z0-9\s]+won by[^<]+|need \d+ runs[^<]+|trail by \d+ runs[^<]+|lead by \d+ runs[^<]+|Day \d+[^<]+|Innings Break|Stumps|Lunch|Tea|Preview)/i);
-      const cleanStatus = stM ? stM[1].trim().slice(0, 75) : (type === "completed" ? "Match Completed" : type === "upcoming" ? "Upcoming Match" : "In Progress");
+      const stM = sub.match(/(Match drawn|[A-Za-z0-9\s]+won by[^<]+|need \d+ runs[^<]+|trail by \d+ runs[^<]+|lead by \d+ runs[^<]+|Day \d+[^<]+|Innings Break|Stumps|Lunch|Tea)/i);
+      const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
+      const exactStartTime = startMap[m[1]] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
+
+      const cleanStatus = type === "upcoming"
+        ? (exactStartTime || "🕒 Time Soon")
+        : (stM ? stM[1].trim().slice(0, 75) : (type === "completed" ? "Match Completed" : "In Progress"));
 
       list.push({ id: m[1], title, scores, status: cleanStatus, type });
     }
@@ -360,7 +385,6 @@
     return out;
   }
 
-  // Real-Time Exchange Probability & Odds Engine (200 run target, 2 over mein 25 run chahiye toh rate upar jayega)
   function computeDynamicMatchOdds(tA, tB, sd, winRate) {
     let probA = 0.52;
     const runs = sd.runsNum || 0;
@@ -434,6 +458,7 @@
       const r = await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`);
       const h = await r.text();
       const parsed = parseCricbuzzMatchHtml(h, activeMatch.id, activeMatch.title);
+      if (!parsed.status && activeMatch.status) parsed.status = activeMatch.status;
       liveScoreData = parsed;
       activeMatch._runsNum = parsed.runsNum;
       activeMatch._ovNum = parsed.ovNum;
@@ -480,7 +505,7 @@
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed & Drawn Matches";
+      mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Schedule (IST)" : "✅ Completed & Drawn Matches";
     renderList();
   }
 
@@ -540,7 +565,7 @@
 
     const isCompleted = m.type === "completed" || liveScoreData.isDrawnOrDone;
     document.getElementById("cRuns").innerText = ov.liveRuns || liveScoreData.headline || (isCompleted ? "ENDED" : m.type === "live" ? "LIVE" : "SOON");
-    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveScoreData.overs || (isCompleted ? "Match Finished" : "In Progress"));
+    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveScoreData.overs || (isCompleted ? "Match Finished" : m.type === "upcoming" ? "Scheduled" : "In Progress"));
 
     const saved6 = liveScoreData.balls && liveScoreData.balls.length ? liveScoreData.balls.slice(-6) : [];
     const ballsArr = saved6.length ? saved6 : ["•", "•", "•", "•", "•", "•"];
@@ -568,7 +593,6 @@
     else if (cricketWinRate <= 50) { sessGap = 1; fancyPayout = 100; autoDigit = 9.50; }
     else { sessGap = 1; fancyPayout = 105; autoDigit = 9.85; }
 
-    // Dynamic odds (target & runs/overs ke hisaab se badhega-ghatega + Admin override support)
     const dyn = computeDynamicMatchOdds(tA, tB, liveScoreData, cricketWinRate);
     const aB = ov.teamABack || dyn.aBack;
     const aL = ov.teamALay || (ov.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
@@ -781,7 +805,7 @@
     } catch (e) {}
   }
 
-function goBack() {
+  function goBack() {
     activeMatch = null;
     document.getElementById("contestScreen").style.display = "none";
     document.getElementById("matchListScreen").style.display = "block";
