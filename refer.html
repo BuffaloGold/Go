@@ -37,9 +37,9 @@
 
   /* Fixed Bottom Navigation Bar */
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
-  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
+  .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 11px; cursor: pointer; flex: 1; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
-  .nav-icon { font-size: 20px; display: block; }
+  .nav-icon { font-size: 19px; display: block; }
 </style>
 </head>
 <body>
@@ -94,9 +94,10 @@
   </div>
 </div>
 
-<!-- Bottom Navigation Bar (Same as Wallet & Game) -->
+<!-- Fixed Bottom Navigation Bar -->
 <div class="bottom-nav">
-  <div class="nav-item" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Game</div>
+  <div class="nav-item" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Games</div>
+  <div class="nav-item" onclick="location.href='cricket.html'"><span class="nav-icon">🏏</span>Cricket</div>
   <div class="nav-item" onclick="location.href='wallet.html'"><span class="nav-icon">💰</span>Wallet</div>
   <div class="nav-item active" onclick="location.href='refer.html'"><span class="nav-icon">🎁</span>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'"><span class="nav-icon">👤</span>Profile</div>
@@ -104,14 +105,15 @@
 
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const SITE_DOMAIN = "https://buffalogold.in/index.html";
+
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
   // Default Referral Code = User's Mobile Number (or saved refCode)
   document.getElementById("myRefCode").innerText = mobile;
 
-  const basePath = window.location.origin + window.location.pathname.replace("refer.html", "index.html");
-  let inviteLink = `${basePath}?ref=${mobile}`;
+  let inviteLink = `${SITE_DOMAIN}?ref=${mobile}`;
   document.getElementById("myRefLink").innerText = inviteLink;
 
   document.getElementById("copyLinkBtn").addEventListener("click", () => {
@@ -139,7 +141,7 @@
 
       const myCode = myData.refCode || mobile;
       document.getElementById("myRefCode").innerText = myCode;
-      inviteLink = `${basePath}?ref=${myCode}`;
+      inviteLink = `${SITE_DOMAIN}?ref=${myCode}`;
       document.getElementById("myRefLink").innerText = inviteLink;
 
       // Jin users ne is user ke code/mobile se join kiya hai unhe filter karein
