@@ -150,7 +150,7 @@
 
     <div class="market-card sec-mybets" style="display:none;">
       <div class="market-head"><span>📋 My Placed Bets (Rate & Line Locked)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
-      <div id="myBetsList"><div class="empty-msg">Abhi is match par koi bet nahi lagi hai.</div></div>
+      <div id="myBetsList"><div class="empty-msg">Abhi aapki koi bet nahi hai.</div></div>
     </div>
   </div>
 </div>
@@ -180,7 +180,6 @@
 </div>
 <script>
   const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
-  
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
 
   const mob = String(localStorage.getItem("activeUser") || "").trim();
@@ -282,8 +281,7 @@
       const r = await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`);
       const d = await r.json();
       if (d && d.text) {
-        const cleanIdx = d.text.indexOf("Live");
-        liveDetailText = cleanIdx > -1 ? d.text.slice(cleanIdx, cleanIdx + 360) : d.text.slice(0, 360);
+        liveDetailText = d.text.replace(/Live Scores|Scorecard|Squads|Highlights|Full Commentary/g, "").trim().slice(0, 260);
         const st = extractLiveStatsFromText(d.text);
         const newSig = (st ? st.allScores : "") + "|" + liveDetailText.slice(0, 140);
         if (lastScoreSignature && newSig !== lastScoreSignature) {
@@ -537,7 +535,7 @@
       </div>`;
     }).join("");
 
-    loadMyLockedBets(m.id);
+    if (!skipBetReload) loadMyLockedBets(m.id);
   }
 
   function filterMarket(type, btn) {
@@ -663,16 +661,29 @@
 
   async function loadMyLockedBets(matchId) {
     try {
-      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
-      const data = (await r.json()) || {};
-      const myBets = Object.values(data).filter(b => b && String(b.mobile).trim() === String(mob).trim()).reverse();
+      const r = await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`);
+      const allMatchesBets = (await r.json()) || {};
+      const myBets = [];
+
+      Object.entries(allMatchesBets).forEach(([mKey, mObj]) => {
+        if (!mObj || typeof mObj !== "object") return;
+        Object.values(mObj).forEach(b => {
+          if (b && String(b.mobile || "").trim() === String(mob).trim()) {
+            myBets.push({ ...b, _mKey: mKey });
+          }
+        });
+      });
+
+      myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
+
       const box = document.getElementById("myBetsList");
       if (!myBets.length) {
-        box.innerHTML = `<div class="empty-msg">Abhi is match par aapki koi bet nahi hai.</div>`;
+        box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`;
         return;
       }
       box.innerHTML = myBets.map(b => `
         <div class="bet-item-card">
+          <div style="font-size:10px; color:#38bdf8; font-weight:700; margin-bottom:2px;">🏏 ${b.matchName || ("Match #" + b._mKey)}</div>
           <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;">
             <span>${b.market} (${b.side})</span>
             <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
