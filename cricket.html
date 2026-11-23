@@ -85,26 +85,21 @@
       <div>Winning: <strong id="topWin">₹0</strong></div>
     </div>
   </div>
-
   <div id="matchListScreen">
     <div class="hero-box">
       <div><h2>🏏 Cricket Exchange</h2><p>Live Ball-by-Ball & Contests</p></div>
       <button class="refresh-btn" onclick="loadMatches()">🔄 Refresh</button>
     </div>
-
     <div class="filter-tabs">
       <button class="f-tab active" onclick="setFilter('live', this)">🔴 Live Now</button>
       <button class="f-tab" onclick="setFilter('upcoming', this)">🕒 Upcoming</button>
       <button class="f-tab" onclick="setFilter('completed', this)">✅ Completed</button>
     </div>
-
     <div class="list-header"><span id="listHeading">🔴 Live Matches</span><span>Tap →</span></div>
     <div class="match-list-box" id="matchListContainer"><div class="empty-msg">Live matches load ho rahe hain...</div></div>
   </div>
-
   <div id="contestScreen">
     <div class="back-bar" onclick="goBack()"><span>← Back to Matches</span><span id="oddsStatus">● LIVE OPEN</span></div>
-
     <div class="score-banner">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div style="flex:1; padding-right:8px;">
@@ -118,7 +113,6 @@
       </div>
       <div class="ball-strip" id="cBalls">Live scorecard load ho raha hai...</div>
     </div>
-
     <div class="market-pills">
       <button class="pill-btn active" onclick="filterMarket('all', this)">All Markets</button>
       <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
@@ -127,34 +121,28 @@
       <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
       <button class="pill-btn" onclick="filterMarket('mybets', this)">📋 My Bets</button>
     </div>
-
     <div class="market-card sec-odds">
       <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
       <div class="col-headers"><span>Back</span><span>Lay</span></div>
       <div id="oddsBody"></div>
     </div>
-
     <div class="market-card sec-bookmaker">
       <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">0% Comm</span></div>
       <div class="col-headers"><span>Back</span><span>Lay</span></div>
       <div id="bmBody"></div>
     </div>
-
     <div class="market-card sec-fancy">
       <div class="market-head"><span>Fancy Markets (Session, Player & Boundaries)</span><span style="font-size:10px; color:#28e04d;">● LIVE</span></div>
       <div class="col-headers"><span>No</span><span>Yes</span></div>
       <div id="fancyBody"></div>
     </div>
-
     <div id="digitBody" class="sec-digit"></div>
-
     <div class="market-card sec-mybets" style="display:none;">
       <div class="market-head"><span>📋 My Placed Bets (Rate & Line Locked)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
       <div id="myBetsList"><div class="empty-msg">Abhi aapki koi bet nahi hai.</div></div>
     </div>
   </div>
 </div>
-
 <div class="bet-modal" id="betModal">
   <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
   <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
@@ -170,7 +158,6 @@
     <button style="flex:2; padding:10px; background:#28e04d; color:#000; border:none; border-radius:8px; font-weight:800;" onclick="placeBet()">Confirm & Lock Bet</button>
   </div>
 </div>
-
 <div class="bottom-nav">
   <div class="nav-item" onclick="location.href='game.html'">🎰<br>Games</div>
   <div class="nav-item active" onclick="goBack()">🏏<br>Cricket</div>
@@ -185,9 +172,7 @@
   const mob = String(localStorage.getItem("activeUser") || "").trim();
   if (!mob) window.location.replace("index.html");
 
-  let userObj = {};
-  let userBal = 0;
-  let userNameStr = "Player";
+  let userObj = {}, userBal = 0, userNameStr = "Player";
 
   function renderUserBox(u) {
     if (!u) return;
@@ -202,9 +187,7 @@
     document.getElementById("topWin").innerText = "₹" + w;
   }
 
-  try {
-    renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}"));
-  } catch (e) {}
+  try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}")); } catch (e) {}
 
   async function syncUserWallet() {
     if (!mob) return;
@@ -219,26 +202,17 @@
   }
 
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
-  let matchBetsStats = {};
-  let cricketWinRate = 35;
-  let lastScoreSignature = "";
-  let ballChangeLockUntil = 0;
-  let liveDetailText = "";
-  let liveHeadlineRuns = "";
-  let liveHeadlineOvers = "";
+  let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
+  let liveDetailText = "", liveHeadlineRuns = "", liveHeadlineOvers = "";
 
   function parseTeamsFromTitle(title) {
     const clean = String(title || "").split(/\d+(?:st|nd|rd|th)|Elite|Group|Match|Test|Odi|T20/i)[0].trim();
     const parts = clean.split(/\s+vs\s+/i);
-    if (parts.length >= 2) {
-      return [parts[0].trim().toUpperCase(), parts[1].trim().toUpperCase()];
-    }
-    return ["Team A", "Team B"];
+    return parts.length >= 2 ? [parts[0].trim().toUpperCase(), parts[1].trim().toUpperCase()] : ["Team A", "Team B"];
   }
 
   function parseCricbuzzListHtml(html) {
-    const seen = new Set();
-    const list = [];
+    const seen = new Set(), list = [];
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
     while ((m = linkRx.exec(html)) !== null) {
@@ -266,8 +240,7 @@
     let headline = "", overs = "", detail = "", runsNum = 45, ovNum = 6.0;
     const nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
     if (nd) {
-      const j = nd[1];
-      const sc = [];
+      const j = nd[1], sc = [];
       for (const bm of j.matchAll(/"batTeamName":"([^"]+)"[\s\S]{0,400}?"runs":(\d+)[\s\S]{0,120}?"wickets":(\d+)[\s\S]{0,120}?"overs":([0-9.]+)/g)) {
         const line = `${bm[1]} ${bm[2]}/${bm[3]} (${bm[4]} Ovs)`;
         if (!sc.includes(line)) {
@@ -291,16 +264,16 @@
       detail = parts.join(" • ");
     }
     if (!detail) {
-      const mainPart = html.split(/<h1[^>]*>/i)[1] || html;
-      const cleanTxt = mainPart.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-      const scM = cleanTxt.match(/([A-Z]{2,6})\s*(\d+[-\/]\d+)\s*\((\d+(?:\.\d+)?)\)/);
+      const afterTabs = html.split(/Overs\s*<\/a>/i)[1] || html.split(/Scorecard\s*<\/a>/i)[1] || html.split(/<h1[^>]*>/i)[1] || html;
+      const cleanTxt = afterTabs.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
+      const scM = cleanTxt.match(/([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+[-\/]\d+)\s*\((\d+(?:\.\d+)?)\)/i);
       if (scM) {
-        headline = `${scM[1]} ${scM[2]}`;
+        headline = `${scM[1].toUpperCase()} ${scM[2]}`;
         overs = `(${scM[3]} Ov)`;
         runsNum = Number(scM[2].split(/[-\/]/)[0] || 0);
         ovNum = Number(scM[3] || 0);
       }
-      detail = cleanTxt.replace(/Info Live Scorecard Squads Overs/g, "").trim().slice(0, 260);
+      detail = cleanTxt.replace(/^(?:Graphs|Photos|News|Info|Live|Scorecard|Squads|Overs)\s*/gi, "").trim().slice(0, 260);
     }
     return { headline, overs, detail, runsNum, ovNum };
   }
@@ -315,7 +288,6 @@
       overrides = (await rCtrl.json()) || {};
       const rateObj = (await rRate.json()) || {};
       cricketWinRate = Number(rateObj.cricket || 35);
-
       const rawHtml = await rWorker.text();
       const parsedList = parseCricbuzzListHtml(rawHtml);
       if (parsedList.length > 0) {
@@ -323,9 +295,7 @@
         if (!activeMatch) renderList();
       }
     } catch (e) {
-      if (!matches.length) {
-        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
-      }
+      if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
     }
   }
 
@@ -340,11 +310,8 @@
       if (parsed.detail) liveDetailText = parsed.detail;
       activeMatch._runsNum = parsed.runsNum;
       activeMatch._ovNum = parsed.ovNum;
-
       const newSig = `${liveHeadlineRuns}|${liveHeadlineOvers}|${liveDetailText.slice(0, 120)}`;
-      if (lastScoreSignature && newSig !== lastScoreSignature) {
-        ballChangeLockUntil = Date.now() + 3000;
-      }
+      if (lastScoreSignature && newSig !== lastScoreSignature) ballChangeLockUntil = Date.now() + 3000;
       lastScoreSignature = newSig;
     } catch (e) {}
   }
@@ -358,15 +325,11 @@
         fresh._ovNum = activeMatch._ovNum;
         activeMatch = fresh;
       }
-      await Promise.all([
-        refreshActiveMatchDetail(),
-        fetchMatchBetLimits(activeMatch.id)
-      ]);
+      await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(activeMatch.id)]);
       openMatch(activeMatch, true);
     }
   }
-
-  async function fetchMatchBetLimits(matchId) {
+    async function fetchMatchBetLimits(matchId) {
     try {
       const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
       const betsObj = (await r.json()) || {};
@@ -386,31 +349,24 @@
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Live Matches" :
-      mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed Matches";
+      mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Schedule" : "✅ Completed Matches";
     renderList();
   }
 
   function renderList() {
     const box = document.getElementById("matchListContainer");
     const list = matches.filter(m => m.type === filterMode);
-
     if (!list.length) {
       box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai.</div>`;
       return;
     }
-
     box.innerHTML = list.map(m => {
       const ov = overrides[m.id] || {};
       const customSc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
       const sc = customSc || ((m.scores && m.scores.length > 0) ? m.scores.join(" | ") : (m.status || "Live"));
       const badge = m.type === "live" ? `<span class="b-live">● LIVE</span>` : m.type === "upcoming" ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
       return `<div class="match-item" onclick="openMatchById('${m.id}')">
-        <div class="m-left">
-          ${badge}
-          <div class="m-title">${m.title}</div>
-          <div class="m-score">${sc}</div>
-        </div>
+        <div class="m-left">${badge}<div class="m-title">${m.title}</div><div class="m-score">${sc}</div></div>
         <div class="open-pill">${m.type === "completed" ? "Result →" : "Play →"}</div>
       </div>`;
     }).join("");
@@ -425,10 +381,7 @@
       liveHeadlineOvers = "";
       lastScoreSignature = "";
       openMatch(m, false);
-      await Promise.all([
-        refreshActiveMatchDetail(),
-        fetchMatchBetLimits(m.id)
-      ]);
+      await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
       openMatch(m, true);
     }
   }
@@ -445,11 +398,8 @@
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
-
     const ov = overrides[m.id] || {};
-    const maxUsersAllowed = Number(ov.maxUsers || 25);
-    const maxMoneyAllowed = Number(ov.maxMoney || 15000);
-
+    const maxUsersAllowed = Number(ov.maxUsers || 25), maxMoneyAllowed = Number(ov.maxMoney || 15000);
     const [tA, tB] = parseTeamsFromTitle(m.title);
     document.getElementById("cTitle").innerText = m.title;
     document.getElementById("cStatus").innerText = m.status || "Live Match";
@@ -462,8 +412,7 @@
     document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveHeadlineOvers || m.status);
     document.getElementById("cBalls").innerText = liveDetailText || m.status;
 
-    const isCompleted = m.type === "completed";
-    const isBallRunning = Date.now() < ballChangeLockUntil;
+    const isCompleted = m.type === "completed", isBallRunning = Date.now() < ballChangeLockUntil;
     const globalLocked = Boolean(ov.locked || isCompleted || isBallRunning);
     const lockBannerText = isBallRunning ? "BALL RUNNING" : "Suspended";
 
@@ -471,73 +420,47 @@
     document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
 
     let autoOddA = "1.80", autoOddB = "2.05", oddSpread = 0.03, sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
-    if (cricketWinRate <= 20) {
-      autoOddA = "1.65"; autoOddB = "1.95"; oddSpread = 0.04; sessGap = 4; fancyPayout = 85; autoDigit = 8.50;
-    } else if (cricketWinRate <= 35) {
-      autoOddA = "1.80"; autoOddB = "2.05"; oddSpread = 0.03; sessGap = 2; fancyPayout = 95; autoDigit = 9.25;
-    } else if (cricketWinRate <= 50) {
-      autoOddA = "1.90"; autoOddB = "2.12"; oddSpread = 0.02; sessGap = 1; fancyPayout = 100; autoDigit = 9.50;
-    } else {
-      autoOddA = "1.98"; autoOddB = "2.20"; oddSpread = 0.02; sessGap = 1; fancyPayout = 105; autoDigit = 9.85;
-    }
+    if (cricketWinRate <= 20) { autoOddA = "1.65"; autoOddB = "1.95"; oddSpread = 0.04; sessGap = 4; fancyPayout = 85; autoDigit = 8.50; }
+    else if (cricketWinRate <= 35) { autoOddA = "1.80"; autoOddB = "2.05"; oddSpread = 0.03; sessGap = 2; fancyPayout = 95; autoDigit = 9.25; }
+    else if (cricketWinRate <= 50) { autoOddA = "1.90"; autoOddB = "2.12"; oddSpread = 0.02; sessGap = 1; fancyPayout = 100; autoDigit = 9.50; }
+    else { autoOddA = "1.98"; autoOddB = "2.20"; oddSpread = 0.02; sessGap = 1; fancyPayout = 105; autoDigit = 9.85; }
 
-    const aB = ov.teamABack || autoOddA;
-    const aL = ov.teamALay || (parseFloat(aB) + oddSpread).toFixed(2);
-    const bB = ov.teamBBack || autoOddB;
-    const bL = ov.teamBLay || (parseFloat(bB) + oddSpread + 0.02).toFixed(2);
-
+    const aB = ov.teamABack || autoOddA, aL = ov.teamALay || (parseFloat(aB) + oddSpread).toFixed(2);
+    const bB = ov.teamBBack || autoOddB, bL = ov.teamBLay || (parseFloat(bB) + oddSpread + 0.02).toFixed(2);
     const limOddsA = checkLimitStatus(`${tA} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
     const limOddsB = checkLimitStatus(`${tB} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
 
     document.getElementById("oddsBody").innerHTML = `
-      <div class="contest-row">
-        <div class="runner-name">${tA}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || lockBannerText}</div>` : ''}
-        </div>
-      </div>
-      <div class="contest-row">
-        <div class="runner-name">${tB}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
-          ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || lockBannerText}</div>` : ''}
-        </div>
-      </div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes">
+        <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
+        <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
+        ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || lockBannerText}</div>` : ''}
+      </div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes">
+        <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
+        <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
+        ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || lockBannerText}</div>` : ''}
+      </div></div>`;
 
-    const bmA_B = ov.bmABack || Math.round((parseFloat(aB) - 1) * 100);
-    const bmA_L = ov.bmALay || (Number(bmA_B) + Math.round(oddSpread * 100));
-    const bmB_B = ov.bmBBack || Math.round((parseFloat(bB) - 1) * 100);
-    const bmB_L = ov.bmBLay || (Number(bmB_B) + Math.round((oddSpread + 0.03) * 100));
+    const bmA_B = ov.bmABack || Math.round((parseFloat(aB) - 1) * 100), bmA_L = ov.bmALay || (Number(bmA_B) + Math.round(oddSpread * 100));
+    const bmB_B = ov.bmBBack || Math.round((parseFloat(bB) - 1) * 100), bmB_L = ov.bmBLay || (Number(bmB_B) + Math.round((oddSpread + 0.03) * 100));
 
     document.getElementById("bmBody").innerHTML = `
-      <div class="contest-row">
-        <div class="runner-name">${tA}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${bmA_B}', ${aB})"><span class="rate-main">${bmA_B}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${bmA_L}', ${aL})"><span class="rate-main">${bmA_L}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
-        </div>
-      </div>
-      <div class="contest-row">
-        <div class="runner-name">${tB}</div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${bmB_B}', ${bB})"><span class="rate-main">${bmB_B}</span><span class="rate-sub">Back</span></div>
-          <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${bmB_L}', ${bL})"><span class="rate-main">${bmB_L}</span><span class="rate-sub">Lay</span></div>
-          ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
-        </div>
-      </div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes">
+        <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${bmA_B}', ${aB})"><span class="rate-main">${bmA_B}</span><span class="rate-sub">Back</span></div>
+        <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${bmA_L}', ${aL})"><span class="rate-main">${bmA_L}</span><span class="rate-sub">Lay</span></div>
+        ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
+      </div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes">
+        <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${bmB_B}', ${bB})"><span class="rate-main">${bmB_B}</span><span class="rate-sub">Back</span></div>
+        <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${bmB_L}', ${bL})"><span class="rate-main">${bmB_L}</span><span class="rate-sub">Lay</span></div>
+        ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
+      </div></div>`;
 
-    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6));
-    const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
-    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10));
-    const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
-    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15));
-    const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
-    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20));
-    const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
+    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6)), s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
+    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10)), s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
+    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15)), s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
+    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20)), s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
 
     const fancyRows = [
       { title: `6 Over Run (${tA})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout },
@@ -550,51 +473,27 @@
     ];
 
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
-      const noMult = (1 + (f.noRate / 100)).toFixed(2);
-      const yesMult = (1 + (f.yesRate / 100)).toFixed(2);
+      const noMult = (1 + (f.noRate / 100)).toFixed(2), yesMult = (1 + (f.yesRate / 100)).toFixed(2);
       const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
-      const isRowLocked = globalLocked || lim.blocked;
-      const lockText = lim.blocked ? lim.reason : lockBannerText;
-
+      const isRowLocked = globalLocked || lim.blocked, lockText = lim.blocked ? lim.reason : lockBannerText;
       return `<div class="contest-row">
         <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})">
-            <span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span>
-          </div>
-          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})">
-            <span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span>
-          </div>
+          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})"><span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})"><span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span></div>
           ${isRowLocked ? `<div class="suspended-overlay">${lockText}</div>` : ''}
         </div>
       </div>`;
     }).join("");
 
     const dRate = ov.digitPayout || autoDigit;
-    const digitBlocks = [
-      "1st Inning 10 Over Last Digit",
-      "1st Inning 20 Over Last Digit",
-      "2nd Inning 10 Over Last Digit",
-      "2nd Inning 20 Over Last Digit"
-    ];
-
+    const digitBlocks = ["1st Inning 10 Over Last Digit", "1st Inning 20 Over Last Digit", "2nd Inning 10 Over Last Digit", "2nd Inning 20 Over Last Digit"];
     document.getElementById("digitBody").innerHTML = digitBlocks.map(title => {
       const lim = checkLimitStatus(title, maxUsersAllowed, maxMoneyAllowed);
-      if (globalLocked || lim.blocked) {
-        return `<div class="market-card">
-          <div class="market-head"><span>${title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${lim.blocked ? lim.reason : lockBannerText}</span></div>
-        </div>`;
-      }
+      if (globalLocked || lim.blocked) return `<div class="market-card"><div class="market-head"><span>${title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${lim.blocked ? lim.reason : lockBannerText}</span></div></div>`;
       let grid = "";
-      for (let d = 0; d <= 9; d++) {
-        grid += `<div class="digit-box" onclick="openBet('${title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})">
-          <span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span>
-        </div>`;
-      }
-      return `<div class="market-card">
-        <div class="market-head"><span>${title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div>
-        <div class="digit-grid">${grid}</div>
-      </div>`;
+      for (let d = 0; d <= 9; d++) grid += `<div class="digit-box" onclick="openBet('${title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
+      return `<div class="market-card"><div class="market-head"><span>${title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${grid}</div></div>`;
     }).join("");
 
     if (!skipBetReload) loadMyLockedBets(m.id);
@@ -625,34 +524,19 @@
   function updateBetReturn() {
     if (!selBet) return;
     const st = Number(document.getElementById("stakeInput").value || 0);
-    const ret = (st * selBet.oddMult).toFixed(0);
-    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${ret} (Line: ${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${(st * selBet.oddMult).toFixed(0)} (Line: ${selBet.lockedLine} @ ${selBet.oddMult}x)`;
   }
 
   async function deductUserWallet(amount) {
     const r = await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`);
     const u = (await r.json()) || {};
-    let d = Number(u.depositBal ?? u.depositBalance ?? 0);
-    let w = Number(u.winningBal ?? u.winningBalance ?? 0);
+    let d = Number(u.depositBal ?? u.depositBalance ?? 0), w = Number(u.winningBal ?? u.winningBalance ?? 0);
     if (d + w < amount) return false;
-
-    if (d >= amount) {
-      d -= amount;
-    } else {
-      const rem = amount - d;
-      d = 0;
-      w = Math.max(0, w - rem);
-    }
-
+    if (d >= amount) d -= amount; else { const rem = amount - d; d = 0; w = Math.max(0, w - rem); }
     const patchData = { depositBal: d, winningBal: w };
     if ("depositBalance" in u) patchData.depositBalance = d;
     if ("winningBalance" in u) patchData.winningBalance = w;
-
-    await fetch(`${FB_URL}/users/${mob}.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patchData)
-    });
+    await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patchData) });
     await syncUserWallet();
     return true;
   }
@@ -661,64 +545,29 @@
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
     if (st > userBal) return alert("Insufficient Balance!");
-
     const btn = document.querySelector("#betModal button:last-child");
-    btn.disabled = true;
-    btn.innerText = "⏳ Matching Bet (3s)...";
-
+    btn.disabled = true; btn.innerText = "⏳ Matching Bet (3s)...";
     await new Promise(r => setTimeout(r, 3000));
     await refreshActiveMatchDetail();
-
-    btn.disabled = false;
-    btn.innerText = "Confirm & Lock Bet";
-
-    if (Date.now() < ballChangeLockUntil) {
-      alert("⚠️ Ball Running! Abhi run/ball badla hai, naye rate par bet lagayein.");
-      document.getElementById("betModal").classList.remove("open");
-      return;
-    }
-
+    btn.disabled = false; btn.innerText = "Confirm & Lock Bet";
+    if (Date.now() < ballChangeLockUntil) { alert("⚠️ Ball Running! Naye rate par bet lagayein."); document.getElementById("betModal").classList.remove("open"); return; }
     const ov = overrides[activeMatch.id] || {};
     const limCheck = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
-    if (limCheck.blocked) {
-      alert("⚠️ Sorry! Is contest ki limit abhi poori ho gayi hai (" + limCheck.reason + ")");
-      openMatch(activeMatch, true);
-      return;
-    }
-
-    const deducted = await deductUserWallet(st);
-    if (!deducted) return alert("Insufficient Wallet Balance!");
-
+    if (limCheck.blocked) { alert("⚠️ Sorry! Is contest ki limit poori ho gayi hai (" + limCheck.reason + ")"); openMatch(activeMatch, true); return; }
+    if (!(await deductUserWallet(st))) return alert("Insufficient Wallet Balance!");
     const lockedReturn = Number((st * selBet.oddMult).toFixed(2));
     const betRecord = {
-      betId: "BET" + Date.now(),
-      matchId: String(activeMatch.id),
-      matchName: activeMatch.title,
-      mobile: String(mob),
-      userName: userNameStr,
-      market: selBet.marketName,
-      side: selBet.side,
-      lockedLine: selBet.lockedLine,
-      lockedOdd: selBet.oddMult,
-      stake: st,
-      lockedReturn: lockedReturn,
-      status: "OPEN",
-      time: new Date().toLocaleString("en-IN")
+      betId: "BET" + Date.now(), matchId: String(activeMatch.id), matchName: activeMatch.title, mobile: String(mob),
+      userName: userNameStr, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine,
+      lockedOdd: selBet.oddMult, stake: st, lockedReturn, status: "OPEN", time: new Date().toLocaleString("en-IN")
     };
-
     try {
-      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${betRecord.betId}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(betRecord)
-      });
+      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${betRecord.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(betRecord) });
       alert(`✅ Bet Matched & Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
       await fetchMatchBetLimits(activeMatch.id);
       await loadMyLockedBets(activeMatch.id);
-    } catch (e) {
-      alert("Network error! Bet save nahi ho payi.");
-    }
+    } catch (e) { alert("Network error! Bet save nahi ho payi."); }
   }
 
   async function loadMyLockedBets(matchId) {
@@ -726,34 +575,22 @@
       const r = await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`);
       const allMatchesBets = (await r.json()) || {};
       const myBets = [];
-
       Object.entries(allMatchesBets).forEach(([mKey, mObj]) => {
         if (!mObj || typeof mObj !== "object") return;
         Object.values(mObj).forEach(b => {
-          if (b && String(b.mobile || "").trim() === String(mob).trim()) {
-            myBets.push({ ...b, _mKey: mKey });
-          }
+          if (b && String(b.mobile || "").trim() === String(mob).trim()) myBets.push({ ...b, _mKey: mKey });
         });
       });
-
       myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
-
       const box = document.getElementById("myBetsList");
-      if (!myBets.length) {
-        box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`;
-        return;
-      }
+      if (!myBets.length) { box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`; return; }
       box.innerHTML = myBets.map(b => `
         <div class="bet-item-card">
           <div style="font-size:10px; color:#38bdf8; font-weight:700; margin-bottom:2px;">🏏 ${b.matchName || ("Match #" + b._mKey)}</div>
-          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;">
-            <span>${b.market} (${b.side})</span>
-            <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
-          </div>
+          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div>
           <div style="color:#ccc; margin-top:3px;">Locked Line: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> | Stake: ₹${b.stake}</div>
           <div style="font-size:10px; color:#888; margin-top:2px;">${b.time} • Status: ${b.status}</div>
-        </div>
-      `).join("");
+        </div>`).join("");
     } catch (e) {}
   }
 
