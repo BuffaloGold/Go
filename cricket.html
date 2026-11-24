@@ -145,7 +145,7 @@
     </div>
     <div id="digitBody" class="sec-digit"></div>
     <div class="market-card sec-mybets" style="display:none;">
-      <div class="market-head"><span>📋 My Placed Bets (Rate & Line Locked)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
+      <div class="market-head"><span>📋 My Placed Bets (Auto-Settling)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
       <div id="myBetsList"><div class="empty-msg">Abhi aapki koi bet nahi hai.</div></div>
     </div>
   </div>
@@ -244,8 +244,6 @@
 
   function parseCricbuzzListHtml(html) {
     const seen = new Set(), list = [];
-
-    // Cricbuzz JSON se har match ID ka exact start timestamp (IST time) nikaalna
     const startMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       const mId = tm[1];
@@ -781,27 +779,162 @@
     }
   }
 
+  let isSettlingBets = false;
+
+  async function creditUserWinning(targetMob, amount) {
+    if (!targetMob || amount <= 0) return;
+    const r = await fetch(`${FB_URL}/users/${targetMob}.json?t=${Date.now()}`);
+    const u = (await r.json()) || {};
+    const curWin = Number(u.winningBal ?? u.winningBalance ?? 0);
+    const nextWin = Number((curWin + amount).toFixed(2));
+    const patch = { winningBal: nextWin };
+    if ("winningBalance" in u) patch.winningBalance = nextWin;
+    await fetch(`${FB_URL}/users/${targetMob}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    });
+    if (String(targetMob) === String(mob)) await syncUserWallet();
+  }
+
+  function evaluateBetOutcome(b, matchObj, detailHtml) {
+    const clean = (detailHtml || "")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
+    const isDrawn = /\b(match drawn|drawn|abandoned|no result|match tied)\b/i.test(clean) || (matchObj && /drawn|abandoned|no result|tied/i.test(matchObj.status || ""));
+    const isEnded = Boolean(wonM || isDrawn || (matchObj && matchObj.type === "completed"));
+
+    const innList = [...clean.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)].map(x => ({
+      team: x[1].toUpperCase(),
+      runs: Number(x[2]),
+      wkts: Number(x[3]),
+      ovs: Number(x[4])
+    }));
+
+    const mkt = String(b.market || "");
+    const side = String(b.side || "").toUpperCase();
+    const line = String(b.lockedLine || "");
+
+    const sessM = mkt.match(/(\d+)\s*Over Run\s*\(([^)]+)\)/i);
+    if (sessM) {
+      const targetOv = Number(sessM[1]);
+      const teamCode = sessM[2].trim().toUpperCase();
+      const targetRunsM = line.match(/(\d+)/);
+      const reqRuns = targetRunsM ? Number(targetRunsM[1]) : 0;
+      const inn = innList.find(x => x.team === teamCode) || innList[0];
+
+      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded)) {
+        const actualAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
+        const isYesWin = actualAtOv >= reqRuns;
+        const won = (side === "YES" && isYesWin) || (side === "NO" && !isYesWin);
+        return { settled: true, status: won ? "WON" : "LOST", info: `Actual: ${actualAtOv} runs` };
+      }
+      return { settled: false };
+    }
+
+    if (/Last Digit/i.test(mkt)) {
+      const digOvM = mkt.match(/(\d+)\s*Over/i);
+      const targetOv = digOvM ? Number(digOvM[1]) : 20;
+      const is2nd = /2nd Inning/i.test(mkt);
+      const inn = is2nd ? innList[1] : innList[0];
+      const chosenDigM = line.match(/\[(\d)\]/);
+      const chosenDig = chosenDigM ? Number(chosenDigM[1]) : -1;
+
+      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded)) {
+        const runsAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
+        const actualDig = runsAtOv % 10;
+        const won = actualDig === chosenDig;
+        return { settled: true, status: won ? "WON" : "LOST", info: `Digit: ${actualDig}` };
+      }
+      return { settled: false };
+    }
+
+    if (/Match Odds|Bookmaker/i.test(mkt)) {
+      const teamPick = mkt.split("(")[0].trim().toUpperCase();
+      if (isDrawn) {
+        if (/Bookmaker/i.test(mkt)) return { settled: true, status: "VOID", info: "Match Drawn/Tied (Refunded)" };
+        return { settled: true, status: "LOST", info: "Match Drawn" };
+      }
+      if (wonM) {
+        const winnerText = wonM[1].trim().toUpperCase();
+        const didTeamWin = winnerText.includes(teamPick) || teamPick.includes(winnerText);
+        const won = (side === "BACK" && didTeamWin) || (side === "LAY" && !didTeamWin);
+        return { settled: true, status: won ? "WON" : "LOST", info: `${wonM[1].trim()} Won` };
+      }
+    }
+
+    return { settled: false };
+  }
+
   async function loadMyLockedBets(matchId) {
     try {
       const r = await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`);
       const allMatchesBets = (await r.json()) || {};
       const myBets = [];
+      const openMatchIds = new Set();
+
       Object.entries(allMatchesBets).forEach(([mKey, mObj]) => {
         if (!mObj || typeof mObj !== "object") return;
         Object.values(mObj).forEach(b => {
-          if (b && String(b.mobile || "").trim() === String(mob).trim()) myBets.push({ ...b, _mKey: mKey });
+          if (!b) return;
+          if (String(b.status || "OPEN").toUpperCase() === "OPEN") openMatchIds.add(String(mKey));
+          if (String(b.mobile || "").trim() === String(mob).trim()) myBets.push({ ...b, _mKey: mKey });
         });
       });
+
+      if (!isSettlingBets && openMatchIds.size > 0) {
+        isSettlingBets = true;
+        (async () => {
+          let anyUpdated = false;
+          try {
+            for (const mId of openMatchIds) {
+              const mObj = allMatchesBets[mId] || {};
+              const openBets = Object.values(mObj).filter(b => b && String(b.status || "OPEN").toUpperCase() === "OPEN");
+              if (!openBets.length) continue;
+
+              const matchInfo = matches.find(x => String(x.id) === String(mId));
+              const resH = await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`);
+              const detailHtml = await resH.text();
+
+              for (const b of openBets) {
+                const outcome = evaluateBetOutcome(b, matchInfo, detailHtml);
+                if (outcome.settled) {
+                  await fetch(`${FB_URL}/cricketBets/${mId}/${b.betId}.json`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: outcome.status, resultInfo: outcome.info, settledAt: new Date().toLocaleString("en-IN") })
+                  });
+                  if (outcome.status === "WON") await creditUserWinning(b.mobile, Number(b.lockedReturn || 0));
+                  else if (outcome.status === "VOID") await creditUserWinning(b.mobile, Number(b.stake || 0));
+                  anyUpdated = true;
+                }
+              }
+            }
+          } catch (e) {} finally {
+            isSettlingBets = false;
+            if (anyUpdated && activeMatch) loadMyLockedBets(activeMatch.id);
+          }
+        })();
+      }
+
       myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
       const box = document.getElementById("myBetsList");
       if (!myBets.length) { box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`; return; }
-      box.innerHTML = myBets.map(b => `
-        <div class="bet-item-card">
+      box.innerHTML = myBets.map(b => {
+        const st = String(b.status || "OPEN").toUpperCase();
+        const stColor = st === "WON" ? "#28e04d" : st === "LOST" ? "#ef4444" : st === "VOID" ? "#38bdf8" : "#ffd700";
+        return `<div class="bet-item-card">
           <div style="font-size:10px; color:#38bdf8; font-weight:700; margin-bottom:2px;">🏏 ${b.matchName || ("Match #" + b._mKey)}</div>
           <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div>
           <div style="color:#ccc; margin-top:3px;">Locked Line: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> | Stake: ₹${b.stake}</div>
-          <div style="font-size:10px; color:#888; margin-top:2px;">${b.time} • Status: ${b.status}</div>
-        </div>`).join("");
+          <div style="font-size:10px; color:#aaa; margin-top:2px;">${b.time} • Status: <b style="color:${stColor};">${st}</b> ${b.resultInfo ? `(${b.resultInfo})` : ""}</div>
+        </div>`;
+      }).join("");
     } catch (e) {}
   }
 
