@@ -72,10 +72,12 @@
     .pill-lost { background: #ef4444; color: #fff; }
     .pill-void { background: #38bdf8; color: #000; }
     .pill-open { background: #4b5563; color: #ffd700; }
+    .wallet-toast { display: none; position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; background: linear-gradient(90deg, #16a34a, #15803d); border: 2px solid #ffd700; color: #fff; padding: 11px 14px; border-radius: 14px; z-index: 3000; font-size: 12px; font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.75); text-align: center; }
+    .wallet-toast.show { display: block; animation: popScale 0.25s ease; }
     .win-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 16px; }
     .win-popup-backdrop.show { display: flex; }
     .win-popup-card { width: 100%; max-width: 370px; background: linear-gradient(160deg, #3b0954 0%, #170224 100%); border: 2.5px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; box-shadow: 0 0 35px rgba(255, 215, 0, 0.45); animation: popScale 0.3s ease; }
-    @keyframes popScale { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes popScale { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.85); }
     .bet-modal.open { display: block; }
     .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
@@ -87,6 +89,7 @@
   </style>
 </head>
 <body>
+<div class="wallet-toast" id="walletToast">💰 Balance Credited!</div>
 <div class="container">
   <div class="top-bar">
     <div class="user-info">
@@ -205,9 +208,29 @@
   const mob = String(localStorage.getItem("activeUser") || "").trim();
   if (!mob) window.location.replace("index.html");
 
+  // Request Background Notification Permission on first user tap
+  document.addEventListener("click", () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, { once: true });
+
+  function notifyWalletCredit(title, bodyText) {
+    const toast = document.getElementById("walletToast");
+    toast.innerText = `${title} • ${bodyText}`;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 5500);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification(title, { body: bodyText, tag: "bg_wallet_" + Date.now() });
+      } catch (e) {}
+    }
+  }
+
   let userObj = {}, userBal = 0, userNameStr = "Player";
 
-  function renderUserBox(u) {
+  function renderUserBox(u, checkCredit) {
     if (!u) return;
     userObj = u;
     userNameStr = u.name || "Player";
@@ -218,9 +241,27 @@
     userBal = d + w;
     document.getElementById("topDep").innerText = "₹" + d;
     document.getElementById("topWin").innerText = "₹" + w;
+
+    if (checkCredit) {
+      const kDep = "bg_last_dep_" + mob;
+      const kWin = "bg_last_win_" + mob;
+      const prevDep = localStorage.getItem(kDep);
+      const prevWin = localStorage.getItem(kWin);
+
+      if (prevDep !== null && d > Number(prevDep)) {
+        const diff = (d - Number(prevDep)).toFixed(2).replace(/\.00$/, "");
+        notifyWalletCredit("💰 Deposit Credited!", `₹${diff} aapke Deposit Wallet mein add ho gaye hain!`);
+      }
+      if (prevWin !== null && w > Number(prevWin)) {
+        const diff = (w - Number(prevWin)).toFixed(2).replace(/\.00$/, "");
+        notifyWalletCredit("🏆 Winning Credited!", `₹${diff} aapke Winning Wallet mein add ho gaye hain!`);
+      }
+      localStorage.setItem(kDep, String(d));
+      localStorage.setItem(kWin, String(w));
+    }
   }
 
-  try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}")); } catch (e) {}
+  try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}"), false); } catch (e) {}
 
   async function syncUserWallet() {
     if (!mob) return;
@@ -229,7 +270,7 @@
       const u = await r.json();
       if (u) {
         localStorage.setItem("cachedUser", JSON.stringify(u));
-        renderUserBox(u);
+        renderUserBox(u, true);
       }
     } catch (e) {}
   }
@@ -248,31 +289,56 @@
     return parts.length >= 2 ? [parts[0].trim().toUpperCase(), parts[1].trim().toUpperCase()] : ["Team A", "Team B"];
   }
 
+  function toTotalBalls(ovStr) {
+    const parts = String(ovStr || "0").split(".");
+    const fullOv = parseInt(parts[0], 10) || 0;
+    const remBalls = parseInt(parts[1], 10) || 0;
+    return (fullOv * 6) + Math.min(5, remBalls);
+  }
+
   function getSavedBalls(matchId) {
     try {
       const arr = JSON.parse(localStorage.getItem("cbz_balls_" + matchId) || "[]");
-      return Array.isArray(arr) ? arr.slice(-6) : [];
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(b => /^(?:[0-6]|W(?:\+[1-4])?)$/i.test(String(b))).slice(-6);
     } catch (e) { return []; }
   }
 
-  function recordBallEvent(matchId, runs, wkts, ovStr) {
+  // Strict Forward-Only Ball Recorder (Purane cache se kabhi pichhe ya gayab nahi hoga)
+  function recordBallEvent(matchId, batTeam, runs, wkts, ovStr) {
     if (!matchId || !ovStr) return getSavedBalls(matchId);
     const key = "cbz_state_" + matchId;
     const prev = JSON.parse(localStorage.getItem(key) || "null");
     let balls = getSavedBalls(matchId);
-    if (prev && prev.ov !== ovStr) {
-      const ovJump = Math.abs(Number(ovStr) - Number(prev.ov));
-      // Sirf ek hi ball (0.1 ya 0.5 over change) par ball label record karein, poora score jump nahi
-      if (ovJump > 0 && ovJump <= 0.6 && runs >= prev.runs) {
-        const wDiff = Math.max(0, wkts - prev.wkts);
-        const rDiff = Math.min(7, Math.max(0, runs - prev.runs));
-        const label = wDiff > 0 ? (rDiff > 0 ? `W+${rDiff}` : "W") : String(rDiff);
-        balls.push(label);
-        balls = balls.slice(-6);
-        localStorage.setItem("cbz_balls_" + matchId, JSON.stringify(balls));
+    const curBalls = toTotalBalls(ovStr);
+
+    if (prev) {
+      // Agar nayi inning / doosri team batting par aayi hai toh fresh start
+      if (prev.team && batTeam && prev.team !== batTeam) {
+        balls = [];
+        localStorage.setItem("cbz_balls_" + matchId, "[]");
+        localStorage.setItem(key, JSON.stringify({ team: batTeam, ov: ovStr, totalBalls: curBalls, runs, wkts }));
+        return balls;
       }
+      // Purana/stale response (ball pichhe ja rahi ho) toh bilkul ignore karein
+      if (curBalls < (prev.totalBalls || 0)) {
+        return balls;
+      }
+      if (curBalls > (prev.totalBalls || 0)) {
+        const ballGap = curBalls - (prev.totalBalls || 0);
+        if (ballGap === 1 && runs >= prev.runs) {
+          const wDiff = Math.max(0, wkts - prev.wkts);
+          const rDiff = Math.min(6, Math.max(0, runs - prev.runs));
+          const label = wDiff > 0 ? (rDiff > 0 ? `W+${rDiff}` : "W") : String(rDiff);
+          balls.push(label);
+          balls = balls.slice(-6);
+          localStorage.setItem("cbz_balls_" + matchId, JSON.stringify(balls));
+        }
+        localStorage.setItem(key, JSON.stringify({ team: batTeam, ov: ovStr, totalBalls: curBalls, runs, wkts }));
+      }
+    } else {
+      localStorage.setItem(key, JSON.stringify({ team: batTeam, ov: ovStr, totalBalls: curBalls, runs, wkts }));
     }
-    localStorage.setItem(key, JSON.stringify({ ov: ovStr, runs, wkts }));
     return balls;
   }
 
@@ -306,9 +372,9 @@
       const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       const scores = sub.match(/[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\)/g) || [];
 
-      const isDone = /\b(match drawn|drawn|won by|complete|abandoned|tied|no result|stumps)\b/i.test(sub);
-      const hasLiveAction = scores.length > 0 || /\b(trail by|lead by|need \d+ runs|Day \d+|Session|Innings Break|Lunch|Tea|opt to|elected to|batting)\b/i.test(sub);
-      const type = isDone ? "completed" : hasLiveAction ? "live" : "upcoming";
+      const isDone = /\b(match drawn|drawn|won by|complete|abandoned|tied|no result)\b/i.test(sub);
+      const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
+      const type = isDone ? "completed" : isExplicitUp ? "upcoming" : "live";
 
       const stM = sub.match(/(Match drawn|[A-Za-z0-9\s]+won by[^<]+|need \d+ runs[^<]+|trail by \d+ runs[^<]+|lead by \d+ runs[^<]+|Day \d+[^<]+|Innings Break|Stumps|Lunch|Tea)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
@@ -347,9 +413,6 @@
     if (/\b(match drawn|won by|abandoned|no result|match tied)\b/i.test(cleanTxt)) {
       out.isDrawnOrDone = true;
     }
-    if (/\b(innings break)\b/i.test(cleanTxt)) {
-      out.isInningsBreak = true;
-    }
 
     const scAll = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
     if (scAll.length) {
@@ -365,12 +428,13 @@
       const last = uniqueInns[uniqueInns.length - 1];
       out.firstInnRuns = first.runs;
 
-      // Detect if 2nd inning has started or is at Innings Break
       const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team;
-      const isFirstInnCompleted = !isSecondInnStarted && (out.isInningsBreak || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
+      const hasBreakText = /\b(innings break)\b/i.test(cleanTxt);
+      const isFirstInnCompleted = !isSecondInnStarted && (hasBreakText || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
 
       if (isSecondInnStarted) {
         out.inningNo = 2;
+        out.isInningsBreak = false;
         if (!isTest) out.targetRuns = first.runs + 1;
       } else if (isFirstInnCompleted) {
         out.inningNo = 2;
@@ -378,6 +442,7 @@
         if (!isTest) out.targetRuns = first.runs + 1;
       } else {
         out.inningNo = 1;
+        out.isInningsBreak = false;
       }
 
       out.batTeam = last.team;
@@ -387,7 +452,7 @@
       out.ovNum = last.ov;
       const crrM = cleanTxt.match(/CRR[:\s]+([0-9.]+)/i);
       out.overs = `(${last.ovStr} Ov${crrM ? " • CRR " + crrM[1] : ""})`;
-      const liveTracked = recordBallEvent(matchId, last.runs, last.wkts, last.ovStr);
+      const liveTracked = recordBallEvent(matchId, last.team, last.runs, last.wkts, last.ovStr);
       if (liveTracked.length) out.balls = liveTracked;
     }
 
@@ -416,7 +481,7 @@
 
       if (bw) out.bowler = `⚾ <b>${bw[1]}</b> ${bw[4]}/${bw[3]} (${bw[2]})` + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
       if (recM && !out.balls.length) {
-        const parsedBalls = recM[1].replace(/\|/g, " ").trim().split(/\s+/).filter(Boolean).slice(-6);
+        const parsedBalls = recM[1].replace(/\|/g, " ").trim().split(/\s+/).filter(b => /^(?:[0-6]|W(?:\+[1-4])?)$/i.test(b)).slice(-6);
         if (parsedBalls.length) {
           out.balls = parsedBalls;
           localStorage.setItem("cbz_balls_" + matchId, JSON.stringify(parsedBalls));
@@ -440,7 +505,6 @@
     return out;
   }
 
-  // Intelligent Odds Engine (Innings Break, Target RRR, CRR & Wickets ke hisaab se)
   function computeDynamicMatchOdds(tA, tB, sd, winRate) {
     let probA = 0.50;
     const runs = sd.runsNum || 0;
@@ -450,7 +514,6 @@
     const isTeamABatting = !sd.batTeam || sd.batTeam === tA;
 
     if (sd.isInningsBreak && sd.firstInnRuns > 0 && maxOv <= 50) {
-      // 1st inning khatam: par score (T20: 162, ODI: 265) se compare karein
       const parScore = maxOv === 20 ? 162 : 265;
       const diff = sd.firstInnRuns - parScore;
       const firstTeamProb = Math.min(0.86, Math.max(0.18, 0.50 + (diff * 0.008)));
@@ -522,6 +585,10 @@
       const r = await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`);
       const h = await r.text();
       const parsed = parseCricbuzzMatchHtml(h, activeMatch.id, activeMatch.title);
+      // Purane cached over ko screen par wapas mat dikhao
+      if (liveScoreData.batTeam && parsed.batTeam === liveScoreData.batTeam && toTotalBalls(parsed.ovNum) < toTotalBalls(liveScoreData.ovNum)) {
+        return;
+      }
       if (!parsed.status && activeMatch.status) parsed.status = activeMatch.status;
       liveScoreData = parsed;
       activeMatch._runsNum = parsed.runsNum;
@@ -537,7 +604,7 @@
   }
 
   async function fastLivePulse() {
-    await loadMatches();
+    await Promise.all([syncUserWallet(), loadMatches()]);
     if (activeMatch) {
       const fresh = matches.find(x => String(x.id) === String(activeMatch.id));
       if (fresh) {
@@ -618,12 +685,9 @@
     return { blocked: false, reason: "" };
   }
 
-  // Intelligent Session Line Calculator (Remaining overs & realistic run rate ke hisaab se)
   function calcIntelligentSessionLine(targetOv, curOv, curRuns, maxOv, isBreak) {
     const baseRr = maxOv === 20 ? 8.4 : maxOv === 50 ? 5.5 : 3.5;
-    if (isBreak || curOv === 0) {
-      return Math.round(targetOv * baseRr);
-    }
+    if (isBreak || curOv === 0) return Math.round(targetOv * baseRr);
     const remOv = Math.max(0, targetOv - curOv);
     const curRr = curRuns / Math.max(0.5, curOv);
     const blendedRr = (curRr * 0.55) + (baseRr * 0.45);
@@ -645,7 +709,6 @@
     const activeInn = liveScoreData.inningNo || 1;
     const maxOv = liveScoreData.maxOvers || 20;
 
-    // Active Batting Team for Fancy Sessions (1st Inn khatam hote hi 2nd Team par shift!)
     const activeFancyTeam = (activeInn === 2)
       ? (liveScoreData.batTeam && !isBreak ? liveScoreData.batTeam : (liveScoreData.batTeam === tA ? tB : tA))
       : (liveScoreData.batTeam || tA);
@@ -720,7 +783,6 @@
         ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
       </div></div>`;
 
-    // Intelligent Session Lines for Active Batting Inning (6, 10, 15, 20 Overs)
     document.getElementById("fancyHeaderTitle").innerText = `Fancy Markets (${activeFancyTeam} • ${activeInn === 2 ? "2nd" : "1st"} Inn)`;
     const s6No = ov.sess6No || calcIntelligentSessionLine(6, effOvers, effRuns, maxOv, isBreak);
     const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
@@ -743,7 +805,6 @@
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
       const noMult = (1 + (f.noRate / 100)).toFixed(2), yesMult = (1 + (f.yesRate / 100)).toFixed(2);
       const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
-      // Agar over poora ho chuka hai (e.g. 6 over ho gaye) toh us session ko LOCK karein!
       const isOverPassed = f.targetOv > 0 && !isBreak && effOvers >= f.targetOv;
       const isRowLocked = globalLocked || lim.blocked || isOverPassed;
       const lockText = isOverPassed ? `${f.targetOv} Ov Over` : lim.blocked ? lim.reason : lockBannerText;
@@ -758,7 +819,6 @@
       </div>`;
     }).join("");
 
-    // Intelligent Last Digit Blocks (Completed Inning / Overs automatically locked)
     const dRate = ov.digitPayout || autoDigit;
     const digitBlocks = [
       { title: "1st Inning 10 Over Last Digit", inn: 1, targetOv: 10 },
@@ -773,7 +833,7 @@
         const reason = isInnPassed ? "Inning / Over Done" : lim.blocked ? lim.reason : lockBannerText;
         return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${reason}</span></div></div>`;
       }
-      let grid = "";
+    let grid = "";
       for (let d = 0; d <= 9; d++) grid += `<div class="digit-box" onclick="openBet('${db.title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
       return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${grid}</div></div>`;
     }).join("");
@@ -819,6 +879,8 @@
     if ("depositBalance" in u) patchData.depositBalance = d;
     if ("winningBalance" in u) patchData.winningBalance = w;
     await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patchData) });
+    localStorage.setItem("bg_last_dep_" + mob, String(d));
+    localStorage.setItem("bg_last_win_" + mob, String(w));
     await syncUserWallet();
     return true;
   }
@@ -1082,3 +1144,4 @@
 </script>
 </body>
 </html>
+  
