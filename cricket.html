@@ -3,67 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cricket Exchange & Contests - Buffalo Gold</title>
+  <title>Cricket VIP Exchange - Buffalo Gold</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-    body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
-    .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 10px; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #260636; padding: 10px 12px; border-radius: 12px; border: 1px solid #75229e; }
-    .user-info h3 { font-size: 14px; color: #ffd700; }
-    .user-info span { font-size: 11px; color: #aaa; }
-    .mini-wallet { text-align: right; cursor: pointer; }
-    .mini-wallet div { font-size: 11px; color: #ccc; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: radial-gradient(circle at top, #230436 0%, #0d0114 100%); color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
+    .container { width: 100%; max-width: 430px; background: rgba(24, 3, 36, 0.94); min-height: 100vh; padding: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.9); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: linear-gradient(135deg, #2d0742, #1a0326); padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.35); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+    .user-info h3 { font-size: 14px; color: #ffd700; letter-spacing: 0.3px; }
+    .user-info span { font-size: 11px; color: #bbb; }
+    .mini-wallet { text-align: right; cursor: pointer; background: rgba(0,0,0,0.35); padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(40, 224, 77, 0.3); }
+    .mini-wallet div { font-size: 10px; color: #ccc; }
     .mini-wallet strong { font-size: 13px; color: #28e04d; }
-    .hero-box { background: linear-gradient(135deg, #4a0d66, #260636); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 2px; }
-    .hero-box p { font-size: 11px; color: #ddd; }
-    .refresh-btn { background: #ffd700; color: #000; border: none; padding: 7px 11px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer; }
+    .hero-box { background: linear-gradient(135deg, #560e78 0%, #2a063b 60%, #190224 100%); border: 1.5px solid #ffd700; border-radius: 16px; padding: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 20px rgba(255, 215, 0, 0.12); }
+    .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 3px; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+    .hero-box p { font-size: 11px; color: #e2e8f0; }
+    .refresh-btn { background: linear-gradient(180deg, #ffe44d, #e6b800); color: #000; border: none; padding: 8px 12px; border-radius: 10px; font-weight: 900; font-size: 11px; cursor: pointer; box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3); }
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-    .f-tab { flex: 1; padding: 8px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 11px; font-weight: 700; cursor: pointer; }
-    .f-tab.active { background: #ffd700; color: #000; border-color: #ffd700; }
-    .list-header { background: #260636; padding: 8px 12px; border-radius: 10px 10px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 700; color: #ffd700; display: flex; justify-content: space-between; }
-    .match-list-box { background: #220530; border: 1px solid #6b1d91; border-radius: 0 0 12px 12px; overflow: hidden; }
-    .match-item { padding: 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .f-tab { flex: 1; padding: 9px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 12px; color: #ccc; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+    .f-tab.active { background: linear-gradient(180deg, #ffd700, #eab308); color: #000; border-color: #ffd700; box-shadow: 0 3px 12px rgba(255, 215, 0, 0.25); }
+    .list-header { background: linear-gradient(90deg, #33094a, #220530); padding: 9px 12px; border-radius: 12px 12px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; }
+    .match-list-box { background: #1f042d; border: 1px solid #6b1d91; border-radius: 0 0 14px 14px; overflow: hidden; }
+    .match-item { padding: 13px 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; }
+    .match-item:active { background: #2e0842; }
     .m-left { flex: 1; padding-right: 10px; }
-    .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
-    .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
-    .b-done { background: #6b7280; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
-    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 4px 0; }
-    .m-score { font-size: 11px; color: #28e04d; font-weight: 600; }
-    .open-pill { background: #ffd700; color: #000; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px; }
-    .empty-msg { padding: 25px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
+    .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; }
+    .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; }
+    .b-done { background: #4b5563; color: #ffd700; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(255,215,0,0.3); }
+    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 5px 0 3px; }
+    .m-score { font-size: 11px; color: #28e04d; font-weight: 700; }
+    .open-pill { background: linear-gradient(180deg, #ffd700, #d97706); color: #000; font-size: 11px; font-weight: 900; padding: 7px 11px; border-radius: 9px; }
+    .empty-msg { padding: 28px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
     #contestScreen { display: none; }
-    .back-bar { display: flex; justify-content: space-between; align-items: center; background: #2b073d; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
-    .score-banner { background: linear-gradient(145deg, #2d0740, #14021f); border: 2px solid #ffd700; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
-    .big-runs { font-size: 19px; font-weight: 900; color: #ffd700; }
-    .ball-strip { background: #12021a; border: 1px solid #59167a; border-radius: 8px; padding: 7px 10px; margin-top: 7px; font-size: 11px; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .back-bar { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, #2f0842, #1d0329); border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
+    .score-banner { background: linear-gradient(145deg, #320847, #13021c); border: 2px solid #ffd700; border-radius: 16px; padding: 12px; margin-bottom: 10px; box-shadow: 0 6px 22px rgba(0,0,0,0.6); }
+    .big-runs { font-size: 20px; font-weight: 900; color: #ffd700; text-shadow: 0 2px 8px rgba(255,215,0,0.25); }
+    .ball-strip { background: #100217; border: 1px solid #59167a; border-radius: 8px; padding: 7px 10px; margin-top: 7px; font-size: 11px; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
     .market-pills::-webkit-scrollbar { display: none; }
-    .pill-btn { white-space: nowrap; padding: 7px 12px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 700; cursor: pointer; }
-    .pill-btn.active { background: #28e04d; color: #000; border-color: #28e04d; }
-    .market-card { background: #220530; border: 1px solid #6b1d91; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
-    .market-head { background: #2d0840; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
+    .pill-btn { white-space: nowrap; padding: 7px 13px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .pill-btn.active { background: linear-gradient(180deg, #28e04d, #16a34a); color: #000; border-color: #28e04d; }
+    .market-card { background: #20042e; border: 1px solid #6b1d91; border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+    .market-head { background: linear-gradient(90deg, #33094a, #240533); padding: 9px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
     .cashout-tag { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
-    .col-headers { display: flex; justify-content: flex-end; background: #1a0326; padding: 4px 10px; font-size: 10px; font-weight: 700; color: #bbb; gap: 6px; }
-    .col-headers span { width: 60px; text-align: center; }
+    .col-headers { display: flex; justify-content: flex-end; background: #170221; padding: 4px 10px; font-size: 10px; font-weight: 800; color: #bbb; gap: 6px; }
+    .col-headers span { width: 62px; text-align: center; }
     .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; position: relative; }
     .contest-row:last-child { border-bottom: none; }
     .runner-name { font-size: 12px; font-weight: 700; color: #fff; flex: 1; padding-right: 6px; }
     .runner-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
     .rate-boxes { display: flex; gap: 6px; position: relative; }
-    .rate-btn { width: 60px; height: 40px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; transition: transform 0.12s; }
-    .rate-back { background: #72bbef; }
-    .rate-lay { background: #faa9ba; }
+    .rate-btn { width: 62px; height: 42px; border-radius: 7px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+    .rate-back { background: linear-gradient(180deg, #8ecbf5, #5aaee8); }
+    .rate-lay { background: linear-gradient(180deg, #fcb9c8, #f58fa6); }
     .rate-main { font-size: 13px; font-weight: 900; line-height: 1.1; }
     .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
-    .suspended-overlay { position: absolute; inset: 0; background: rgba(20, 10, 28, 0.86); border: 1px solid #ef4444; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
-    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; background: #1b0429; }
-    .digit-box { background: #72bbef; color: #000; border-radius: 6px; padding: 7px 4px; text-align: center; cursor: pointer; }
+    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.88); border: 1px solid #ef4444; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
+    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; background: #190324; }
+    .digit-box { background: linear-gradient(180deg, #8ecbf5, #5aaee8); color: #000; border-radius: 7px; padding: 7px 4px; text-align: center; cursor: pointer; }
     .digit-box:active { transform: scale(0.95); background: #ffd700; }
     .digit-num { font-size: 14px; font-weight: 900; display: block; }
     .digit-odd { font-size: 10px; font-weight: 700; opacity: 0.85; }
-    .bet-item-card { padding: 10px; border-bottom: 1px solid #3c0c54; font-size: 12px; }
-    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.8); }
+
+    /* Premium Bet Result Cards */
+    .bet-item-card { margin: 8px; padding: 11px; border-radius: 10px; background: #180324; border: 1px solid #4c1169; font-size: 12px; }
+    .bet-item-card.bet-won { background: linear-gradient(135deg, rgba(255, 215, 0, 0.14), rgba(22, 163, 74, 0.18)); border: 1.5px solid #ffd700; box-shadow: 0 0 14px rgba(255, 215, 0, 0.18); }
+    .bet-item-card.bet-lost { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.45); }
+    .bet-item-card.bet-void { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.45); }
+    .status-pill { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.4px; }
+    .pill-won { background: linear-gradient(90deg, #ffd700, #28e04d); color: #000; }
+    .pill-lost { background: #ef4444; color: #fff; }
+    .pill-void { background: #38bdf8; color: #000; }
+    .pill-open { background: #4b5563; color: #ffd700; }
+
+    /* VIP Winner Celebration Popup */
+    .win-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 16px; }
+    .win-popup-backdrop.show { display: flex; }
+    .win-popup-card { width: 100%; max-width: 370px; background: linear-gradient(160deg, #3b0954 0%, #170224 100%); border: 2.5px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; box-shadow: 0 0 35px rgba(255, 215, 0, 0.45); animation: popScale 0.3s ease; }
+    @keyframes popScale { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.85); }
     .bet-modal.open { display: block; }
     .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
     .quick-stakes { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -87,7 +105,7 @@
   </div>
   <div id="matchListScreen">
     <div class="hero-box">
-      <div><h2>🏏 Cricket Exchange</h2><p>Live Ball-by-Ball & Contests</p></div>
+      <div><h2>👑 Cricket VIP Exchange</h2><p>Live Ball-by-Ball & Instant Payout</p></div>
       <button class="refresh-btn" onclick="loadMatches()">🔄 Refresh</button>
     </div>
     <div class="filter-tabs">
@@ -126,7 +144,7 @@
       <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
       <button class="pill-btn" onclick="filterMarket('fancy', this)">Fancy Markets</button>
       <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
-      <button class="pill-btn" onclick="filterMarket('mybets', this)">📋 My Bets</button>
+      <button class="pill-btn" onclick="filterMarket('mybets', this)">🏆 My Bets</button>
     </div>
     <div class="market-card sec-odds">
       <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
@@ -145,11 +163,25 @@
     </div>
     <div id="digitBody" class="sec-digit"></div>
     <div class="market-card sec-mybets" style="display:none;">
-      <div class="market-head"><span>📋 My Placed Bets (Auto-Settling)</span><span style="font-size:10px; color:#28e04d;">PROTECTED</span></div>
+      <div class="market-head"><span>🏆 My Placed Bets & Results</span><span style="font-size:10px; color:#28e04d;">AUTO-SETTLED</span></div>
       <div id="myBetsList"><div class="empty-msg">Abhi aapki koi bet nahi hai.</div></div>
     </div>
   </div>
 </div>
+
+<!-- VIP Winner Celebration Modal -->
+<div class="win-popup-backdrop" id="winPopupModal">
+  <div class="win-popup-card">
+    <div style="font-size:52px; margin-bottom:6px;">🏆</div>
+    <div style="font-size:12px; color:#28e04d; font-weight:900; letter-spacing:1.5px;">CONGRATULATIONS! YOU WON</div>
+    <h2 id="winPopupAmount" style="font-size:32px; color:#ffd700; margin:8px 0; text-shadow:0 2px 12px rgba(255,215,0,0.4);">+₹0</h2>
+    <div id="winPopupMatch" style="font-size:13px; font-weight:800; color:#fff; margin-bottom:4px;">Match Name</div>
+    <div id="winPopupMarket" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:6px;">Market & Selection</div>
+    <div id="winPopupResult" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,215,0,0.35); border-radius:10px; padding:8px; font-size:11px; color:#e2e8f0; margin-bottom:14px;">Result Details</div>
+    <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
+  </div>
+</div>
+
 <div class="bet-modal" id="betModal">
   <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
   <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
@@ -335,9 +367,7 @@
     }
 
     const needM = cleanTxt.match(/need\s*(\d+)\s*runs/i);
-    if (needM && out.runsNum >= 0) {
-      out.targetRuns = out.runsNum + Number(needM[1]);
-    }
+    if (needM && out.runsNum >= 0) out.targetRuns = out.runsNum + Number(needM[1]);
 
     const stM = cleanTxt.match(/(Match drawn|[A-Za-z\s]+won by\s*[^.]+|Day\s*\d+:\s*[^.]+?runs|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|[A-Za-z\s]+(?:trail by|lead by|need)\s*\d+\s*runs|Innings Break|Stumps)/i);
     if (stM) out.status = stM[1].trim().slice(0, 75);
@@ -781,6 +811,14 @@
 
   let isSettlingBets = false;
 
+  function showWinnerPopup(b, infoText) {
+    document.getElementById("winPopupAmount").innerText = `+₹${b.lockedReturn}`;
+    document.getElementById("winPopupMatch").innerText = `🏏 ${b.matchName || "Cricket Match"}`;
+    document.getElementById("winPopupMarket").innerText = `${b.market} (${b.lockedLine})`;
+    document.getElementById("winPopupResult").innerText = `🎉 Winner Result: ${infoText}`;
+    document.getElementById("winPopupModal").classList.add("show");
+  }
+
   async function creditUserWinning(targetMob, amount) {
     if (!targetMob || amount <= 0) return;
     const r = await fetch(`${FB_URL}/users/${targetMob}.json?t=${Date.now()}`);
@@ -805,7 +843,7 @@
       .replace(/\s+/g, " ")
       .trim();
 
-    const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
+  const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
     const isDrawn = /\b(match drawn|drawn|abandoned|no result|match tied)\b/i.test(clean) || (matchObj && /drawn|abandoned|no result|tied/i.test(matchObj.status || ""));
     const isEnded = Boolean(wonM || isDrawn || (matchObj && matchObj.type === "completed"));
 
@@ -832,7 +870,7 @@
         const actualAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
         const isYesWin = actualAtOv >= reqRuns;
         const won = (side === "YES" && isYesWin) || (side === "NO" && !isYesWin);
-        return { settled: true, status: won ? "WON" : "LOST", info: `Actual: ${actualAtOv} runs` };
+        return { settled: true, status: won ? "WON" : "LOST", info: `${teamCode} ${targetOv} Ov Score: ${actualAtOv} runs` };
       }
       return { settled: false };
     }
@@ -849,7 +887,7 @@
         const runsAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
         const actualDig = runsAtOv % 10;
         const won = actualDig === chosenDig;
-        return { settled: true, status: won ? "WON" : "LOST", info: `Digit: ${actualDig}` };
+        return { settled: true, status: won ? "WON" : "LOST", info: `Score: ${runsAtOv} (Last Digit: ${actualDig})` };
       }
       return { settled: false };
     }
@@ -857,14 +895,14 @@
     if (/Match Odds|Bookmaker/i.test(mkt)) {
       const teamPick = mkt.split("(")[0].trim().toUpperCase();
       if (isDrawn) {
-        if (/Bookmaker/i.test(mkt)) return { settled: true, status: "VOID", info: "Match Drawn/Tied (Refunded)" };
+        if (/Bookmaker/i.test(mkt)) return { settled: true, status: "VOID", info: "Match Drawn/Tied (Stake Refunded)" };
         return { settled: true, status: "LOST", info: "Match Drawn" };
       }
       if (wonM) {
         const winnerText = wonM[1].trim().toUpperCase();
         const didTeamWin = winnerText.includes(teamPick) || teamPick.includes(winnerText);
         const won = (side === "BACK" && didTeamWin) || (side === "LAY" && !didTeamWin);
-        return { settled: true, status: won ? "WON" : "LOST", info: `${wonM[1].trim()} Won` };
+        return { settled: true, status: won ? "WON" : "LOST", info: `🏆 ${wonM[1].trim()} Won the Match` };
       }
     }
 
@@ -909,8 +947,12 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ status: outcome.status, resultInfo: outcome.info, settledAt: new Date().toLocaleString("en-IN") })
                   });
-                  if (outcome.status === "WON") await creditUserWinning(b.mobile, Number(b.lockedReturn || 0));
-                  else if (outcome.status === "VOID") await creditUserWinning(b.mobile, Number(b.stake || 0));
+                  if (outcome.status === "WON") {
+                    await creditUserWinning(b.mobile, Number(b.lockedReturn || 0));
+                    if (String(b.mobile).trim() === String(mob).trim()) showWinnerPopup(b, outcome.info);
+                  } else if (outcome.status === "VOID") {
+                    await creditUserWinning(b.mobile, Number(b.stake || 0));
+                  }
                   anyUpdated = true;
                 }
               }
@@ -927,12 +969,21 @@
       if (!myBets.length) { box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`; return; }
       box.innerHTML = myBets.map(b => {
         const st = String(b.status || "OPEN").toUpperCase();
-        const stColor = st === "WON" ? "#28e04d" : st === "LOST" ? "#ef4444" : st === "VOID" ? "#38bdf8" : "#ffd700";
-        return `<div class="bet-item-card">
-          <div style="font-size:10px; color:#38bdf8; font-weight:700; margin-bottom:2px;">🏏 ${b.matchName || ("Match #" + b._mKey)}</div>
-          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div>
-          <div style="color:#ccc; margin-top:3px;">Locked Line: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> | Stake: ₹${b.stake}</div>
-          <div style="font-size:10px; color:#aaa; margin-top:2px;">${b.time} • Status: <b style="color:${stColor};">${st}</b> ${b.resultInfo ? `(${b.resultInfo})` : ""}</div>
+        const cardCls = st === "WON" ? "bet-won" : st === "LOST" ? "bet-lost" : st === "VOID" ? "bet-void" : "";
+        const pillCls = st === "WON" ? "pill-won" : st === "LOST" ? "pill-lost" : st === "VOID" ? "pill-void" : "pill-open";
+        const pillText = st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : st === "LOST" ? `❌ LOST` : st === "VOID" ? `🔄 REFUND ₹${b.stake}` : `⏳ LIVE OPEN`;
+        return `<div class="bet-item-card ${cardCls}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:10px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mKey)}</span>
+            <span class="status-pill ${pillCls}">${pillText}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;">
+            <span>${b.market} (${b.side})</span>
+            <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
+          </div>
+          <div style="color:#ddd; margin-top:3px;">Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • Stake: <b>₹${b.stake}</b></div>
+          ${b.resultInfo ? `<div style="margin-top:5px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}
+          <div style="font-size:10px; color:#999; margin-top:4px;">Placed: ${b.time}</div>
         </div>`;
       }).join("");
     } catch (e) {}
