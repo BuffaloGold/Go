@@ -171,10 +171,10 @@
   <div class="win-popup-card">
     <div style="font-size:52px; margin-bottom:6px;">🏆</div>
     <div style="font-size:12px; color:#28e04d; font-weight:900; letter-spacing:1.5px;">CONGRATULATIONS! YOU WON</div>
-    <h2 id="winPopupAmount" style="font-size:32px; color:#ffd700; margin:8px 0; text-shadow:0 2px 12px rgba(255,215,0,0.4);">+₹0</h2>
+    <h2 id="winPopupAmount" style="font-size:32px; color:#ffd700; margin:8px 0;">+₹0</h2>
     <div id="winPopupMatch" style="font-size:13px; font-weight:800; color:#fff; margin-bottom:4px;">Match Name</div>
-    <div id="winPopupMarket" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:6px;">Market & Selection</div>
-    <div id="winPopupResult" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,215,0,0.35); border-radius:10px; padding:8px; font-size:11px; color:#e2e8f0; margin-bottom:14px;">Result Details</div>
+    <div id="winPopupMarket" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:6px;">Market</div>
+    <div id="winPopupResult" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,215,0,0.35); border-radius:10px; padding:8px; font-size:11px; color:#e2e8f0; margin-bottom:14px;">Result</div>
     <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
   </div>
 </div>
@@ -201,17 +201,15 @@
   <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
+
 <script>
   const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
   const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
-
   const mob = String(localStorage.getItem("activeUser") || "").trim();
   if (!mob) window.location.replace("index.html");
 
   document.addEventListener("click", () => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
-    }
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {});
   }, { once: true });
 
   function notifyWalletCredit(title, bodyText) {
@@ -226,35 +224,27 @@
   }
 
   let userObj = {}, userBal = 0, userNameStr = "Player";
+  let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
+  let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
+  let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false };
 
   function renderUserBox(u, checkCredit) {
     if (!u) return;
-    userObj = u;
-    userNameStr = u.name || "Player";
+    userObj = u; userNameStr = u.name || "Player";
     document.getElementById("userName").innerText = userNameStr;
     document.getElementById("userMob").innerText = mob || "-";
-    const d = Number(u.depositBal ?? u.depositBalance ?? 0);
-    const w = Number(u.winningBal ?? u.winningBalance ?? 0);
+    const d = Number(u.depositBal ?? u.depositBalance ?? 0), w = Number(u.winningBal ?? u.winningBalance ?? 0);
     userBal = d + w;
     document.getElementById("topDep").innerText = "₹" + d;
     document.getElementById("topWin").innerText = "₹" + w;
-
     if (checkCredit) {
       const kDep = "bg_last_dep_" + mob, kWin = "bg_last_win_" + mob;
-      const prevDep = localStorage.getItem(kDep), prevWin = localStorage.getItem(kWin);
-      if (prevDep !== null && d > Number(prevDep)) {
-        const diff = (d - Number(prevDep)).toFixed(2).replace(/\.00$/, "");
-        notifyWalletCredit("💰 Deposit Credited!", `₹${diff} aapke Deposit Wallet mein add ho gaye!`);
-      }
-      if (prevWin !== null && w > Number(prevWin)) {
-        const diff = (w - Number(prevWin)).toFixed(2).replace(/\.00$/, "");
-        notifyWalletCredit("🏆 Winning Credited!", `₹${diff} aapke Winning Wallet mein add ho gaye!`);
-      }
-      localStorage.setItem(kDep, String(d));
-      localStorage.setItem(kWin, String(w));
+      const pD = localStorage.getItem(kDep), pW = localStorage.getItem(kWin);
+      if (pD !== null && d > Number(pD)) notifyWalletCredit("💰 Deposit Credited!", `₹${(d - Number(pD)).toFixed(2).replace(/\.00$/, "")} Deposit Wallet mein add!`);
+      if (pW !== null && w > Number(pW)) notifyWalletCredit("🏆 Winning Credited!", `₹${(w - Number(pW)).toFixed(2).replace(/\.00$/, "")} Winning Wallet mein add!`);
+      localStorage.setItem(kDep, String(d)); localStorage.setItem(kWin, String(w));
     }
   }
-
   try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}"), false); } catch (e) {}
 
   async function syncUserWallet() {
@@ -262,20 +252,9 @@
     try {
       const r = await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`);
       const u = await r.json();
-      if (u) {
-        localStorage.setItem("cachedUser", JSON.stringify(u));
-        renderUserBox(u, true);
-      }
+      if (u) { localStorage.setItem("cachedUser", JSON.stringify(u)); renderUserBox(u, true); }
     } catch (e) {}
   }
-
-  let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
-  let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
-  let liveScoreData = {
-    headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "",
-    runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0,
-    maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false
-  };
 
   function parseTeamsFromTitle(title) {
     const clean = String(title || "").split(/\d+(?:st|nd|rd|th)|Elite|Group|Match|Test|Odi|T20/i)[0].trim();
@@ -284,22 +263,17 @@
   }
 
   function toTotalBalls(ovStr) {
-    const parts = String(ovStr || "0").split(".");
-    return ((parseInt(parts[0], 10) || 0) * 6) + Math.min(5, parseInt(parts[1], 10) || 0);
+    const p = String(ovStr || "0").split(".");
+    return ((parseInt(p[0], 10) || 0) * 6) + Math.min(5, parseInt(p[1], 10) || 0);
   }
-
-  // Real Ball Extractor from Cricbuzz Commentary (No Run-Subtraction Guessing!)
-  function extractBallsFromCommentary(cleanTxt) {
-    const found = [];
-    const seenOv = new Set();
+    function extractBallsFromCommentary(cleanTxt) {
+    const found = [], seenOv = new Set();
     const rx = /\b(\d+\.[1-6])\s+(W\s+|4\s+|6\s+)?([A-Za-z][A-Za-z\s.'-]{1,28}\s+to\s+[A-Za-z][A-Za-z\s.'-]{1,28},\s*([^.\n]{2,55}))/gi;
     let m;
     while ((m = rx.exec(cleanTxt)) !== null) {
-      const ov = m[1];
-      if (seenOv.has(ov)) continue;
-      seenOv.add(ov);
-      const tag = (m[2] || "").trim().toUpperCase();
-      const desc = (m[4] || "").toLowerCase();
+      if (seenOv.has(m[1])) continue;
+      seenOv.add(m[1]);
+      const tag = (m[2] || "").trim().toUpperCase(), desc = (m[4] || "").toLowerCase();
       let ball = "0";
       if (tag === "W" || /\b(out|bowled|caught|lbw|run out|stumped)\b/.test(desc)) ball = "W";
       else if (tag === "6" || /\b(six|6 runs)\b/.test(desc)) ball = "6";
@@ -309,7 +283,6 @@
       else if (/\b3 runs\b/.test(desc)) ball = "3";
       else if (/\b2 runs\b/.test(desc)) ball = "2";
       else if (/\b1 run\b/.test(desc)) ball = "1";
-      else if (/\bno run\b/.test(desc)) ball = "0";
       found.push(ball);
       if (found.length >= 6) break;
     }
@@ -317,25 +290,18 @@
   }
 
   function parseCricbuzzListHtml(html) {
-    const seen = new Set(), list = [];
-    const startMap = {};
+    const seen = new Set(), list = [], startMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
-      const mId = tm[1];
-      if (startMap[mId]) continue;
-      let ms = Number(tm[2]);
-      if (ms < 1e12) ms *= 1000;
+      if (startMap[tm[1]]) continue;
+      let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
       const dt = new Date(ms);
       if (!isNaN(dt.getTime())) {
-        const now = new Date();
-        const isToday = dt.toDateString() === now.toDateString();
-        const tmrw = new Date(now.getTime() + 86400000);
-        const isTmrw = dt.toDateString() === tmrw.toDateString();
-        const dayTag = isToday ? "Today" : isTmrw ? "Tomorrow" : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+        const now = new Date(), tmrw = new Date(now.getTime() + 86400000);
+        const dayTag = dt.toDateString() === now.toDateString() ? "Today" : dt.toDateString() === tmrw.toDateString() ? "Tomorrow" : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
         const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase();
-        startMap[mId] = `🕒 ${dayTag}, ${timeStr} IST`;
+        startMap[tm[1]] = `🕒 ${dayTag}, ${timeStr} IST`;
       }
     }
-
     const mainBody = html.split(/All Live Now|LIVE MATCHES|All Matches/i)[1] || html;
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
@@ -345,19 +311,13 @@
       const sub = mainBody.slice(m.index, m.index + 1600).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
       const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       const scores = sub.match(/[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\)/g) || [];
-
-      const isDone = /\b(match drawn|drawn|won by|complete|abandoned|tied|no result)\b/i.test(sub);
+      const isDone = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|abandoned|match tied|no result)\b/i.test(sub);
       const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
       const type = isDone ? "completed" : isExplicitUp ? "upcoming" : "live";
-
-      const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|Stumps)/i);
+      const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
       const exactStartTime = startMap[m[1]] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-
-      const cleanStatus = type === "upcoming"
-        ? (exactStartTime || "🕒 Time Soon")
-        : (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "In Progress"));
-
+      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Time Soon") : (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "In Progress"));
       list.push({ id: m[1], title, scores, status: cleanStatus, type });
     }
     return list;
@@ -367,106 +327,63 @@
     const isTest = /test|shield|ranji|trophy.*day/i.test(title || "") && !/t20|mushtaq|ilt20|bbl/i.test(title || "");
     const isOdi = /odi|one day|vijay hazare/i.test(title || "");
     const maxOvers = isTest ? 90 : isOdi ? 50 : 20;
+    const out = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false };
 
-    const out = {
-      headline: "", overs: "", status: "", balls: [],
-      batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0,
-      batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1,
-      isInningsBreak: false, isDrawnOrDone: false
-    };
+    const cleanTxt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
+    const topHeader = cleanTxt.slice(0, 750);
+    const nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
+    const ndJson = nd ? nd[1] : "";
 
-    const cleanTxt = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&#x27;/g, "'")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (/\b(match drawn|won by|abandoned|no result|match tied)\b/i.test(cleanTxt)) {
-      out.isDrawnOrDone = true;
+    const isOfficialComplete = /"state"\s*:\s*"Complete"/i.test(ndJson) || /"matchComplete"\s*:\s*true/i.test(ndJson);
+    const jsonStatusM = ndJson.match(/"status"\s*:\s*"([^"]{3,95})"/);
+    if (jsonStatusM) out.status = jsonStatusM[1].trim();
+    else {
+      const stM = topHeader.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+      if (stM) out.status = stM[1].trim();
     }
+    out.isDrawnOrDone = isOfficialComplete || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status);
 
-    const scAll = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
-    if (scAll.length) {
+    const scAll = [...topHeader.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
+    const scList = scAll.length ? scAll : [...cleanTxt.slice(0, 2000).matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
+    if (scList.length) {
       const uniqueInns = [];
-      scAll.forEach(x => {
+      scList.forEach(x => {
         const key = `${x[1].toUpperCase()}_${x[2]}_${x[3]}_${x[4]}`;
-        if (!uniqueInns.some(u => u.key === key)) {
-          uniqueInns.push({ key, team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ov: Number(x[4]), ovStr: String(x[4]) });
-        }
+        if (!uniqueInns.some(u => u.key === key)) uniqueInns.push({ key, team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ov: Number(x[4]), ovStr: String(x[4]) });
       });
-
-      const first = uniqueInns[0];
-      const last = uniqueInns[uniqueInns.length - 1];
+      const first = uniqueInns[0], last = uniqueInns[uniqueInns.length - 1];
       out.firstInnRuns = first.runs;
-
       const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team;
-      const hasBreakText = /\b(innings break)\b/i.test(cleanTxt);
-      const isFirstInnCompleted = !isSecondInnStarted && (hasBreakText || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
+      const isFirstInnCompleted = !isSecondInnStarted && (/\binnings break\b/i.test(out.status) || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
+      if (isSecondInnStarted) { out.inningNo = 2; out.isInningsBreak = false; if (!isTest) out.targetRuns = first.runs + 1; }
+      else if (isFirstInnCompleted) { out.inningNo = 2; out.isInningsBreak = true; if (!isTest) out.targetRuns = first.runs + 1; }
+      else { out.inningNo = 1; out.isInningsBreak = false; }
 
-      if (isSecondInnStarted) {
-        out.inningNo = 2;
-        out.isInningsBreak = false;
-        if (!isTest) out.targetRuns = first.runs + 1;
-      } else if (isFirstInnCompleted) {
-        out.inningNo = 2;
-        out.isInningsBreak = true;
-        if (!isTest) out.targetRuns = first.runs + 1;
-      } else {
-        out.inningNo = 1;
-        out.isInningsBreak = false;
-      }
-
-      out.batTeam = last.team;
-      out.headline = `${last.team} ${last.runs}/${last.wkts}`;
-      out.runsNum = last.runs;
-      out.wktsNum = last.wkts;
-      out.ovNum = last.ov;
-      const crrM = cleanTxt.match(/CRR[:\s]+([0-9.]+)/i);
+      out.batTeam = last.team; out.headline = `${last.team} ${last.runs}/${last.wkts}`;
+      out.runsNum = last.runs; out.wktsNum = last.wkts; out.ovNum = last.ov;
+      const crrM = topHeader.match(/CRR[:\s]+([0-9.]+)/i);
       out.overs = `(${last.ovStr} Ov${crrM ? " • CRR " + crrM[1] : ""})`;
     }
 
-    const needM = cleanTxt.match(/need\s*(\d+)\s*runs/i);
+    const needM = out.status.match(/need\s*(\d+)\s*runs/i);
     if (needM && out.inningNo === 2) out.targetRuns = out.runsNum + Number(needM[1]);
-
-    // Clean, non-repeating status regex
-    const stM = cleanTxt.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|Stumps)/i);
-    if (stM) out.status = stM[1].trim();
-
     const pshipM = cleanTxt.match(/P'SHIP\s*(\d+\s*\(\s*\d+\s*\))/i);
-    const nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
-    if (nd) {
-      const j = nd[1];
-      const b1 = j.match(/"batsmanStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
-      const b2 = j.match(/"batsmanNonStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
-      const bw = j.match(/"bowlerStriker":\{[^}]*"bowlName":"([^"]+)"[^}]*"bowlOvs":([0-9.]+)[^}]*"bowlRuns":(\d+)[^}]*"bowlWkts":(\d+)/);
-      const recM = j.match(/"recentOvsStats":"([^"]+)"/);
-      const commM = j.match(/"commText":"([^"]{8,140})"/);
-
+    if (ndJson) {
+      const b1 = ndJson.match(/"batsmanStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
+      const b2 = ndJson.match(/"batsmanNonStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
+      const bw = ndJson.match(/"bowlerStriker":\{[^}]*"bowlName":"([^"]+)"[^}]*"bowlOvs":([0-9.]+)[^}]*"bowlRuns":(\d+)[^}]*"bowlWkts":(\d+)/);
+      const recM = ndJson.match(/"recentOvsStats":"([^"]+)"/);
+      const commM = ndJson.match(/"commText":"([^"]{8,140})"/);
       const batLines = [];
       if (b1) batLines.push(`🏏 <b>${b1[1]}*</b> ${b1[2]}(${b1[3]})`);
       if (b2) batLines.push(`${b2[1]} ${b2[2]}(${b2[3]})`);
       out.batters = batLines.join("<br>");
-
       if (bw) out.bowler = `⚾ <b>${bw[1]}</b> ${bw[4]}/${bw[3]} (${bw[2]})` + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
-      if (recM) {
-        out.balls = recM[1].replace(/\|/g, " ").trim().split(/\s+/).filter(b => /^(?:[0-6]|W|Wd|Nb)$/i.test(b)).slice(-6);
-      }
+      if (recM) out.balls = recM[1].replace(/\|/g, " ").trim().split(/\s+/).filter(b => /^(?:[0-6]|W|Wd|Nb)$/i.test(b)).slice(-6);
       if (commM) out.shortComm = commM[1].replace(/\\n|B0\$|B1\$|I0\$|I1\$/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
     }
-
-    // Fallback: Extract real 6 balls directly from Cricbuzz Commentary lines
-    if (!out.balls.length) {
-      out.balls = extractBallsFromCommentary(cleanTxt);
-    }
-
-    if (!out.batters) {
-      if (out.targetRuns > 0) out.batters = `🎯 Target: <b>${out.targetRuns}</b>`;
-      else if (out.firstInnRuns > 0) out.batters = `📊 1st Inn: <b>${out.firstInnRuns} runs</b>`;
-      else out.batters = `🏏 ${out.batTeam || "Live"} Batting`;
-    }
+    if (!out.balls.length) out.balls = extractBallsFromCommentary(cleanTxt);
+    if (!out.batters) out.batters = out.targetRuns > 0 ? `🎯 Target: <b>${out.targetRuns}</b>` : out.firstInnRuns > 0 ? `📊 1st Inn: <b>${out.firstInnRuns} runs</b>` : `🏏 ${out.batTeam || "Live"} Batting`;
     if (!out.bowler) {
       const ovLeftM = cleanTxt.match(/OVS LEFT\s*([0-9.]+)/i);
       out.bowler = (pshipM ? `🤝 P'ship: <b>${pshipM[1]}</b>` : `⚡ Live Exchange`) + (ovLeftM ? `<br>⏳ Ovs Left: ${ovLeftM[1]}` : "");
@@ -482,83 +399,41 @@
     let probA = 0.50;
     const runs = sd.runsNum || 0, wkts = sd.wktsNum || 0, ov = sd.ovNum || 0, maxOv = sd.maxOvers || 20;
     const isTeamABatting = !sd.batTeam || sd.batTeam === tA;
-
     if (sd.isInningsBreak && sd.firstInnRuns > 0 && maxOv <= 50) {
-      const parScore = maxOv === 20 ? 162 : 265;
-      const firstTeamProb = Math.min(0.86, Math.max(0.18, 0.50 + ((sd.firstInnRuns - parScore) * 0.008)));
-      probA = isTeamABatting ? firstTeamProb : (1 - firstTeamProb);
+      const firstProb = Math.min(0.86, Math.max(0.18, 0.50 + ((sd.firstInnRuns - (maxOv === 20 ? 162 : 265)) * 0.008)));
+      probA = isTeamABatting ? firstProb : (1 - firstProb);
     } else if (sd.targetRuns > 0 && sd.inningNo === 2) {
       const runsNeeded = Math.max(0, sd.targetRuns - runs);
-      const ovCompleted = Math.floor(ov) + ((ov % 1) * 10) / 6;
-      const ovLeft = Math.max(0.16, maxOv - ovCompleted);
-      const rrr = runsNeeded / ovLeft;
-      const baseParRate = maxOv === 20 ? 8.3 : 5.4;
-      const wktsInHand = Math.max(0, 10 - wkts);
-
-      let chaseProb = 0.50;
-      if (runsNeeded === 0) chaseProb = 0.98;
-      else if (wkts >= 10 || ovLeft <= 0) chaseProb = 0.02;
-      else chaseProb = 0.58 - ((rrr - baseParRate) * 0.065) - ((10 - wktsInHand) * 0.045);
-
+      const ovLeft = Math.max(0.16, maxOv - (Math.floor(ov) + ((ov % 1) * 10) / 6));
+      let chaseProb = runsNeeded === 0 ? 0.98 : (wkts >= 10 || ovLeft <= 0) ? 0.02 : (0.58 - (((runsNeeded / ovLeft) - (maxOv === 20 ? 8.3 : 5.4)) * 0.065) - (wkts * 0.045));
       chaseProb = Math.min(0.95, Math.max(0.06, chaseProb));
       probA = isTeamABatting ? chaseProb : (1 - chaseProb);
     } else if (ov > 0) {
-      const crr = runs / Math.max(0.5, ov);
-      const parCrr = maxOv === 20 ? 7.8 : maxOv === 50 ? 5.2 : 3.4;
-      const clamped = Math.min(0.86, Math.max(0.14, 0.50 + ((crr - parCrr) * 0.035) - (wkts * 0.04)));
+      const clamped = Math.min(0.86, Math.max(0.14, 0.50 + (((runs / Math.max(0.5, ov)) - (maxOv === 20 ? 7.8 : maxOv === 50 ? 5.2 : 3.4)) * 0.035) - (wkts * 0.04)));
       probA = isTeamABatting ? clamped : (1 - clamped);
     }
-
-    const houseMargin = winRate <= 20 ? 0.91 : winRate <= 35 ? 0.95 : winRate <= 50 ? 0.97 : 0.99;
-    const rawOddA = Math.min(15.0, Math.max(1.04, (1 / probA) * houseMargin));
-    const rawOddB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * houseMargin));
-    const spreadA = rawOddA > 4 ? 0.15 : rawOddA > 2.5 ? 0.06 : 0.03;
-    const spreadB = rawOddB > 4 ? 0.15 : rawOddB > 2.5 ? 0.06 : 0.03;
-
-    return {
-      aBack: rawOddA.toFixed(2), aLay: (rawOddA + spreadA).toFixed(2),
-      bBack: rawOddB.toFixed(2), bLay: (rawOddB + spreadB).toFixed(2)
-    };
+    const hm = winRate <= 20 ? 0.91 : winRate <= 35 ? 0.95 : winRate <= 50 ? 0.97 : 0.99;
+    const oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm)), oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
+    return { aBack: oA.toFixed(2), aLay: (oA + (oA > 4 ? 0.15 : oA > 2.5 ? 0.06 : 0.03)).toFixed(2), bBack: oB.toFixed(2), bLay: (oB + (oB > 4 ? 0.15 : oB > 2.5 ? 0.06 : 0.03)).toFixed(2) };
   }
 
   async function loadMatches() {
     try {
-      const [rWorker, rCtrl, rRate] = await Promise.all([
-        fetch(`${WORKER_URL}?t=${Date.now()}`),
-        fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
-        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
-      ]);
-      overrides = (await rCtrl.json()) || {};
-      const rateObj = (await rRate.json()) || {};
-      cricketWinRate = Number(rateObj.cricket || 35);
-      const rawHtml = await rWorker.text();
-      const parsedList = parseCricbuzzListHtml(rawHtml);
-      if (parsedList.length > 0) {
-        matches = parsedList;
-        if (!activeMatch) renderList();
-      }
-    } catch (e) {
-      if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
-    }
+      const [rW, rC, rR] = await Promise.all([fetch(`${WORKER_URL}?t=${Date.now()}`), fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`), fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)]);
+      overrides = (await rC.json()) || {}; cricketWinRate = Number(((await rR.json()) || {}).cricket || 35);
+      const parsed = parseCricbuzzListHtml(await rW.text());
+      if (parsed.length > 0) { matches = parsed; if (!activeMatch) renderList(); }
+    } catch (e) { if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`; }
   }
 
   async function refreshActiveMatchDetail() {
     if (!activeMatch) return;
     try {
-      const r = await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`);
-      const h = await r.text();
-      const parsed = parseCricbuzzMatchHtml(h, activeMatch.id, activeMatch.title);
-      if (liveScoreData.batTeam && parsed.batTeam === liveScoreData.batTeam && toTotalBalls(parsed.ovNum) < toTotalBalls(liveScoreData.ovNum)) {
-        return;
-      }
+      const parsed = parseCricbuzzMatchHtml(await (await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`)).text(), activeMatch.id, activeMatch.title);
+      if (liveScoreData.batTeam && parsed.batTeam === liveScoreData.batTeam && toTotalBalls(parsed.ovNum) < toTotalBalls(liveScoreData.ovNum)) return;
       if (!parsed.status && activeMatch.status) parsed.status = activeMatch.status;
-      liveScoreData = parsed;
-      activeMatch._runsNum = parsed.runsNum;
-      activeMatch._ovNum = parsed.ovNum;
-      if (parsed.isDrawnOrDone) {
-        activeMatch.type = "completed";
-        if (parsed.status) activeMatch.status = parsed.status;
-      }
+      liveScoreData = parsed; activeMatch._runsNum = parsed.runsNum; activeMatch._ovNum = parsed.ovNum;
+      if (parsed.isDrawnOrDone) { activeMatch.type = "completed"; if (parsed.status) activeMatch.status = parsed.status; }
       const newSig = `${parsed.headline}|${parsed.overs}|${parsed.balls.join(",")}|${parsed.shortComm}`;
       if (lastScoreSignature && newSig !== lastScoreSignature) ballChangeLockUntil = Date.now() + 3000;
       lastScoreSignature = newSig;
@@ -569,25 +444,20 @@
     await Promise.all([syncUserWallet(), loadMatches()]);
     if (activeMatch) {
       const fresh = matches.find(x => String(x.id) === String(activeMatch.id));
-      if (fresh) {
-        fresh._runsNum = activeMatch._runsNum;
-        fresh._ovNum = activeMatch._ovNum;
-        activeMatch = fresh;
-      }
+      if (fresh) { fresh._runsNum = activeMatch._runsNum; fresh._ovNum = activeMatch._ovNum; activeMatch = fresh; }
       await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(activeMatch.id)]);
       openMatch(activeMatch, true);
     }
   }
-    async function fetchMatchBetLimits(matchId) {
+
+  async function fetchMatchBetLimits(matchId) {
     try {
-      const r = await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`);
-      const betsObj = (await r.json()) || {};
+      const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
       const stats = {};
       Object.values(betsObj).forEach(b => {
         if (!b || !b.market) return;
         if (!stats[b.market]) stats[b.market] = { users: new Set(), totalMoney: 0 };
-        stats[b.market].users.add(String(b.mobile));
-        stats[b.market].totalMoney += Number(b.stake || 0);
+        stats[b.market].users.add(String(b.mobile)); stats[b.market].totalMoney += Number(b.stake || 0);
       });
       matchBetsStats = stats;
     } catch (e) {}
@@ -597,94 +467,64 @@
     filterMode = mode;
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Schedule (IST)" : "✅ Completed & Drawn Matches";
+    document.getElementById("listHeading").innerText = mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Schedule (IST)" : "✅ Completed & Drawn Matches";
     renderList();
   }
 
   function renderList() {
-    const box = document.getElementById("matchListContainer");
-    const list = matches.filter(m => m.type === filterMode);
-    if (!list.length) {
-      box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai.</div>`;
-      return;
-    }
+    const box = document.getElementById("matchListContainer"), list = matches.filter(m => m.type === filterMode);
+    if (!list.length) { box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai.</div>`; return; }
     box.innerHTML = list.map(m => {
-      const ov = overrides[m.id] || {};
-      const customSc = ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "";
-      const sc = customSc || ((m.scores && m.scores.length > 0) ? m.scores.join(" | ") : (m.status || "Live"));
+      const ov = overrides[m.id] || {}, sc = (ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "") || (m.scores.length ? m.scores.join(" | ") : m.status);
       const badge = m.type === "live" ? `<span class="b-live">● LIVE</span>` : m.type === "upcoming" ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
-      const scoreColor = m.type === "completed" ? "#ffd700" : m.type === "upcoming" ? "#93c5fd" : "#28e04d";
-      return `<div class="match-item" onclick="openMatchById('${m.id}')">
-        <div class="m-left">${badge}<div class="m-title">${m.title}</div><div class="m-score" style="color:${scoreColor};">${sc}</div></div>
-        <div class="open-pill">${m.type === "completed" ? "Result →" : "Play →"}</div>
-      </div>`;
+      const c = m.type === "completed" ? "#ffd700" : m.type === "upcoming" ? "#93c5fd" : "#28e04d";
+      return `<div class="match-item" onclick="openMatchById('${m.id}')"><div class="m-left">${badge}<div class="m-title">${m.title}</div><div class="m-score" style="color:${c};">${sc}</div></div><div class="open-pill">${m.type === "completed" ? "Result →" : "Play →"}</div></div>`;
     }).join("");
   }
-
-  async function openMatchById(id) {
+    async function openMatchById(id) {
     const m = matches.find(x => String(x.id) === String(id));
-    if (m) {
-      activeMatch = m;
-      liveScoreData = {
-        headline: "", overs: "", status: m.status || "Live", balls: [],
-        batters: "📊 Loading...", bowler: "🤝 Loading...", shortComm: "Live scorecard load ho raha hai...",
-        runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0,
-        maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed"
-      };
-      lastScoreSignature = "";
-      openMatch(m, false);
-      await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
-      openMatch(m, true);
-    }
+    if (!m) return;
+    activeMatch = m; lastScoreSignature = "";
+    liveScoreData = { headline: "", overs: "", status: m.status || "Live", balls: [], batters: "📊 Loading...", bowler: "🤝 Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed" };
+    openMatch(m, false);
+    await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
+    openMatch(m, true);
   }
 
-  function checkLimitStatus(marketName, maxUsers, maxMoney) {
-    const st = matchBetsStats[marketName];
+  function checkLimitStatus(mkt, maxU, maxM) {
+    const st = matchBetsStats[mkt];
     if (!st) return { blocked: false, reason: "" };
-    if (maxUsers > 0 && st.users.size >= maxUsers) return { blocked: true, reason: `Max ${maxUsers} Users Full` };
-    if (maxMoney > 0 && st.totalMoney >= maxMoney) return { blocked: true, reason: `Limit ₹${maxMoney} Full` };
+    if (maxU > 0 && st.users.size >= maxU) return { blocked: true, reason: `Max ${maxU} Users Full` };
+    if (maxM > 0 && st.totalMoney >= maxM) return { blocked: true, reason: `Limit ₹${maxM} Full` };
     return { blocked: false, reason: "" };
   }
 
-  function calcIntelligentSessionLine(targetOv, curOv, curRuns, maxOv, isBreak) {
-    const baseRr = maxOv === 20 ? 8.4 : maxOv === 50 ? 5.5 : 3.5;
-    if (isBreak || curOv === 0) return Math.round(targetOv * baseRr);
-    const remOv = Math.max(0, targetOv - curOv);
-    const curRr = curRuns / Math.max(0.5, curOv);
-    return Math.round(curRuns + (remOv * ((curRr * 0.55) + (baseRr * 0.45))));
+  function calcSessionLine(targetOv, curOv, curRuns, maxOv, isBreak) {
+    const base = maxOv === 20 ? 8.4 : maxOv === 50 ? 5.5 : 3.5;
+    if (isBreak || curOv === 0) return Math.round(targetOv * base);
+    return Math.round(curRuns + (Math.max(0, targetOv - curOv) * (((curRuns / Math.max(0.5, curOv)) * 0.55) + (base * 0.45))));
   }
 
   function openMatch(m, skipBetReload) {
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
-    const ov = overrides[m.id] || {};
-    const maxUsersAllowed = Number(ov.maxUsers || 25), maxMoneyAllowed = Number(ov.maxMoney || 15000);
+    const ov = overrides[m.id] || {}, maxU = Number(ov.maxUsers || 25), maxM = Number(ov.maxMoney || 15000);
     const [tA, tB] = parseTeamsFromTitle(m.title);
     document.getElementById("cTitle").innerText = m.title;
     document.getElementById("cStatus").innerText = liveScoreData.status || m.status || "Live Match";
 
-    const isCompleted = m.type === "completed" || liveScoreData.isDrawnOrDone;
-    const isBreak = liveScoreData.isInningsBreak;
-    const activeInn = liveScoreData.inningNo || 1;
-    const maxOv = liveScoreData.maxOvers || 20;
+    const isDone = m.type === "completed" || liveScoreData.isDrawnOrDone, isBreak = liveScoreData.isInningsBreak, inn = liveScoreData.inningNo || 1, maxOv = liveScoreData.maxOvers || 20;
+    const fTeam = inn === 2 ? (liveScoreData.batTeam && !isBreak ? liveScoreData.batTeam : (liveScoreData.batTeam === tA ? tB : tA)) : (liveScoreData.batTeam || tA);
+    const effR = isBreak ? 0 : (ov.liveRuns ? Number(String(ov.liveRuns).split("/")[0] || 0) : (liveScoreData.runsNum || 0));
+    const effO = isBreak ? 0 : (ov.liveOvers ? Number(ov.liveOvers) : (liveScoreData.ovNum || 0));
 
-    const activeFancyTeam = (activeInn === 2)
-      ? (liveScoreData.batTeam && !isBreak ? liveScoreData.batTeam : (liveScoreData.batTeam === tA ? tB : tA))
-      : (liveScoreData.batTeam || tA);
+    document.getElementById("cRuns").innerText = ov.liveRuns || liveScoreData.headline || (isDone ? "ENDED" : m.type === "live" ? "LIVE" : "SOON");
+    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveScoreData.overs || (isDone ? "Match Finished" : m.type === "upcoming" ? "Scheduled" : "In Progress"));
 
-    const effRuns = isBreak ? 0 : (ov.liveRuns ? Number(String(ov.liveRuns).split("/")[0] || 0) : (liveScoreData.runsNum || 0));
-    const effOvers = isBreak ? 0 : (ov.liveOvers ? Number(ov.liveOvers) : (liveScoreData.ovNum || 0));
-
-    document.getElementById("cRuns").innerText = ov.liveRuns || liveScoreData.headline || (isCompleted ? "ENDED" : m.type === "live" ? "LIVE" : "SOON");
-    document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveScoreData.overs || (isCompleted ? "Match Finished" : m.type === "upcoming" ? "Scheduled" : "In Progress"));
-
-    const saved6 = liveScoreData.balls && liveScoreData.balls.length ? liveScoreData.balls.slice(-6) : [];
-    const ballsArr = saved6.length ? saved6 : ["•", "•", "•", "•", "•", "•"];
+    const ballsArr = (liveScoreData.balls && liveScoreData.balls.length) ? liveScoreData.balls.slice(-6) : ["•", "•", "•", "•", "•", "•"];
     document.getElementById("recentBallsBar").innerHTML = `<span style="font-size:10px; color:#aaa; font-weight:700;">BALLS (6):</span>` + ballsArr.map(b => {
-      const up = String(b).toUpperCase();
-      const bg = up.includes("W") && up !== "WD" ? "#ef4444" : up === "6" ? "#22c55e" : up === "4" ? "#3b82f6" : "#3b0a52";
+      const up = String(b).toUpperCase(), bg = up.includes("W") && up !== "WD" ? "#ef4444" : up === "6" ? "#22c55e" : up === "4" ? "#3b82f6" : "#3b0a52";
       const fg = ((up.includes("W") && up !== "WD") || up === "6" || up === "4") ? "#fff" : "#ffd700";
       return `<span style="min-width:22px; height:22px; padding:0 5px; border-radius:50%; background:${bg}; color:${fg}; font-size:11px; font-weight:900; display:inline-flex; align-items:center; justify-content:center;">${b}</span>`;
     }).join("");
@@ -693,313 +533,172 @@
     document.getElementById("bowlBox").innerHTML = liveScoreData.bowler;
     document.getElementById("cBalls").innerText = "💬 " + liveScoreData.shortComm;
 
-    const isBallRunning = Date.now() < ballChangeLockUntil;
-    const globalLocked = Boolean(ov.locked || isCompleted || isBallRunning);
-    const lockBannerText = isCompleted ? "Match Ended" : isBallRunning ? "BALL RUNNING" : "Suspended";
+    const isBallRun = Date.now() < ballChangeLockUntil, gLock = Boolean(ov.locked || isDone || isBallRun);
+    const lockTxt = isDone ? "Match Ended" : isBallRun ? "BALL RUNNING" : "Suspended";
+    document.getElementById("oddsStatus").innerText = isDone ? "✅ MATCH ENDED" : isBallRun ? "⚡ BALL RUNNING" : gLock ? "🔒 SUSPENDED" : "● LIVE OPEN";
+    document.getElementById("oddsStatus").style.color = gLock ? "#ff4d6d" : "#28e04d";
+    const fTag = document.getElementById("fancyLiveTag");
+    fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE"; fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
-    document.getElementById("oddsStatus").innerText = isCompleted ? "✅ MATCH ENDED" : isBallRunning ? "⚡ BALL RUNNING" : globalLocked ? "🔒 SUSPENDED" : "● LIVE OPEN";
-    document.getElementById("oddsStatus").style.color = globalLocked ? "#ff4d6d" : "#28e04d";
-
-    const fancyTag = document.getElementById("fancyLiveTag");
-    fancyTag.innerText = isCompleted ? "✅ ENDED" : globalLocked ? "🔒 LOCKED" : "● LIVE";
-    fancyTag.style.color = globalLocked ? "#ff4d6d" : "#28e04d";
-
-    let sessGap = 2, fancyPayout = 95, autoDigit = 9.25;
-    if (cricketWinRate <= 20) { sessGap = 4; fancyPayout = 85; autoDigit = 8.50; }
-    else if (cricketWinRate <= 35) { sessGap = 2; fancyPayout = 95; autoDigit = 9.25; }
-    else if (cricketWinRate <= 50) { sessGap = 1; fancyPayout = 100; autoDigit = 9.50; }
-    else { sessGap = 1; fancyPayout = 105; autoDigit = 9.85; }
+    const sGap = cricketWinRate <= 20 ? 4 : cricketWinRate <= 35 ? 2 : 1;
+    const fPay = cricketWinRate <= 20 ? 85 : cricketWinRate <= 35 ? 95 : cricketWinRate <= 50 ? 100 : 105;
+    const aDig = cricketWinRate <= 20 ? 8.50 : cricketWinRate <= 35 ? 9.25 : cricketWinRate <= 50 ? 9.50 : 9.85;
 
     const dyn = computeDynamicMatchOdds(tA, tB, liveScoreData, cricketWinRate);
-    const aB = ov.teamABack || dyn.aBack;
-    const aL = ov.teamALay || (ov.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
-    const bB = ov.teamBBack || dyn.bBack;
-    const bL = ov.teamBLay || (ov.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
-
-    const limOddsA = checkLimitStatus(`${tA} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
-    const limOddsB = checkLimitStatus(`${tB} (Match Odds)`, maxUsersAllowed, maxMoneyAllowed);
+    const aB = ov.teamABack || dyn.aBack, aL = ov.teamALay || (ov.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
+    const bB = ov.teamBBack || dyn.bBack, bL = ov.teamBLay || (ov.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
+    const lA = checkLimitStatus(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimitStatus(`${tB} (Match Odds)`, maxU, maxM);
 
     document.getElementById("oddsBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes">
-        <div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)', 'BACK', '${tA} Win', ${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div>
-        <div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)', 'LAY', '${tA} Lose', ${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>
-        ${(globalLocked || limOddsA.blocked) ? `<div class="suspended-overlay">${limOddsA.reason || lockBannerText}</div>` : ''}
-      </div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes">
-        <div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)', 'BACK', '${tB} Win', ${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div>
-        <div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)', 'LAY', '${tB} Lose', ${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>
-        ${(globalLocked || limOddsB.blocked) ? `<div class="suspended-overlay">${limOddsB.reason || lockBannerText}</div>` : ''}
-      </div></div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${lA.reason || lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${lB.reason || lockTxt}</div>` : ''}</div></div>`;
 
-    const bmA_B = ov.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100));
-    const bmA_L = ov.bmALay || (Number(bmA_B) + 3);
-    const bmB_B = ov.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100));
-    const bmB_L = ov.bmBLay || (Number(bmB_B) + 4);
-
+    const bmAB = ov.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ov.bmALay || (Number(bmAB) + 3);
+    const bmBB = ov.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100)), bmBL = ov.bmBLay || (Number(bmBB) + 4);
     document.getElementById("bmBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes">
-        <div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)', 'BACK', 'BM ${bmA_B}', ${aB})"><span class="rate-main">${bmA_B}</span><span class="rate-sub">Back</span></div>
-        <div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)', 'LAY', 'BM ${bmA_L}', ${aL})"><span class="rate-main">${bmA_L}</span><span class="rate-sub">Lay</span></div>
-        ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
-      </div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes">
-        <div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)', 'BACK', 'BM ${bmB_B}', ${bB})"><span class="rate-main">${bmB_B}</span><span class="rate-sub">Back</span></div>
-        <div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)', 'LAY', 'BM ${bmB_L}', ${bL})"><span class="rate-main">${bmB_L}</span><span class="rate-sub">Lay</span></div>
-        ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
-      </div></div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)','BACK','BM ${bmAB}',${aB})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)','LAY','BM ${bmAL}',${aL})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)','BACK','BM ${bmBB}',${bB})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)','LAY','BM ${bmBL}',${bL})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
-    document.getElementById("fancyHeaderTitle").innerText = `Fancy Markets (${activeFancyTeam} • ${activeInn === 2 ? "2nd" : "1st"} Inn)`;
-    const s6No = ov.sess6No || calcIntelligentSessionLine(6, effOvers, effRuns, maxOv, isBreak);
-    const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
-    const s10No = ov.sess10No || calcIntelligentSessionLine(10, effOvers, effRuns, maxOv, isBreak);
-    const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
-    const s15No = ov.sess15No || calcIntelligentSessionLine(15, effOvers, effRuns, maxOv, isBreak);
-    const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
-    const s20No = ov.sess20No || calcIntelligentSessionLine(20, effOvers, effRuns, maxOv, isBreak);
-    const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
-
+    document.getElementById("fancyHeaderTitle").innerText = `Fancy Markets (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
+    const s6 = ov.sess6No || calcSessionLine(6, effO, effR, maxOv, isBreak), s10 = ov.sess10No || calcSessionLine(10, effO, effR, maxOv, isBreak);
+    const s15 = ov.sess15No || calcSessionLine(15, effO, effR, maxOv, isBreak), s20 = ov.sess20No || calcSessionLine(20, effO, effR, maxOv, isBreak);
     const fancyRows = [
-      { title: `6 Over Run (${activeFancyTeam})`, targetOv: 6, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout },
-      { title: `10 Over Run (${activeFancyTeam})`, targetOv: 10, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout },
-      { title: `15 Over Run (${activeFancyTeam})`, targetOv: 15, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout },
-      { title: `20 Over Run (${activeFancyTeam})`, targetOv: 20, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout },
-      { title: `${activeFancyTeam} Batsman 1 Run Adv`, targetOv: 0, noRun: ov.bat1No || 42, noRate: fancyPayout, yesRun: ov.bat1Yes || (42 + sessGap), yesRate: fancyPayout },
-      { title: `Match Total Boundaries`, targetOv: 0, noRun: ov.pshipNo || 26, noRate: fancyPayout, yesRun: ov.pshipYes || (26 + sessGap), yesRate: fancyPayout }
+      { title: `6 Over Run (${fTeam})`, ov: 6, n: s6, y: ov.sess6Yes || (Number(s6) + sGap) },
+      { title: `10 Over Run (${fTeam})`, ov: 10, n: s10, y: ov.sess10Yes || (Number(s10) + sGap) },
+      { title: `15 Over Run (${fTeam})`, ov: 15, n: s15, y: ov.sess15Yes || (Number(s15) + sGap) },
+      { title: `20 Over Run (${fTeam})`, ov: 20, n: s20, y: ov.sess20Yes || (Number(s20) + sGap + 1) },
+      { title: `${fTeam} Batsman 1 Run Adv`, ov: 0, n: ov.bat1No || 42, y: ov.bat1Yes || (42 + sGap) },
+      { title: `Match Total Boundaries`, ov: 0, n: ov.pshipNo || 26, y: ov.pshipYes || (26 + sGap) }
     ];
-
+    const mult = (1 + (fPay / 100)).toFixed(2);
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
-      const noMult = (1 + (f.noRate / 100)).toFixed(2), yesMult = (1 + (f.yesRate / 100)).toFixed(2);
-      const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
-      const isOverPassed = f.targetOv > 0 && !isBreak && effOvers >= f.targetOv;
-      const isRowLocked = globalLocked || lim.blocked || isOverPassed;
-      const lockText = isOverPassed ? `${f.targetOv} Ov Over` : lim.blocked ? lim.reason : lockBannerText;
-
-      return `<div class="contest-row">
-        <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('${f.title}', 'NO', 'Under ${f.noRun} Runs', ${noMult})"><span class="rate-main">${f.noRun}</span><span class="rate-sub">${f.noRate}</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('${f.title}', 'YES', '${f.yesRun}+ Runs', ${yesMult})"><span class="rate-main">${f.yesRun}</span><span class="rate-sub">${f.yesRate}</span></div>
-          ${isRowLocked ? `<div class="suspended-overlay">${lockText}</div>` : ''}
-        </div>
-      </div>`;
+      const lim = checkLimitStatus(f.title, maxU, maxM), passed = f.ov > 0 && !isBreak && effO >= f.ov, lk = gLock || lim.blocked || passed;
+      return `<div class="contest-row"><div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxU} | Cap: ₹${maxM}</div></div><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('${f.title}','NO','Under ${f.n} Runs',${mult})"><span class="rate-main">${f.n}</span><span class="rate-sub">${fPay}</span></div><div class="rate-btn rate-back" onclick="openBet('${f.title}','YES','${f.y}+ Runs',${mult})"><span class="rate-main">${f.y}</span><span class="rate-sub">${fPay}</span></div>${lk ? `<div class="suspended-overlay">${passed ? f.ov + " Ov Over" : (lim.reason || lockTxt)}</div>` : ''}</div></div>`;
     }).join("");
 
-    const dRate = ov.digitPayout || autoDigit;
-    const digitBlocks = [
-      { title: "1st Inning 10 Over Last Digit", inn: 1, targetOv: 10 },
-      { title: "1st Inning 20 Over Last Digit", inn: 1, targetOv: 20 },
-      { title: "2nd Inning 10 Over Last Digit", inn: 2, targetOv: 10 },
-      { title: "2nd Inning 20 Over Last Digit", inn: 2, targetOv: 20 }
-    ];
-    document.getElementById("digitBody").innerHTML = digitBlocks.map(db => {
-      const lim = checkLimitStatus(db.title, maxUsersAllowed, maxMoneyAllowed);
-      const isInnPassed = (db.inn === 1 && activeInn >= 2) || (db.inn === activeInn && !isBreak && effOvers >= db.targetOv);
-      if (globalLocked || lim.blocked || isInnPassed) {
-        const reason = isInnPassed ? "Inning / Over Done" : lim.blocked ? lim.reason : lockBannerText;
-        return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${reason}</span></div></div>`;
-      }
-      let grid = "";
-      for (let d = 0; d <= 9; d++) grid += `<div class="digit-box" onclick="openBet('${db.title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
-      return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${grid}</div></div>`;
+    const dRate = ov.digitPayout || aDig;
+    const dBlocks = [{ t: "1st Inning 10 Over Last Digit", i: 1, o: 10 }, { t: "1st Inning 20 Over Last Digit", i: 1, o: 20 }, { t: "2nd Inning 10 Over Last Digit", i: 2, o: 10 }, { t: "2nd Inning 20 Over Last Digit", i: 2, o: 20 }];
+    document.getElementById("digitBody").innerHTML = dBlocks.map(db => {
+      const lim = checkLimitStatus(db.t, maxU, maxM), passed = (db.i === 1 && inn >= 2) || (db.i === inn && !isBreak && effO >= db.o);
+      if (gLock || lim.blocked || passed) return `<div class="market-card"><div class="market-head"><span>${db.t}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${passed ? "Inning / Over Done" : (lim.reason || lockTxt)}</span></div></div>`;
+      let g = ""; for (let d = 0; d <= 9; d++) g += `<div class="digit-box" onclick="openBet('${db.t}','DIGIT','Last Digit [${d}]',${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
+      return `<div class="market-card"><div class="market-head"><span>${db.t}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${g}</div></div>`;
     }).join("");
-
     if (!skipBetReload) loadMyLockedBets(m.id);
   }
 
   function filterMarket(type, btn) {
-    document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
-    document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
-    document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
-    document.querySelector(".sec-digit").style.display = (type === "all" || type === "digit") ? "block" : "none";
-    document.querySelector(".sec-mybets").style.display = (type === "mybets") ? "block" : "none";
+    document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active");
+    [".sec-odds", ".sec-bookmaker", ".sec-fancy", ".sec-digit", ".sec-mybets"].forEach((s, idx) => {
+      const keys = ["odds", "bookmaker", "fancy", "digit", "mybets"];
+      document.querySelector(s).style.display = (type === "all" && idx < 4) || type === keys[idx] ? "block" : "none";
+    });
     if (type === "mybets" && activeMatch) loadMyLockedBets(activeMatch.id);
   }
 
-  function openBet(marketName, side, lockedLine, oddMult) {
+  function openBet(mkt, side, line, odd) {
     if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 3 second baad bet lagayein.");
-    selBet = { marketName, side, lockedLine, oddMult: Number(oddMult), sigAtOpen: lastScoreSignature };
-    document.getElementById("betTitle").innerText = `${marketName} (${side}: ${lockedLine})`;
-    document.getElementById("betOddTag").innerText = `@ ${oddMult}x`;
-    document.getElementById("betModal").classList.add("open");
-    updateBetReturn();
+    selBet = { marketName: mkt, side, lockedLine: line, oddMult: Number(odd) };
+    document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line})`;
+    document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    document.getElementById("betModal").classList.add("open"); updateBetReturn();
   }
-
   function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
-
   function updateBetReturn() {
     if (!selBet) return;
     const st = Number(document.getElementById("stakeInput").value || 0);
-    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${(st * selBet.oddMult).toFixed(0)} (Line: ${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${(st * selBet.oddMult).toFixed(0)} (${selBet.lockedLine} @ ${selBet.oddMult}x)`;
   }
 
-  async function deductUserWallet(amount) {
-    const r = await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`);
-    const u = (await r.json()) || {};
+  async function deductUserWallet(amt) {
+    const u = (await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json()) || {};
     let d = Number(u.depositBal ?? u.depositBalance ?? 0), w = Number(u.winningBal ?? u.winningBalance ?? 0);
-    if (d + w < amount) return false;
-    if (d >= amount) d -= amount; else { const rem = amount - d; d = 0; w = Math.max(0, w - rem); }
-    const patchData = { depositBal: d, winningBal: w };
-    if ("depositBalance" in u) patchData.depositBalance = d;
-    if ("winningBalance" in u) patchData.winningBalance = w;
-    await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patchData) });
-    localStorage.setItem("bg_last_dep_" + mob, String(d));
-    localStorage.setItem("bg_last_win_" + mob, String(w));
-    await syncUserWallet();
-    return true;
+    if (d + w < amt) return false;
+    if (d >= amt) d -= amt; else { w = Math.max(0, w - (amt - d)); d = 0; }
+    const p = { depositBal: d, winningBal: w };
+    if ("depositBalance" in u) p.depositBalance = d; if ("winningBalance" in u) p.winningBalance = w;
+    await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+    localStorage.setItem("bg_last_dep_" + mob, String(d)); localStorage.setItem("bg_last_win_" + mob, String(w));
+    await syncUserWallet(); return true;
   }
 
-  let isPlacingBet = false;
-
+  let isPlacingBet = false, isSettlingBets = false;
   async function placeBet() {
     if (isPlacingBet) return;
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
     if (st > userBal) return alert("Insufficient Balance!");
-
     isPlacingBet = true;
-    const btn = document.querySelector("#betModal button:last-child");
-    btn.disabled = true;
-    btn.innerText = "⏳ Matching Bet (3s)...";
-
+    const btn = document.querySelector("#betModal button:last-child"); btn.disabled = true; btn.innerText = "⏳ Matching Bet (3s)...";
     try {
-      await new Promise(r => setTimeout(r, 3000));
-      await refreshActiveMatchDetail();
-
-      if (Date.now() < ballChangeLockUntil) {
-        alert("⚠️ Ball Running! Naye rate par bet lagayein.");
-        document.getElementById("betModal").classList.remove("open");
-        return;
-      }
-      const ov = overrides[activeMatch.id] || {};
-      const limCheck = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
-      if (limCheck.blocked) {
-        alert("⚠️ Sorry! Is contest ki limit poori ho gayi hai (" + limCheck.reason + ")");
-        openMatch(activeMatch, true);
-        return;
-      }
+      await new Promise(r => setTimeout(r, 3000)); await refreshActiveMatchDetail();
+      if (Date.now() < ballChangeLockUntil) { alert("⚠️ Ball Running! Naye rate par bet lagayein."); document.getElementById("betModal").classList.remove("open"); return; }
+      const ov = overrides[activeMatch.id] || {}, lim = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
+      if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); openMatch(activeMatch, true); return; }
       if (!(await deductUserWallet(st))) return alert("Insufficient Wallet Balance!");
-
-      const lockedReturn = Number((st * selBet.oddMult).toFixed(2));
-      const betRecord = {
-        betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900),
-        matchId: String(activeMatch.id),
-        matchName: activeMatch.title,
-        mobile: String(mob),
-        userName: userNameStr,
-        market: selBet.marketName,
-        side: selBet.side,
-        lockedLine: selBet.lockedLine,
-        lockedOdd: selBet.oddMult,
-        stake: st,
-        lockedReturn,
-        status: "OPEN",
-        time: new Date().toLocaleString("en-IN")
-      };
-
-      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${betRecord.betId}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(betRecord)
-      });
-      alert(`✅ Bet Matched & Locked!\n${betRecord.market}\nLine: ${betRecord.lockedLine} @ ${betRecord.lockedOdd}x\nStake: ₹${st} → Return: ₹${lockedReturn}`);
+      const rec = { betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900), matchId: String(activeMatch.id), matchName: activeMatch.title, mobile: String(mob), userName: userNameStr, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine, lockedOdd: selBet.oddMult, stake: st, lockedReturn: Number((st * selBet.oddMult).toFixed(2)), status: "OPEN", time: new Date().toLocaleString("en-IN") };
+      await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+      alert(`✅ Bet Locked!\n${rec.market}\nStake: ₹${st} → Return: ₹${rec.lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
-      await fetchMatchBetLimits(activeMatch.id);
-      await loadMyLockedBets(activeMatch.id);
-    } catch (e) {
-      alert("Network error! Bet save nahi ho payi.");
-    } finally {
-      isPlacingBet = false;
-      btn.disabled = false;
-      btn.innerText = "Confirm & Lock Bet";
-    }
+      await fetchMatchBetLimits(activeMatch.id); await loadMyLockedBets(activeMatch.id);
+    } catch (e) { alert("Network error!"); } finally { isPlacingBet = false; btn.disabled = false; btn.innerText = "Confirm & Lock Bet"; }
   }
 
-  let isSettlingBets = false;
-
-  function showWinnerPopup(b, infoText) {
+  function showWinnerPopup(b, info) {
     document.getElementById("winPopupAmount").innerText = `+₹${b.lockedReturn}`;
     document.getElementById("winPopupMatch").innerText = `🏏 ${b.matchName || "Cricket Match"}`;
     document.getElementById("winPopupMarket").innerText = `${b.market} (${b.lockedLine})`;
-    document.getElementById("winPopupResult").innerText = `🎉 Winner Result: ${infoText}`;
+    document.getElementById("winPopupResult").innerText = `🎉 Winner Result: ${info}`;
     document.getElementById("winPopupModal").classList.add("show");
   }
 
-  async function creditUserWinning(targetMob, amount) {
-    if (!targetMob || amount <= 0) return;
-    const r = await fetch(`${FB_URL}/users/${targetMob}.json?t=${Date.now()}`);
-    const u = (await r.json()) || {};
-    const curWin = Number(u.winningBal ?? u.winningBalance ?? 0);
-    const nextWin = Number((curWin + amount).toFixed(2));
-    const patch = { winningBal: nextWin };
-    if ("winningBalance" in u) patch.winningBalance = nextWin;
-    await fetch(`${FB_URL}/users/${targetMob}.json`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch)
-    });
-    if (String(targetMob) === String(mob)) await syncUserWallet();
+  async function creditUserWinning(tMob, amt) {
+    if (!tMob || amt <= 0) return;
+    const u = (await (await fetch(`${FB_URL}/users/${tMob}.json?t=${Date.now()}`)).json()) || {};
+    const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + amt).toFixed(2)), p = { winningBal: nw };
+    if ("winningBalance" in u) p.winningBalance = nw;
+    await fetch(`${FB_URL}/users/${tMob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+    if (String(tMob) === String(mob)) await syncUserWallet();
   }
 
   function evaluateBetOutcome(b, matchObj, detailHtml) {
-    const clean = (detailHtml || "")
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
-    const isDrawn = /\b(match drawn|drawn|abandoned|no result|match tied)\b/i.test(clean) || (matchObj && /drawn|abandoned|no result|tied/i.test(matchObj.status || ""));
-    const isEnded = Boolean(wonM || isDrawn || (matchObj && matchObj.type === "completed"));
-
-    const innList = [...clean.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)].map(x => ({
-      team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ovs: Number(x[4])
-    }));
-
+    const html = detailHtml || "", nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i), ndJson = nd ? nd[1] : "";
+    const clean = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const jsonStatusM = ndJson.match(/"status"\s*:\s*"([^"]{3,95})"/);
+    const officialStatus = jsonStatusM ? jsonStatusM[1].trim() : clean.slice(0, 750);
+    const isOfficialComplete = /"state"\s*:\s*"Complete"/i.test(ndJson) || /"matchComplete"\s*:\s*true/i.test(ndJson);
+    const wonM = officialStatus.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
+    const isDrawn = /\b(match drawn|match tied|abandoned|no result)\b/i.test(officialStatus);
+    const isEnded = Boolean(isOfficialComplete || wonM || isDrawn);
+    const innList = [...clean.slice(0, 2000).matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)].map(x => ({ team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ovs: Number(x[4]) }));
     const mkt = String(b.market || ""), side = String(b.side || "").toUpperCase(), line = String(b.lockedLine || "");
 
     const sessM = mkt.match(/(\d+)\s*Over Run\s*\(([^)]+)\)/i);
     if (sessM) {
-      const targetOv = Number(sessM[1]), teamCode = sessM[2].trim().toUpperCase();
-      const targetRunsM = line.match(/(\d+)/), reqRuns = targetRunsM ? Number(targetRunsM[1]) : 0;
-      const inn = innList.find(x => x.team === teamCode) || innList[0];
-
-      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded || (innList.length >= 2 && inn !== innList[innList.length - 1]))) {
-        const actualAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
-        const isYesWin = actualAtOv >= reqRuns;
-        const won = (side === "YES" && isYesWin) || (side === "NO" && !isYesWin);
-        return { settled: true, status: won ? "WON" : "LOST", info: `${teamCode} ${targetOv} Ov Score: ${actualAtOv} runs` };
+      const tOv = Number(sessM[1]), tCode = sessM[2].trim().toUpperCase(), reqR = Number((line.match(/(\d+)/) || [0, 0])[1]);
+      const inn = innList.find(x => x.team === tCode);
+      if (inn && (inn.ovs >= tOv || inn.wkts >= 10 || isEnded)) {
+        const act = inn.ovs > tOv ? Math.round((inn.runs / inn.ovs) * tOv) : inn.runs;
+        const won = (side === "YES" && act >= reqR) || (side === "NO" && act < reqR);
+        return { settled: true, status: won ? "WON" : "LOST", info: `${tCode} ${tOv} Ov Score: ${act} runs` };
       }
       return { settled: false };
     }
-
     if (/Last Digit/i.test(mkt)) {
-      const digOvM = mkt.match(/(\d+)\s*Over/i), targetOv = digOvM ? Number(digOvM[1]) : 20;
-      const is2nd = /2nd Inning/i.test(mkt), inn = is2nd ? innList[1] : innList[0];
-      const chosenDigM = line.match(/\[(\d)\]/), chosenDig = chosenDigM ? Number(chosenDigM[1]) : -1;
-
-      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded || (!is2nd && innList.length >= 2))) {
-        const runsAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
-        const actualDig = runsAtOv % 10;
-        const won = actualDig === chosenDig;
-        return { settled: true, status: won ? "WON" : "LOST", info: `Score: ${runsAtOv} (Last Digit: ${actualDig})` };
+      const tOv = Number((mkt.match(/(\d+)\s*Over/i) || [0, 20])[1]), inn = /2nd Inning/i.test(mkt) ? innList[1] : innList[0], dig = Number((line.match(/\[(\d)\]/) || [0, -1])[1]);
+      if (inn && (inn.ovs >= tOv || inn.wkts >= 10 || isEnded)) {
+        const rOv = inn.ovs > tOv ? Math.round((inn.runs / inn.ovs) * tOv) : inn.runs, actD = rOv % 10;
+        return { settled: true, status: actD === dig ? "WON" : "LOST", info: `Score: ${rOv} (Last Digit: ${actD})` };
       }
       return { settled: false };
     }
-
     if (/Match Odds|Bookmaker/i.test(mkt)) {
-      const teamPick = mkt.split("(")[0].trim().toUpperCase();
-      if (isDrawn) {
-        if (/Bookmaker/i.test(mkt)) return { settled: true, status: "VOID", info: "Match Drawn/Tied (Stake Refunded)" };
-        return { settled: true, status: "LOST", info: "Match Drawn" };
-      }
+      if (!isEnded) return { settled: false };
+      const pick = mkt.split("(")[0].trim().toUpperCase();
+      if (isDrawn) return /Bookmaker/i.test(mkt) ? { settled: true, status: "VOID", info: "Match Drawn/Tied (Refunded)" } : { settled: true, status: "LOST", info: "Match Drawn" };
       if (wonM) {
-        const winnerText = wonM[1].trim().toUpperCase();
-        const didTeamWin = winnerText.includes(teamPick) || teamPick.includes(winnerText);
-        const won = (side === "BACK" && didTeamWin) || (side === "LAY" && !didTeamWin);
-        return { settled: true, status: won ? "WON" : "LOST", info: `🏆 ${wonM[1].trim()} Won the Match` };
+        const wT = wonM[1].trim().toUpperCase(), hit = wT.includes(pick) || pick.includes(wT);
+        return { settled: true, status: ((side === "BACK" && hit) || (side === "LAY" && !hit)) ? "WON" : "LOST", info: `🏆 ${wonM[1].trim()} Won` };
       }
     }
     return { settled: false };
@@ -1007,93 +706,54 @@
 
   async function loadMyLockedBets(matchId) {
     try {
-      const r = await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`);
-      const allMatchesBets = (await r.json()) || {};
-      const myBets = [], openMatchIds = new Set();
-
-      Object.entries(allMatchesBets).forEach(([mKey, mObj]) => {
-        if (!mObj || typeof mObj !== "object") return;
-        Object.values(mObj).forEach(b => {
+      const allB = (await (await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`)).json()) || {};
+      const myBets = [], openIds = new Set();
+      Object.entries(allB).forEach(([k, obj]) => {
+        if (!obj || typeof obj !== "object") return;
+        Object.values(obj).forEach(b => {
           if (!b) return;
-          if (String(b.status || "OPEN").toUpperCase() === "OPEN") openMatchIds.add(String(mKey));
-          if (String(b.mobile || "").trim() === String(mob).trim()) myBets.push({ ...b, _mKey: mKey });
+          if (String(b.status || "OPEN").toUpperCase() === "OPEN") openIds.add(String(k));
+          if (String(b.mobile || "").trim() === String(mob).trim()) myBets.push({ ...b, _mKey: k });
         });
       });
-
-      if (!isSettlingBets && openMatchIds.size > 0) {
+      if (!isSettlingBets && openIds.size > 0) {
         isSettlingBets = true;
         (async () => {
-          let anyUpdated = false;
+          let upd = false;
           try {
-            for (const mId of openMatchIds) {
-              const mObj = allMatchesBets[mId] || {};
-              const openBets = Object.values(mObj).filter(b => b && String(b.status || "OPEN").toUpperCase() === "OPEN");
-              if (!openBets.length) continue;
-
-              const matchInfo = matches.find(x => String(x.id) === String(mId));
-              const resH = await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`);
-              const detailHtml = await resH.text();
-
-              for (const b of openBets) {
-                const outcome = evaluateBetOutcome(b, matchInfo, detailHtml);
-                if (outcome.settled) {
-                  await fetch(`${FB_URL}/cricketBets/${mId}/${b.betId}.json`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status: outcome.status, resultInfo: outcome.info, settledAt: new Date().toLocaleString("en-IN") })
-                  });
-                  if (outcome.status === "WON") {
-                    await creditUserWinning(b.mobile, Number(b.lockedReturn || 0));
-                    if (String(b.mobile).trim() === String(mob).trim()) showWinnerPopup(b, outcome.info);
-                  } else if (outcome.status === "VOID") {
-                    await creditUserWinning(b.mobile, Number(b.stake || 0));
-                  }
-                  anyUpdated = true;
+            for (const mId of openIds) {
+              const openB = Object.values(allB[mId] || {}).filter(b => b && String(b.status || "OPEN").toUpperCase() === "OPEN");
+              if (!openB.length) continue;
+              const dHtml = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+              for (const b of openB) {
+                const res = evaluateBetOutcome(b, matches.find(x => String(x.id) === String(mId)), dHtml);
+                if (res.settled) {
+                  await fetch(`${FB_URL}/cricketBets/${mId}/${b.betId}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: res.status, resultInfo: res.info, settledAt: new Date().toLocaleString("en-IN") }) });
+                  if (res.status === "WON") { await creditUserWinning(b.mobile, Number(b.lockedReturn || 0)); if (String(b.mobile).trim() === String(mob).trim()) showWinnerPopup(b, res.info); }
+                  else if (res.status === "VOID") await creditUserWinning(b.mobile, Number(b.stake || 0));
+                  upd = true;
                 }
               }
             }
-          } catch (e) {} finally {
-            isSettlingBets = false;
-            if (anyUpdated && activeMatch) loadMyLockedBets(activeMatch.id);
-          }
+          } catch (e) {} finally { isSettlingBets = false; if (upd && activeMatch) loadMyLockedBets(activeMatch.id); }
         })();
       }
-
       myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
       const box = document.getElementById("myBetsList");
       if (!myBets.length) { box.innerHTML = `<div class="empty-msg">Abhi aapki koi bet nahi hai.</div>`; return; }
       box.innerHTML = myBets.map(b => {
         const st = String(b.status || "OPEN").toUpperCase();
-        const cardCls = st === "WON" ? "bet-won" : st === "LOST" ? "bet-lost" : st === "VOID" ? "bet-void" : "";
-        const pillCls = st === "WON" ? "pill-won" : st === "LOST" ? "pill-lost" : st === "VOID" ? "pill-void" : "pill-open";
-        const pillText = st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : st === "LOST" ? `❌ LOST` : st === "VOID" ? `🔄 REFUND ₹${b.stake}` : `⏳ LIVE OPEN`;
-        return `<div class="bet-item-card ${cardCls}">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <span style="font-size:10px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mKey)}</span>
-            <span class="status-pill ${pillCls}">${pillText}</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;">
-            <span>${b.market} (${b.side})</span>
-            <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
-          </div>
-          <div style="color:#ddd; margin-top:3px;">Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • Stake: <b>₹${b.stake}</b></div>
-          ${b.resultInfo ? `<div style="margin-top:5px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}
-          <div style="font-size:10px; color:#999; margin-top:4px;">Placed: ${b.time}</div>
-        </div>`;
+        const cCls = st === "WON" ? "bet-won" : st === "LOST" ? "bet-lost" : st === "VOID" ? "bet-void" : "";
+        const pCls = st === "WON" ? "pill-won" : st === "LOST" ? "pill-lost" : st === "VOID" ? "pill-void" : "pill-open";
+        const pTxt = st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : st === "LOST" ? `❌ LOST` : st === "VOID" ? `🔄 REFUND ₹${b.stake}` : `⏳ LIVE OPEN`;
+        return `<div class="bet-item-card ${cCls}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><span style="font-size:10px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mKey)}</span><span class="status-pill ${pCls}">${pTxt}</span></div><div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div><div style="color:#ddd; margin-top:3px;">Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • Stake: <b>₹${b.stake}</b></div>${b.resultInfo ? `<div style="margin-top:5px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}<div style="font-size:10px; color:#999; margin-top:4px;">Placed: ${b.time}</div></div>`;
       }).join("");
     } catch (e) {}
   }
 
-  function goBack() {
-    activeMatch = null;
-    document.getElementById("contestScreen").style.display = "none";
-    document.getElementById("matchListScreen").style.display = "block";
-    renderList();
-  }
-
-  syncUserWallet();
-  loadMatches();
-  setInterval(fastLivePulse, 5000);
+  function goBack() { activeMatch = null; document.getElementById("contestScreen").style.display = "none"; document.getElementById("matchListScreen").style.display = "block"; renderList(); }
+  syncUserWallet(); loadMatches(); setInterval(fastLivePulse, 5000);
 </script>
 </body>
 </html>
+  
