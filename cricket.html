@@ -57,14 +57,12 @@
     .rate-lay { background: linear-gradient(180deg, #fcb9c8, #f58fa6); }
     .rate-main { font-size: 13px; font-weight: 900; line-height: 1.1; }
     .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
-    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.88); border: 1px solid #ef4444; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
+    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.9); border: 1px solid #ef4444; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
     .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; background: #190324; }
     .digit-box { background: linear-gradient(180deg, #8ecbf5, #5aaee8); color: #000; border-radius: 7px; padding: 7px 4px; text-align: center; cursor: pointer; }
     .digit-box:active { transform: scale(0.95); background: #ffd700; }
     .digit-num { font-size: 14px; font-weight: 900; display: block; }
     .digit-odd { font-size: 10px; font-weight: 700; opacity: 0.85; }
-
-    /* Premium Bet Result Cards */
     .bet-item-card { margin: 8px; padding: 11px; border-radius: 10px; background: #180324; border: 1px solid #4c1169; font-size: 12px; }
     .bet-item-card.bet-won { background: linear-gradient(135deg, rgba(255, 215, 0, 0.14), rgba(22, 163, 74, 0.18)); border: 1.5px solid #ffd700; box-shadow: 0 0 14px rgba(255, 215, 0, 0.18); }
     .bet-item-card.bet-lost { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.45); }
@@ -74,13 +72,10 @@
     .pill-lost { background: #ef4444; color: #fff; }
     .pill-void { background: #38bdf8; color: #000; }
     .pill-open { background: #4b5563; color: #ffd700; }
-
-    /* VIP Winner Celebration Popup */
     .win-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 16px; }
     .win-popup-backdrop.show { display: flex; }
     .win-popup-card { width: 100%; max-width: 370px; background: linear-gradient(160deg, #3b0954 0%, #170224 100%); border: 2.5px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; box-shadow: 0 0 35px rgba(255, 215, 0, 0.45); animation: popScale 0.3s ease; }
     @keyframes popScale { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
     .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 20px rgba(0,0,0,0.85); }
     .bet-modal.open { display: block; }
     .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
@@ -157,7 +152,7 @@
       <div id="bmBody"></div>
     </div>
     <div class="market-card sec-fancy">
-      <div class="market-head"><span>Fancy Markets (Session, Player & Boundaries)</span><span style="font-size:10px; color:#28e04d;">● LIVE</span></div>
+      <div class="market-head"><span id="fancyHeaderTitle">Fancy Markets (Intelligent Session)</span><span style="font-size:10px; color:#28e04d;">● LIVE</span></div>
       <div class="col-headers"><span>No</span><span>Yes</span></div>
       <div id="fancyBody"></div>
     </div>
@@ -169,7 +164,6 @@
   </div>
 </div>
 
-<!-- VIP Winner Celebration Modal -->
 <div class="win-popup-backdrop" id="winPopupModal">
   <div class="win-popup-card">
     <div style="font-size:52px; margin-bottom:6px;">🏆</div>
@@ -242,7 +236,11 @@
 
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
-  let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 45, wktsNum: 1, ovNum: 6.0, batTeam: "", targetRuns: 0, maxOvers: 20, isDrawnOrDone: false };
+  let liveScoreData = {
+    headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "",
+    runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0,
+    maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false
+  };
 
   function parseTeamsFromTitle(title) {
     const clean = String(title || "").split(/\d+(?:st|nd|rd|th)|Elite|Group|Match|Test|Odi|T20/i)[0].trim();
@@ -263,12 +261,16 @@
     const prev = JSON.parse(localStorage.getItem(key) || "null");
     let balls = getSavedBalls(matchId);
     if (prev && prev.ov !== ovStr) {
-      const wDiff = Math.max(0, wkts - prev.wkts);
-      const rDiff = Math.max(0, runs - prev.runs);
-      const label = wDiff > 0 ? (rDiff > 0 ? `W+${rDiff}` : "W") : String(rDiff);
-      balls.push(label);
-      balls = balls.slice(-6);
-      localStorage.setItem("cbz_balls_" + matchId, JSON.stringify(balls));
+      const ovJump = Math.abs(Number(ovStr) - Number(prev.ov));
+      // Sirf ek hi ball (0.1 ya 0.5 over change) par ball label record karein, poora score jump nahi
+      if (ovJump > 0 && ovJump <= 0.6 && runs >= prev.runs) {
+        const wDiff = Math.max(0, wkts - prev.wkts);
+        const rDiff = Math.min(7, Math.max(0, runs - prev.runs));
+        const label = wDiff > 0 ? (rDiff > 0 ? `W+${rDiff}` : "W") : String(rDiff);
+        balls.push(label);
+        balls = balls.slice(-6);
+        localStorage.setItem("cbz_balls_" + matchId, JSON.stringify(balls));
+      }
     }
     localStorage.setItem(key, JSON.stringify({ ov: ovStr, runs, wkts }));
     return balls;
@@ -322,14 +324,15 @@
   }
 
   function parseCricbuzzMatchHtml(html, matchId, title) {
-    const isTest = /test/i.test(title || "");
-    const isOdi = /odi|one day/i.test(title || "");
+    const isTest = /test|shield|ranji|trophy.*day/i.test(title || "") && !/t20|mushtaq|ilt20|bbl/i.test(title || "");
+    const isOdi = /odi|one day|vijay hazare/i.test(title || "");
     const maxOvers = isTest ? 90 : isOdi ? 50 : 20;
 
     const out = {
       headline: "", overs: "", status: "", balls: getSavedBalls(matchId),
-      batters: "", bowler: "", shortComm: "", runsNum: 45, wktsNum: 1, ovNum: 6.0,
-      batTeam: "", targetRuns: 0, maxOvers, isDrawnOrDone: false
+      batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0,
+      batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1,
+      isInningsBreak: false, isDrawnOrDone: false
     };
 
     const cleanTxt = html
@@ -344,30 +347,54 @@
     if (/\b(match drawn|won by|abandoned|no result|match tied)\b/i.test(cleanTxt)) {
       out.isDrawnOrDone = true;
     }
+    if (/\b(innings break)\b/i.test(cleanTxt)) {
+      out.isInningsBreak = true;
+    }
 
     const scAll = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
     if (scAll.length) {
-      if (scAll.length >= 2) {
-        const firstRuns = Number(scAll[0][2] || 0);
-        if (firstRuns > 0 && !isTest) out.targetRuns = firstRuns + 1;
+      const uniqueInns = [];
+      scAll.forEach(x => {
+        const key = `${x[1].toUpperCase()}_${x[2]}_${x[3]}_${x[4]}`;
+        if (!uniqueInns.some(u => u.key === key)) {
+          uniqueInns.push({ key, team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ov: Number(x[4]), ovStr: String(x[4]) });
+        }
+      });
+
+      const first = uniqueInns[0];
+      const last = uniqueInns[uniqueInns.length - 1];
+      out.firstInnRuns = first.runs;
+
+      // Detect if 2nd inning has started or is at Innings Break
+      const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team;
+      const isFirstInnCompleted = !isSecondInnStarted && (out.isInningsBreak || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
+
+      if (isSecondInnStarted) {
+        out.inningNo = 2;
+        if (!isTest) out.targetRuns = first.runs + 1;
+      } else if (isFirstInnCompleted) {
+        out.inningNo = 2;
+        out.isInningsBreak = true;
+        if (!isTest) out.targetRuns = first.runs + 1;
+      } else {
+        out.inningNo = 1;
       }
-      const last = scAll[scAll.length - 1];
-      const rVal = Number(last[2] || 0);
-      const wVal = Number(last[3] || 0);
-      const ovVal = String(last[4] || "");
-      out.batTeam = last[1].toUpperCase();
-      out.headline = `${out.batTeam} ${rVal}/${wVal}`;
-      out.runsNum = rVal;
-      out.wktsNum = wVal;
-      out.ovNum = Number(ovVal || 0);
+
+      out.batTeam = last.team;
+      out.headline = `${last.team} ${last.runs}/${last.wkts}`;
+      out.runsNum = last.runs;
+      out.wktsNum = last.wkts;
+      out.ovNum = last.ov;
       const crrM = cleanTxt.match(/CRR[:\s]+([0-9.]+)/i);
-      out.overs = `(${ovVal} Ov${crrM ? " • CRR " + crrM[1] : ""})`;
-      const liveTracked = recordBallEvent(matchId, rVal, wVal, ovVal);
+      out.overs = `(${last.ovStr} Ov${crrM ? " • CRR " + crrM[1] : ""})`;
+      const liveTracked = recordBallEvent(matchId, last.runs, last.wkts, last.ovStr);
       if (liveTracked.length) out.balls = liveTracked;
     }
 
     const needM = cleanTxt.match(/need\s*(\d+)\s*runs/i);
-    if (needM && out.runsNum >= 0) out.targetRuns = out.runsNum + Number(needM[1]);
+    if (needM && out.inningNo === 2) {
+      out.targetRuns = out.runsNum + Number(needM[1]);
+    }
 
     const stM = cleanTxt.match(/(Match drawn|[A-Za-z\s]+won by\s*[^.]+|Day\s*\d+:\s*[^.]+?runs|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|[A-Za-z\s]+(?:trail by|lead by|need)\s*\d+\s*runs|Innings Break|Stumps)/i);
     if (stM) out.status = stM[1].trim().slice(0, 75);
@@ -413,39 +440,48 @@
     return out;
   }
 
+  // Intelligent Odds Engine (Innings Break, Target RRR, CRR & Wickets ke hisaab se)
   function computeDynamicMatchOdds(tA, tB, sd, winRate) {
-    let probA = 0.52;
+    let probA = 0.50;
     const runs = sd.runsNum || 0;
     const wkts = sd.wktsNum || 0;
     const ov = sd.ovNum || 0;
     const maxOv = sd.maxOvers || 20;
     const isTeamABatting = !sd.batTeam || sd.batTeam === tA;
 
-    if (sd.targetRuns > 0) {
+    if (sd.isInningsBreak && sd.firstInnRuns > 0 && maxOv <= 50) {
+      // 1st inning khatam: par score (T20: 162, ODI: 265) se compare karein
+      const parScore = maxOv === 20 ? 162 : 265;
+      const diff = sd.firstInnRuns - parScore;
+      const firstTeamProb = Math.min(0.86, Math.max(0.18, 0.50 + (diff * 0.008)));
+      probA = isTeamABatting ? firstTeamProb : (1 - firstTeamProb);
+    } else if (sd.targetRuns > 0 && sd.inningNo === 2) {
       const runsNeeded = Math.max(0, sd.targetRuns - runs);
       const ovCompleted = Math.floor(ov) + ((ov % 1) * 10) / 6;
       const ovLeft = Math.max(0.16, maxOv - ovCompleted);
       const rrr = runsNeeded / ovLeft;
+      const baseParRate = maxOv === 20 ? 8.3 : 5.4;
       const wktsInHand = Math.max(0, 10 - wkts);
 
-      let batWinProb = 0.50;
-      if (runsNeeded === 0) batWinProb = 0.98;
-      else if (wkts >= 10 || ovLeft <= 0) batWinProb = 0.02;
+      let chaseProb = 0.50;
+      if (runsNeeded === 0) chaseProb = 0.98;
+      else if (wkts >= 10 || ovLeft <= 0) chaseProb = 0.02;
       else {
-        const pressure = (rrr - 8.5) * 0.065;
+        const pressure = (rrr - baseParRate) * 0.065;
         const wicketPenalty = (10 - wktsInHand) * 0.045;
-        batWinProb = 0.62 - pressure - wicketPenalty;
+        chaseProb = 0.58 - pressure - wicketPenalty;
       }
-      batWinProb = Math.min(0.95, Math.max(0.06, batWinProb));
-      probA = isTeamABatting ? batWinProb : (1 - batWinProb);
+      chaseProb = Math.min(0.95, Math.max(0.06, chaseProb));
+      probA = isTeamABatting ? chaseProb : (1 - chaseProb);
     } else if (ov > 0) {
       const crr = runs / Math.max(0.5, ov);
-      const batStrength = 0.50 + ((crr - 7.5) * 0.035) - (wkts * 0.045);
-      const clamped = Math.min(0.88, Math.max(0.12, batStrength));
+      const parCrr = maxOv === 20 ? 7.8 : maxOv === 50 ? 5.2 : 3.4;
+      const batStrength = 0.50 + ((crr - parCrr) * 0.035) - (wkts * 0.04);
+      const clamped = Math.min(0.86, Math.max(0.14, batStrength));
       probA = isTeamABatting ? clamped : (1 - clamped);
     }
 
-    const houseMargin = winRate <= 20 ? 0.90 : winRate <= 35 ? 0.94 : winRate <= 50 ? 0.97 : 0.99;
+    const houseMargin = winRate <= 20 ? 0.91 : winRate <= 35 ? 0.95 : winRate <= 50 ? 0.97 : 0.99;
     const rawOddA = Math.min(15.0, Math.max(1.04, (1 / probA) * houseMargin));
     const rawOddB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * houseMargin));
     const spreadA = rawOddA > 4 ? 0.15 : rawOddA > 2.5 ? 0.06 : 0.03;
@@ -561,7 +597,12 @@
     const m = matches.find(x => String(x.id) === String(id));
     if (m) {
       activeMatch = m;
-      liveScoreData = { headline: "", overs: "", status: m.status || "Live", balls: getSavedBalls(m.id), batters: "🏏 Loading...", bowler: "⚾ Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 45, wktsNum: 1, ovNum: 6.0, batTeam: "", targetRuns: 0, maxOvers: 20, isDrawnOrDone: m.type === "completed" };
+      liveScoreData = {
+        headline: "", overs: "", status: m.status || "Live", balls: getSavedBalls(m.id),
+        batters: "🏏 Loading...", bowler: "⚾ Loading...", shortComm: "Live scorecard load ho raha hai...",
+        runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0,
+        maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed"
+      };
       lastScoreSignature = "";
       openMatch(m, false);
       await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
@@ -577,6 +618,18 @@
     return { blocked: false, reason: "" };
   }
 
+  // Intelligent Session Line Calculator (Remaining overs & realistic run rate ke hisaab se)
+  function calcIntelligentSessionLine(targetOv, curOv, curRuns, maxOv, isBreak) {
+    const baseRr = maxOv === 20 ? 8.4 : maxOv === 50 ? 5.5 : 3.5;
+    if (isBreak || curOv === 0) {
+      return Math.round(targetOv * baseRr);
+    }
+    const remOv = Math.max(0, targetOv - curOv);
+    const curRr = curRuns / Math.max(0.5, curOv);
+    const blendedRr = (curRr * 0.55) + (baseRr * 0.45);
+    return Math.round(curRuns + (remOv * blendedRr));
+  }
+
   function openMatch(m, skipBetReload) {
     activeMatch = m;
     document.getElementById("matchListScreen").style.display = "none";
@@ -587,11 +640,19 @@
     document.getElementById("cTitle").innerText = m.title;
     document.getElementById("cStatus").innerText = liveScoreData.status || m.status || "Live Match";
 
-    const currRuns = ov.liveRuns ? Number(String(ov.liveRuns).split("/")[0] || 0) : (m._runsNum || 45);
-    const currOvers = ov.liveOvers ? Number(ov.liveOvers) : (m._ovNum || 6.0);
-    const crr = currOvers > 0 ? (currRuns / currOvers) : 8.0;
-
     const isCompleted = m.type === "completed" || liveScoreData.isDrawnOrDone;
+    const isBreak = liveScoreData.isInningsBreak;
+    const activeInn = liveScoreData.inningNo || 1;
+    const maxOv = liveScoreData.maxOvers || 20;
+
+    // Active Batting Team for Fancy Sessions (1st Inn khatam hote hi 2nd Team par shift!)
+    const activeFancyTeam = (activeInn === 2)
+      ? (liveScoreData.batTeam && !isBreak ? liveScoreData.batTeam : (liveScoreData.batTeam === tA ? tB : tA))
+      : (liveScoreData.batTeam || tA);
+
+    const effRuns = isBreak ? 0 : (ov.liveRuns ? Number(String(ov.liveRuns).split("/")[0] || 0) : (liveScoreData.runsNum || 0));
+    const effOvers = isBreak ? 0 : (ov.liveOvers ? Number(ov.liveOvers) : (liveScoreData.ovNum || 0));
+
     document.getElementById("cRuns").innerText = ov.liveRuns || liveScoreData.headline || (isCompleted ? "ENDED" : m.type === "live" ? "LIVE" : "SOON");
     document.getElementById("cOvers").innerText = ov.liveOvers ? `(${ov.liveOvers} Ov)` : (liveScoreData.overs || (isCompleted ? "Match Finished" : m.type === "upcoming" ? "Scheduled" : "In Progress"));
 
@@ -659,25 +720,34 @@
         ${globalLocked ? `<div class="suspended-overlay">${lockBannerText}</div>` : ''}
       </div></div>`;
 
-    const s6No = ov.sess6No || Math.max(currRuns + 10, Math.round(crr * 6)), s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
-    const s10No = ov.sess10No || Math.max(currRuns + 18, Math.round(crr * 10)), s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
-    const s15No = ov.sess15No || Math.max(currRuns + 26, Math.round(crr * 15)), s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
-    const s20No = ov.sess20No || Math.max(currRuns + 34, Math.round(crr * 20)), s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
+    // Intelligent Session Lines for Active Batting Inning (6, 10, 15, 20 Overs)
+    document.getElementById("fancyHeaderTitle").innerText = `Fancy Markets (${activeFancyTeam} • ${activeInn === 2 ? "2nd" : "1st"} Inn)`;
+    const s6No = ov.sess6No || calcIntelligentSessionLine(6, effOvers, effRuns, maxOv, isBreak);
+    const s6Yes = ov.sess6Yes || (Number(s6No) + sessGap);
+    const s10No = ov.sess10No || calcIntelligentSessionLine(10, effOvers, effRuns, maxOv, isBreak);
+    const s10Yes = ov.sess10Yes || (Number(s10No) + sessGap);
+    const s15No = ov.sess15No || calcIntelligentSessionLine(15, effOvers, effRuns, maxOv, isBreak);
+    const s15Yes = ov.sess15Yes || (Number(s15No) + sessGap);
+    const s20No = ov.sess20No || calcIntelligentSessionLine(20, effOvers, effRuns, maxOv, isBreak);
+    const s20Yes = ov.sess20Yes || (Number(s20No) + sessGap + 1);
 
     const fancyRows = [
-      { title: `6 Over Run (${tA})`, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout },
-      { title: `10 Over Run (${tA})`, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout },
-      { title: `15 Over Run (${tA})`, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout },
-      { title: `20 Over Run (${tA})`, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout },
-      { title: `${tA} Batsman 1 Run Adv`, noRun: ov.bat1No || 42, noRate: fancyPayout, yesRun: ov.bat1Yes || (42 + sessGap), yesRate: fancyPayout },
-      { title: `${tB} Batsman 1 Run Adv`, noRun: ov.bat2No || 36, noRate: fancyPayout, yesRun: ov.bat2Yes || (36 + sessGap), yesRate: fancyPayout },
-      { title: `Match Total Boundaries`, noRun: ov.pshipNo || 26, noRate: fancyPayout, yesRun: ov.pshipYes || (26 + sessGap), yesRate: fancyPayout }
+      { title: `6 Over Run (${activeFancyTeam})`, targetOv: 6, noRun: s6No, noRate: fancyPayout, yesRun: s6Yes, yesRate: fancyPayout },
+      { title: `10 Over Run (${activeFancyTeam})`, targetOv: 10, noRun: s10No, noRate: fancyPayout, yesRun: s10Yes, yesRate: fancyPayout },
+      { title: `15 Over Run (${activeFancyTeam})`, targetOv: 15, noRun: s15No, noRate: fancyPayout, yesRun: s15Yes, yesRate: fancyPayout },
+      { title: `20 Over Run (${activeFancyTeam})`, targetOv: 20, noRun: s20No, noRate: fancyPayout, yesRun: s20Yes, yesRate: fancyPayout },
+      { title: `${activeFancyTeam} Batsman 1 Run Adv`, targetOv: 0, noRun: ov.bat1No || 42, noRate: fancyPayout, yesRun: ov.bat1Yes || (42 + sessGap), yesRate: fancyPayout },
+      { title: `Match Total Boundaries`, targetOv: 0, noRun: ov.pshipNo || 26, noRate: fancyPayout, yesRun: ov.pshipYes || (26 + sessGap), yesRate: fancyPayout }
     ];
 
     document.getElementById("fancyBody").innerHTML = fancyRows.map(f => {
       const noMult = (1 + (f.noRate / 100)).toFixed(2), yesMult = (1 + (f.yesRate / 100)).toFixed(2);
       const lim = checkLimitStatus(f.title, maxUsersAllowed, maxMoneyAllowed);
-      const isRowLocked = globalLocked || lim.blocked, lockText = lim.blocked ? lim.reason : lockBannerText;
+      // Agar over poora ho chuka hai (e.g. 6 over ho gaye) toh us session ko LOCK karein!
+      const isOverPassed = f.targetOv > 0 && !isBreak && effOvers >= f.targetOv;
+      const isRowLocked = globalLocked || lim.blocked || isOverPassed;
+      const lockText = isOverPassed ? `${f.targetOv} Ov Over` : lim.blocked ? lim.reason : lockBannerText;
+
       return `<div class="contest-row">
         <div><div class="runner-name">${f.title}</div><div class="runner-sub">Users: ${maxUsersAllowed} | Cap: ₹${maxMoneyAllowed}</div></div>
         <div class="rate-boxes">
@@ -688,14 +758,24 @@
       </div>`;
     }).join("");
 
+    // Intelligent Last Digit Blocks (Completed Inning / Overs automatically locked)
     const dRate = ov.digitPayout || autoDigit;
-    const digitBlocks = ["1st Inning 10 Over Last Digit", "1st Inning 20 Over Last Digit", "2nd Inning 10 Over Last Digit", "2nd Inning 20 Over Last Digit"];
-    document.getElementById("digitBody").innerHTML = digitBlocks.map(title => {
-      const lim = checkLimitStatus(title, maxUsersAllowed, maxMoneyAllowed);
-      if (globalLocked || lim.blocked) return `<div class="market-card"><div class="market-head"><span>${title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${lim.blocked ? lim.reason : lockBannerText}</span></div></div>`;
+    const digitBlocks = [
+      { title: "1st Inning 10 Over Last Digit", inn: 1, targetOv: 10 },
+      { title: "1st Inning 20 Over Last Digit", inn: 1, targetOv: 20 },
+      { title: "2nd Inning 10 Over Last Digit", inn: 2, targetOv: 10 },
+      { title: "2nd Inning 20 Over Last Digit", inn: 2, targetOv: 20 }
+    ];
+    document.getElementById("digitBody").innerHTML = digitBlocks.map(db => {
+      const lim = checkLimitStatus(db.title, maxUsersAllowed, maxMoneyAllowed);
+      const isInnPassed = (db.inn === 1 && activeInn >= 2) || (db.inn === activeInn && !isBreak && effOvers >= db.targetOv);
+      if (globalLocked || lim.blocked || isInnPassed) {
+        const reason = isInnPassed ? "Inning / Over Done" : lim.blocked ? lim.reason : lockBannerText;
+        return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${reason}</span></div></div>`;
+      }
       let grid = "";
-      for (let d = 0; d <= 9; d++) grid += `<div class="digit-box" onclick="openBet('${title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
-      return `<div class="market-card"><div class="market-head"><span>${title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${grid}</div></div>`;
+      for (let d = 0; d <= 9; d++) grid += `<div class="digit-box" onclick="openBet('${db.title}', 'DIGIT', 'Last Digit [${d}]', ${dRate})"><span class="digit-num">${d}</span><span class="digit-odd">${dRate}</span></div>`;
+      return `<div class="market-card"><div class="market-head"><span>${db.title}</span><span style="font-size:10px; color:#28e04d;">${dRate}x Payout</span></div><div class="digit-grid">${grid}</div></div>`;
     }).join("");
 
     if (!skipBetReload) loadMyLockedBets(m.id);
@@ -843,7 +923,7 @@
       .replace(/\s+/g, " ")
       .trim();
 
-  const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
+    const wonM = clean.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\b/i);
     const isDrawn = /\b(match drawn|drawn|abandoned|no result|match tied)\b/i.test(clean) || (matchObj && /drawn|abandoned|no result|tied/i.test(matchObj.status || ""));
     const isEnded = Boolean(wonM || isDrawn || (matchObj && matchObj.type === "completed"));
 
@@ -866,7 +946,7 @@
       const reqRuns = targetRunsM ? Number(targetRunsM[1]) : 0;
       const inn = innList.find(x => x.team === teamCode) || innList[0];
 
-      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded)) {
+      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded || (innList.length >= 2 && inn !== innList[innList.length - 1]))) {
         const actualAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
         const isYesWin = actualAtOv >= reqRuns;
         const won = (side === "YES" && isYesWin) || (side === "NO" && !isYesWin);
@@ -883,7 +963,7 @@
       const chosenDigM = line.match(/\[(\d)\]/);
       const chosenDig = chosenDigM ? Number(chosenDigM[1]) : -1;
 
-      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded)) {
+      if (inn && (inn.ovs >= targetOv || inn.wkts >= 10 || isEnded || (!is2nd && innList.length >= 2))) {
         const runsAtOv = inn.ovs > targetOv ? Math.round((inn.runs / inn.ovs) * targetOv) : inn.runs;
         const actualDig = runsAtOv % 10;
         const won = actualDig === chosenDig;
