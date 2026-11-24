@@ -664,9 +664,8 @@
   function evaluateBetOutcome(b, matchObj, detailHtml) {
     const html = detailHtml || "", nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i), ndJson = nd ? nd[1] : "";
     const clean = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    const jsonStatusM = ndJson.match(/"status"\s*:\s*"([^"]{3,95})"/);
-    const officialStatus = jsonStatusM ? jsonStatusM[1].trim() : clean.slice(0, 750);
-    const isOfficialComplete = /"state"\s*:\s*"Complete"/i.test(ndJson) || /"matchComplete"\s*:\s*true/i.test(ndJson);
+        const officialStatus = clean.slice(0, 600);
+    const isOfficialComplete = false;
     const wonM = officialStatus.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
     const isDrawn = /\b(match drawn|match tied|abandoned|no result)\b/i.test(officialStatus);
     const isEnded = Boolean(isOfficialComplete || wonM || isDrawn);
