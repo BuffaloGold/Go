@@ -131,8 +131,8 @@
         <span style="font-size:10px; color:#aaa; font-weight:700;">BALLS (6):</span>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:7px; font-size:11px;">
-        <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="batBox">📊 Loading...</div>
-        <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="bowlBox">🤝 Loading...</div>
+        <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="batBox">🏏 Loading...</div>
+        <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="bowlBox">⚾ Loading...</div>
       </div>
       <div class="ball-strip" id="cBalls">💬 Live commentary...</div>
     </div>
@@ -226,7 +226,7 @@
   let userObj = {}, userBal = 0, userNameStr = "Player";
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
-  let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false };
+  let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, innList: [] };
 
   function renderUserBox(u, checkCredit) {
     if (!u) return;
@@ -266,14 +266,22 @@
     const p = String(ovStr || "0").split(".");
     return ((parseInt(p[0], 10) || 0) * 6) + Math.min(5, parseInt(p[1], 10) || 0);
   }
-    function extractBallsFromCommentary(cleanTxt) {
-    const found = [], seenOv = new Set();
-    const rx = /\b(\d+\.[1-6])\s+(W\s+|4\s+|6\s+)?([A-Za-z][A-Za-z\s.'-]{1,28}\s+to\s+[A-Za-z][A-Za-z\s.'-]{1,28},\s*([^.\n]{2,55}))/gi;
+    // Extracts Balls + Batter + Bowler directly from Cricbuzz Commentary
+  function parseCommentaryIntel(cleanTxt) {
+    const balls = [], seenOv = new Set();
+    let latestBowler = "", latestBatter = "", latestComm = "";
+    const rx = /\b(\d+\.[1-6])\s+(W\s+|4\s+|6\s+)?([A-Za-z][A-Za-z\s.'-]{1,26}?)\s+to\s+([A-Za-z][A-Za-z\s.'-]{1,26}?),\s*([^.\n]{2,65})/gi;
     let m;
     while ((m = rx.exec(cleanTxt)) !== null) {
-      if (seenOv.has(m[1])) continue;
-      seenOv.add(m[1]);
-      const tag = (m[2] || "").trim().toUpperCase(), desc = (m[4] || "").toLowerCase();
+      const ov = m[1];
+      if (seenOv.has(ov)) continue;
+      seenOv.add(ov);
+      const tag = (m[2] || "").trim().toUpperCase(), desc = (m[5] || "").toLowerCase();
+      if (!latestComm) {
+        latestBowler = m[3].trim();
+        latestBatter = m[4].trim();
+        latestComm = `${ov} ${latestBowler} to ${latestBatter}, ${m[5].trim()}`.slice(0, 90);
+      }
       let ball = "0";
       if (tag === "W" || /\b(out|bowled|caught|lbw|run out|stumped)\b/.test(desc)) ball = "W";
       else if (tag === "6" || /\b(six|6 runs)\b/.test(desc)) ball = "6";
@@ -283,10 +291,10 @@
       else if (/\b3 runs\b/.test(desc)) ball = "3";
       else if (/\b2 runs\b/.test(desc)) ball = "2";
       else if (/\b1 run\b/.test(desc)) ball = "1";
-      found.push(ball);
-      if (found.length >= 6) break;
+      balls.push(ball);
+      if (balls.length >= 6) break;
     }
-    return found.reverse();
+    return { balls: balls.reverse(), latestBowler, latestBatter, latestComm };
   }
 
   function parseCricbuzzListHtml(html) {
@@ -323,34 +331,35 @@
     return list;
   }
 
-  function parseCricbuzzMatchHtml(html, matchId, title) {
+  function parseCricbuzzMatchHtml(html, matchId, title, matchListItem) {
     const isTest = /test|shield|ranji|trophy.*day/i.test(title || "") && !/t20|mushtaq|ilt20|bbl/i.test(title || "");
     const isOdi = /odi|one day|vijay hazare/i.test(title || "");
     const maxOvers = isTest ? 90 : isOdi ? 50 : 20;
-    const out = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false };
+    const out = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, innList: [] };
 
     const cleanTxt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
-    const topHeader = cleanTxt.slice(0, 750);
+    const topHeader = cleanTxt.slice(0, 900);
     const nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
     const ndJson = nd ? nd[1] : "";
 
-    const isOfficialComplete = /"state"\s*:\s*"Complete"/i.test(ndJson) || /"matchComplete"\s*:\s*true/i.test(ndJson);
-    const jsonStatusM = ndJson.match(/"status"\s*:\s*"([^"]{3,95})"/);
-    if (jsonStatusM) out.status = jsonStatusM[1].trim();
-    else {
-      const stM = topHeader.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
-      if (stM) out.status = stM[1].trim();
-    }
-    out.isDrawnOrDone = isOfficialComplete || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status);
+    // 1. Cross-verified Status (Top Header + Match List Item — NEVER Commentary)
+    const stM = topHeader.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,22}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+    if (stM) out.status = stM[1].trim();
+    else if (matchListItem && matchListItem.status) out.status = matchListItem.status;
 
-    const scAll = [...topHeader.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
-    const scList = scAll.length ? scAll : [...cleanTxt.slice(0, 2000).matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
+    out.isDrawnOrDone = Boolean((matchListItem && matchListItem.type === "completed") || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status));
+
+    // 2. Full-page Scorecard Extraction (No 2000-char cutoff so score never disappears!)
+    const scList = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
     if (scList.length) {
       const uniqueInns = [];
       scList.forEach(x => {
-        const key = `${x[1].toUpperCase()}_${x[2]}_${x[3]}_${x[4]}`;
-        if (!uniqueInns.some(u => u.key === key)) uniqueInns.push({ key, team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ov: Number(x[4]), ovStr: String(x[4]) });
+        const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]);
+        const existingIdx = uniqueInns.findIndex(u => u.team === team);
+        if (existingIdx === -1) uniqueInns.push({ team, runs, wkts, ov, ovStr });
+        else if (toTotalBalls(ovStr) >= toTotalBalls(uniqueInns[existingIdx].ovStr)) uniqueInns[existingIdx] = { team, runs, wkts, ov, ovStr };
       });
+      out.innList = uniqueInns;
       const first = uniqueInns[0], last = uniqueInns[uniqueInns.length - 1];
       out.firstInnRuns = first.runs;
       const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team;
@@ -367,31 +376,33 @@
 
     const needM = out.status.match(/need\s*(\d+)\s*runs/i);
     if (needM && out.inningNo === 2) out.targetRuns = out.runsNum + Number(needM[1]);
+
+    // 3. Commentary + JSON Intel (Balls, Batter, Bowler)
+    const commIntel = parseCommentaryIntel(cleanTxt);
     const pshipM = cleanTxt.match(/P'SHIP\s*(\d+\s*\(\s*\d+\s*\))/i);
     if (ndJson) {
       const b1 = ndJson.match(/"batsmanStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
       const b2 = ndJson.match(/"batsmanNonStriker":\{[^}]*"batName":"([^"]+)"[^}]*"batRuns":(\d+)[^}]*"batBalls":(\d+)/);
       const bw = ndJson.match(/"bowlerStriker":\{[^}]*"bowlName":"([^"]+)"[^}]*"bowlOvs":([0-9.]+)[^}]*"bowlRuns":(\d+)[^}]*"bowlWkts":(\d+)/);
       const recM = ndJson.match(/"recentOvsStats":"([^"]+)"/);
-      const commM = ndJson.match(/"commText":"([^"]{8,140})"/);
       const batLines = [];
       if (b1) batLines.push(`🏏 <b>${b1[1]}*</b> ${b1[2]}(${b1[3]})`);
       if (b2) batLines.push(`${b2[1]} ${b2[2]}(${b2[3]})`);
       out.batters = batLines.join("<br>");
       if (bw) out.bowler = `⚾ <b>${bw[1]}</b> ${bw[4]}/${bw[3]} (${bw[2]})` + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
       if (recM) out.balls = recM[1].replace(/\|/g, " ").trim().split(/\s+/).filter(b => /^(?:[0-6]|W|Wd|Nb)$/i.test(b)).slice(-6);
-      if (commM) out.shortComm = commM[1].replace(/\\n|B0\$|B1\$|I0\$|I1\$/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
     }
-    if (!out.balls.length) out.balls = extractBallsFromCommentary(cleanTxt);
-    if (!out.batters) out.batters = out.targetRuns > 0 ? `🎯 Target: <b>${out.targetRuns}</b>` : out.firstInnRuns > 0 ? `📊 1st Inn: <b>${out.firstInnRuns} runs</b>` : `🏏 ${out.batTeam || "Live"} Batting`;
+
+    if (!out.balls.length) out.balls = commIntel.balls;
+    if (!out.batters) {
+      out.batters = commIntel.latestBatter
+        ? `🏏 <b>${commIntel.latestBatter}*</b>` + (out.targetRuns > 0 ? `<br>🎯 Target: ${out.targetRuns}` : "")
+        : (out.targetRuns > 0 ? `🎯 Target: <b>${out.targetRuns}</b>` : out.firstInnRuns > 0 ? `📊 1st Inn: <b>${out.firstInnRuns} runs</b>` : `🏏 ${out.batTeam || "Live"} Batting`);
+    }
     if (!out.bowler) {
-      const ovLeftM = cleanTxt.match(/OVS LEFT\s*([0-9.]+)/i);
-      out.bowler = (pshipM ? `🤝 P'ship: <b>${pshipM[1]}</b>` : `⚡ Live Exchange`) + (ovLeftM ? `<br>⏳ Ovs Left: ${ovLeftM[1]}` : "");
+      out.bowler = (commIntel.latestBowler ? `⚾ <b>${commIntel.latestBowler}</b>` : `⚡ Live Exchange`) + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
     }
-    if (!out.shortComm) {
-      const cM = cleanTxt.match(/(\d+\.\d+\s+(?:W\s+|4\s+|6\s+)?[A-Za-z\s]+to\s+[A-Za-z\s]+,[^.]{5,75})/);
-      out.shortComm = cM ? cM[1].trim() : (out.status || "Live ball-by-ball updates active");
-    }
+    out.shortComm = commIntel.latestComm || out.status || "Live ball-by-ball updates active";
     return out;
   }
 
@@ -426,15 +437,26 @@
     } catch (e) { if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`; }
   }
 
+  // State-Machine Guard: Score & Overs NEVER drop to 0 or go backward
   async function refreshActiveMatchDetail() {
     if (!activeMatch) return;
     try {
-      const parsed = parseCricbuzzMatchHtml(await (await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`)).text(), activeMatch.id, activeMatch.title);
+      const html = await (await fetch(`${WORKER_URL}?id=${activeMatch.id}&t=${Date.now()}`)).text();
+      const parsed = parseCricbuzzMatchHtml(html, activeMatch.id, activeMatch.title, activeMatch);
+
+      if (!parsed.headline && liveScoreData.headline) return;
+      if (liveScoreData.inningNo === 2 && parsed.inningNo === 1 && !parsed.isDrawnOrDone) return;
       if (liveScoreData.batTeam && parsed.batTeam === liveScoreData.batTeam && toTotalBalls(parsed.ovNum) < toTotalBalls(liveScoreData.ovNum)) return;
-      if (!parsed.status && activeMatch.status) parsed.status = activeMatch.status;
-      liveScoreData = parsed; activeMatch._runsNum = parsed.runsNum; activeMatch._ovNum = parsed.ovNum;
+
+      if (!parsed.balls.length && liveScoreData.balls.length) parsed.balls = liveScoreData.balls;
+      if (!parsed.status && liveScoreData.status) parsed.status = liveScoreData.status;
+
+      liveScoreData = parsed;
+      activeMatch._runsNum = parsed.runsNum;
+      activeMatch._ovNum = parsed.ovNum;
       if (parsed.isDrawnOrDone) { activeMatch.type = "completed"; if (parsed.status) activeMatch.status = parsed.status; }
-      const newSig = `${parsed.headline}|${parsed.overs}|${parsed.balls.join(",")}|${parsed.shortComm}`;
+
+      const newSig = `${parsed.headline}|${parsed.overs}|${parsed.balls.join(",")}`;
       if (lastScoreSignature && newSig !== lastScoreSignature) ballChangeLockUntil = Date.now() + 3000;
       lastScoreSignature = newSig;
     } catch (e) {}
@@ -449,8 +471,7 @@
       openMatch(activeMatch, true);
     }
   }
-
-  async function fetchMatchBetLimits(matchId) {
+    async function fetchMatchBetLimits(matchId) {
     try {
       const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
       const stats = {};
@@ -481,11 +502,12 @@
       return `<div class="match-item" onclick="openMatchById('${m.id}')"><div class="m-left">${badge}<div class="m-title">${m.title}</div><div class="m-score" style="color:${c};">${sc}</div></div><div class="open-pill">${m.type === "completed" ? "Result →" : "Play →"}</div></div>`;
     }).join("");
   }
-    async function openMatchById(id) {
+
+  async function openMatchById(id) {
     const m = matches.find(x => String(x.id) === String(id));
     if (!m) return;
     activeMatch = m; lastScoreSignature = "";
-    liveScoreData = { headline: "", overs: "", status: m.status || "Live", balls: [], batters: "📊 Loading...", bowler: "🤝 Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed" };
+    liveScoreData = { headline: "", overs: "", status: m.status || "Live", balls: [], batters: "🏏 Loading...", bowler: "⚾ Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed", innList: [] };
     openMatch(m, false);
     await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
     openMatch(m, true);
@@ -661,32 +683,32 @@
     if (String(tMob) === String(mob)) await syncUserWallet();
   }
 
+  // 4-Source Cross-Verified Settlement (Uses same parseCricbuzzMatchHtml — NEVER commentary words)
   function evaluateBetOutcome(b, matchObj, detailHtml) {
-    const html = detailHtml || "", nd = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i), ndJson = nd ? nd[1] : "";
-    const clean = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        const officialStatus = clean.slice(0, 600);
-    const isOfficialComplete = false;
-    const wonM = officialStatus.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
-    const isDrawn = /\b(match drawn|match tied|abandoned|no result)\b/i.test(officialStatus);
-    const isEnded = Boolean(isOfficialComplete || wonM || isDrawn);
-    const innList = [...clean.slice(0, 2000).matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)].map(x => ({ team: x[1].toUpperCase(), runs: Number(x[2]), wkts: Number(x[3]), ovs: Number(x[4]) }));
+    const state = parseCricbuzzMatchHtml(detailHtml || "", b.matchId, b.matchName, matchObj);
+    const wonM = state.status.match(/\b([A-Za-z0-9\s]{2,25}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
+    const isDrawn = /\b(match drawn|match tied|abandoned|no result)\b/i.test(state.status);
+    const isEnded = Boolean(state.isDrawnOrDone || wonM || isDrawn);
+    const innList = state.innList || [];
     const mkt = String(b.market || ""), side = String(b.side || "").toUpperCase(), line = String(b.lockedLine || "");
 
     const sessM = mkt.match(/(\d+)\s*Over Run\s*\(([^)]+)\)/i);
     if (sessM) {
       const tOv = Number(sessM[1]), tCode = sessM[2].trim().toUpperCase(), reqR = Number((line.match(/(\d+)/) || [0, 0])[1]);
       const inn = innList.find(x => x.team === tCode);
-      if (inn && (inn.ovs >= tOv || inn.wkts >= 10 || isEnded)) {
-        const act = inn.ovs > tOv ? Math.round((inn.runs / inn.ovs) * tOv) : inn.runs;
+      const isInnClosed = inn && (inn.ov >= tOv || inn.wkts >= 10 || isEnded || (innList.length >= 2 && inn !== innList[innList.length - 1]));
+      if (isInnClosed) {
+        const act = inn.ov > tOv ? Math.round((inn.runs / inn.ov) * tOv) : inn.runs;
         const won = (side === "YES" && act >= reqR) || (side === "NO" && act < reqR);
         return { settled: true, status: won ? "WON" : "LOST", info: `${tCode} ${tOv} Ov Score: ${act} runs` };
       }
       return { settled: false };
     }
     if (/Last Digit/i.test(mkt)) {
-      const tOv = Number((mkt.match(/(\d+)\s*Over/i) || [0, 20])[1]), inn = /2nd Inning/i.test(mkt) ? innList[1] : innList[0], dig = Number((line.match(/\[(\d)\]/) || [0, -1])[1]);
-      if (inn && (inn.ovs >= tOv || inn.wkts >= 10 || isEnded)) {
-        const rOv = inn.ovs > tOv ? Math.round((inn.runs / inn.ovs) * tOv) : inn.runs, actD = rOv % 10;
+      const tOv = Number((mkt.match(/(\d+)\s*Over/i) || [0, 20])[1]), is2nd = /2nd Inning/i.test(mkt), inn = is2nd ? innList[1] : innList[0], dig = Number((line.match(/\[(\d)\]/) || [0, -1])[1]);
+      const isInnClosed = inn && (inn.ov >= tOv || inn.wkts >= 10 || isEnded || (!is2nd && innList.length >= 2));
+      if (isInnClosed) {
+        const rOv = inn.ov > tOv ? Math.round((inn.runs / inn.ov) * tOv) : inn.runs, actD = rOv % 10;
         return { settled: true, status: actD === dig ? "WON" : "LOST", info: `Score: ${rOv} (Last Digit: ${actD})` };
       }
       return { settled: false };
@@ -755,4 +777,3 @@
 </script>
 </body>
 </html>
-  
