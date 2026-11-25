@@ -472,14 +472,16 @@
 
       const mergedMap = new Map();
 
-      liveList.forEach(m => {
-        if (m.type !== "completed" && completedCache[String(m.id)]) {
-          delete completedCache[String(m.id)];
-          localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
+            liveList.forEach(m => {
+        if (m.type === "completed") {
+          markMatchCompleted(m.id, m.status);
+        } else if (completedCache[String(m.id)]) {
+          m.type = "completed";
+          m.status = completedCache[String(m.id)];
         }
-        if (m.type === "completed") markMatchCompleted(m.id, m.status);
         mergedMap.set(String(m.id), m);
       });
+      
 
       upList.forEach(m => {
         if (!mergedMap.has(String(m.id))) {
