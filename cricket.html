@@ -227,7 +227,6 @@
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
   let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
-
   const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
   function markMatchCompleted(id, statusText) {
     if (!id) return;
@@ -313,7 +312,7 @@
   }
 
   function parseCricbuzzListHtml(html) {
-    const seen = new Set(), list = [], startMap = {}, rawMsMap = {};
+    const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
       let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
@@ -330,21 +329,30 @@
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
     while ((m = linkRx.exec(mainBody)) !== null) {
-      if (seen.has(m[1])) continue;
-      seen.add(m[1]);
-      const sub = mainBody.slice(m.index, m.index + 1600).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-      const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      const scores = sub.match(/[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\)/g) || [];
-      const isDone = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|abandoned|match tied|no result)\b/i.test(sub);
-      const rawStartMs = rawMsMap[m[1]] || 0;
+      const mId = String(m[1]);
+      if (seenIds.has(mId)) continue;
+      seenIds.add(mId);
+
+      const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim();
+      const titleKey = title.toLowerCase().replace(/\s+/g, " ");
+      if (seenTitles.has(titleKey)) continue;
+      seenTitles.add(titleKey);
+
+      const nextLinkPos = mainBody.slice(m.index + m[0].length).search(/href="\/live-cricket-scores\/\d+\//);
+      const sliceLen = nextLinkPos > 0 ? Math.min(1200, nextLinkPos + m[0].length) : 800;
+      const sub = mainBody.slice(m.index, m.index + sliceLen).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+      const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
+      const isDone = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|completed|abandoned|match tied|no result)\b/i.test(sub);
+      const rawStartMs = rawMsMap[mId] || 0;
       const isPastMatch = rawStartMs > 0 && rawStartMs < (Date.now() - 21600000);
-      const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
-      const type = (isDone || isPastMatch || completedCache[m[1]]) ? "completed" : isExplicitUp ? "upcoming" : "live";
+      const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
+      const type = (isDone || isPastMatch || completedCache[mId]) ? "completed" : isExplicitUp ? "upcoming" : "live";
       const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,25}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
-      const exactStartTime = startMap[m[1]] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (completedCache[m[1]] || (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress")));
-      list.push({ id: m[1], title, scores, status: cleanStatus, type });
+      const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
+      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (completedCache[mId] || (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress")));
+      list.push({ id: mId, title, scores, status: cleanStatus, type });
     }
     return list;
   }
@@ -489,7 +497,8 @@
       openMatch(activeMatch, true);
     }
   }
-    async function fetchMatchBetLimits(matchId) {
+
+  async function fetchMatchBetLimits(matchId) {
     try {
       const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
       const stats = {};
@@ -745,7 +754,6 @@
     }
     return { settled: false };
   }
-
   async function loadMyLockedBets(matchId) {
     try {
       const allB = (await (await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`)).json()) || {};
