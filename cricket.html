@@ -224,7 +224,7 @@
 
   let userObj = {}, userBal = 0, userNameStr = "Player";
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
-  let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
+  let matchBetsStats = {}, teamExposure = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
   let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
 
   const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
@@ -447,6 +447,16 @@
       const clamped = Math.min(0.86, Math.max(0.14, 0.50 + (((runs / Math.max(0.5, ov)) - (maxOv === 20 ? 7.8 : maxOv === 50 ? 5.2 : 3.4)) * 0.035) - (wkts * 0.04)));
       probA = isTeamABatting ? clamped : (1 - clamped);
     }
+
+    // Book Load Auto-Adjust: Jis team par users ka zyada paisa laga ho uska bhav kam aur doosri ka badhega
+    const loadA = Number(teamExposure[tA] || 0), loadB = Number(teamExposure[tB] || 0);
+    const totalLoad = loadA + loadB;
+    if (totalLoad > 0) {
+      const imbalance = (loadA - loadB) / Math.max(totalLoad, 2000);
+      const shift = Math.max(-0.14, Math.min(0.14, imbalance * 0.14));
+      probA = Math.min(0.94, Math.max(0.06, probA + shift));
+    }
+
     const hm = winRate <= 20 ? 0.91 : winRate <= 35 ? 0.95 : winRate <= 50 ? 0.97 : 0.99;
     const oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm)), oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
     return { aBack: oA.toFixed(2), aLay: (oA + (oA > 4 ? 0.15 : oA > 2.5 ? 0.06 : 0.03)).toFixed(2), bBack: oB.toFixed(2), bLay: (oB + (oB > 4 ? 0.15 : oB > 2.5 ? 0.06 : 0.03)).toFixed(2) };
@@ -549,13 +559,27 @@
   async function fetchMatchBetLimits(matchId) {
     try {
       const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
-      const stats = {};
+      const stats = {}, exp = {};
+      const [tA, tB] = activeMatch ? parseTeamsFromTitle(activeMatch.title) : ["", ""];
       Object.values(betsObj).forEach(b => {
         if (!b || !b.market) return;
         if (!stats[b.market]) stats[b.market] = { users: new Set(), totalMoney: 0 };
         stats[b.market].users.add(String(b.mobile)); stats[b.market].totalMoney += Number(b.stake || 0);
+
+        if (String(b.status || "OPEN").toUpperCase() === "OPEN" && /Match Odds|Bookmaker/i.test(b.market) && tA && tB) {
+          const pick = b.market.split("(")[0].trim().toUpperCase();
+          const side = String(b.side || "").toUpperCase();
+          const risk = Number(b.lockedReturn || b.stake || 0);
+          if (side === "BACK") {
+            exp[pick] = (exp[pick] || 0) + risk;
+          } else if (side === "LAY") {
+            const other = pick === tA ? tB : tA;
+            exp[other] = (exp[other] || 0) + risk;
+          }
+        }
       });
       matchBetsStats = stats;
+      teamExposure = exp;
     } catch (e) {}
   }
 
@@ -581,7 +605,7 @@
   async function openMatchById(id) {
     const m = matches.find(x => String(x.id) === String(id));
     if (!m) return;
-    activeMatch = m; lastScoreSignature = "";
+    activeMatch = m; lastScoreSignature = ""; teamExposure = {};
     liveScoreData = { headline: "", overs: "", status: m.status || "Live Match", balls: [], batters: "🏏 Loading...", bowler: "⚾ Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed", mathWinnerCode: "", innList: [] };
     openMatch(m, false);
     await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
@@ -759,7 +783,9 @@
       await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
       alert(`✅ Bet Locked!\n${rec.market}\n${selBet.side === "LAY" ? "Liability Debit" : "Stake"}: ₹${fin.debit} → Return: ₹${rec.lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
-      await fetchMatchBetLimits(activeMatch.id); await loadMyLockedBets(activeMatch.id);
+      await fetchMatchBetLimits(activeMatch.id);
+      openMatch(activeMatch, true);
+      await loadMyLockedBets(activeMatch.id);
     } catch (e) { alert("Network error!"); } finally { isPlacingBet = false; btn.disabled = false; btn.innerText = "Confirm & Lock Bet"; }
   }
 
