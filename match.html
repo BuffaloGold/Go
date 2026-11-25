@@ -97,7 +97,7 @@
   <!-- ADMIN SPECIAL MANUAL CONTESTS -->
   <div id="customContestsBox"></div>
 
-  <!-- NEXT BALL AUTO-ROTATING CONTEST -->
+  <!-- NEXT BALL AUTO-ROTATING CONTEST (ALL 8 OPTIONS) -->
   <div class="market-card sec-fancy" id="nextBallCard" style="border:1.5px solid #ffd700;">
     <div class="market-head">
       <span id="nextBallTitle">⚡ Next Ball Result (Ball 0.1)</span>
@@ -422,7 +422,7 @@
       </div>`;
     }).join("");
 
-    // 0.5 Next Ball Auto-Rotating Contest (0.1 -> 0.2 -> ... -> 0.6 -> 1.1)
+    // 0.5 Next Ball Auto-Rotating Contest (0.1 -> 0.2 -> ... -> 0.6 -> 1.1) — All 8 Options
     const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
     const curOverPart = Math.floor(curOvVal);
     const curBallPart = Math.round((curOvVal - curOverPart) * 10);
@@ -436,11 +436,14 @@
     nbBadge.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
     const ballOptions = [
-      { lbl: "Dot (0)", odd: "2.60" },
-      { lbl: "1 Run", odd: "2.40" },
-      { lbl: "2 Runs", odd: "5.50" },
-      { lbl: "Boundary (4/6)", odd: "3.20" },
-      { lbl: "Wicket / Extra", odd: "4.80" }
+      { lbl: "Dot Ball (0)", odd: "2.60" },
+      { lbl: "Single (1)", odd: "2.40" },
+      { lbl: "Double (2)", odd: "5.50" },
+      { lbl: "Triple (3)", odd: "14.00" },
+      { lbl: "Boundary (4 / 6)", odd: "3.20" },
+      { lbl: "Wicket", odd: "6.50" },
+      { lbl: "Extra (Wd / Nb)", odd: "4.80" },
+      { lbl: "Any Other", odd: "9.00" }
     ];
 
     document.getElementById("nextBallBody").innerHTML = ballOptions.map(bo => `
@@ -452,7 +455,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-back" style="width:86px;" onclick="openBet('Ball ${nextBallLabel} (${bo.lbl})','BACK','${bo.lbl}',${bo.odd})">
             <span class="rate-main">${bo.odd}x</span>
-            <span class="rate-sub">Pick</span>
+            <span class="rate-sub">Back</span>
           </div>
           ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
         </div>
