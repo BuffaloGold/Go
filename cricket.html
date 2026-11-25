@@ -312,7 +312,7 @@
     return { balls: balls.reverse(), latestBowler, latestBatter, latestComm };
   }
 
-  function parseCricbuzzListHtml(html, forceCompleted = false) {
+  function parseCricbuzzListHtml(html, defaultType = "live") {
     const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
@@ -326,7 +326,7 @@
         startMap[tm[1]] = `🕒 ${dayTag}, ${timeStr} IST`;
       }
     }
-    const mainBody = html.split(/All Live Now|LIVE MATCHES|Recent Matches|All Matches/i)[1] || html;
+    const mainBody = html.split(/All Live Now|LIVE MATCHES|Recent Matches|Upcoming Matches|All Matches/i)[1] || html;
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
     while ((m = linkRx.exec(mainBody)) !== null) {
@@ -340,19 +340,24 @@
       seenTitles.add(titleKey);
 
       const nextLinkPos = mainBody.slice(m.index + m[0].length).search(/href="\/live-cricket-scores\/\d+\//);
-      const sliceLen = nextLinkPos > 0 ? Math.min(1200, nextLinkPos + m[0].length) : 800;
+      const sliceLen = nextLinkPos > 0 ? Math.min(900, nextLinkPos + m[0].length) : 650;
       const sub = mainBody.slice(m.index, m.index + sliceLen).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
-      const isDone = forceCompleted || /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|completed|abandoned|match tied|no result)\b/i.test(sub);
+      const isDoneText = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|abandoned|match tied|no result)\b/i.test(sub);
       const rawStartMs = rawMsMap[mId] || 0;
-      const isPastMatch = rawStartMs > 0 && rawStartMs < (Date.now() - 25200000);
-      const isExplicitUp = !isDone && scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
-      const type = (isDone || isPastMatch || completedCache[mId]) ? "completed" : isExplicitUp ? "upcoming" : "live";
+      const isFutureStart = rawStartMs > (Date.now() + 300000);
+      const isExplicitUp = defaultType === "upcoming" || isFutureStart || (scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming|time soon)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub));
+
+      let type = defaultType;
+      if (isDoneText) type = "completed";
+      else if (isExplicitUp) type = "upcoming";
+      else if (scores.length > 0 || defaultType === "live") type = "live";
+
       const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z0-9\s]{1,28}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
       const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (completedCache[mId] || (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress")));
+      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress"));
       list.push({ id: mId, title, scores, status: cleanStatus, type });
     }
     return list;
@@ -447,42 +452,57 @@
 
   async function loadMatches() {
     try {
-      const [rW, rRec, rC, rR] = await Promise.all([
+      const [rLive, rUp, rRec, rC, rR] = await Promise.all([
         fetch(`${WORKER_URL}?t=${Date.now()}`),
-        fetch(`${WORKER_URL}?type=recent&t=${Date.now()}`),
+        fetch(`${WORKER_URL}?type=upcoming&t=${Date.now()}`).catch(() => null),
+        fetch(`${WORKER_URL}?type=recent&t=${Date.now()}`).catch(() => null),
         fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
         fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
       ]);
       overrides = (await rC.json()) || {};
       cricketWinRate = Number(((await rR.json()) || {}).cricket || 35);
 
-      const recentList = parseCricbuzzListHtml(await rRec.text(), true);
-      const recentMap = {};
-      recentList.forEach(rm => {
-        recentMap[String(rm.id)] = rm;
-        markMatchCompleted(rm.id, rm.status);
-      });
+      const liveList = parseCricbuzzListHtml(await rLive.text(), "live");
+      const upHtml = rUp && rUp.ok ? await rUp.text() : "";
+      const upList = upHtml ? parseCricbuzzListHtml(upHtml, "upcoming") : [];
+      const recHtml = rRec && rRec.ok ? await rRec.text() : "";
+      const recList = recHtml ? parseCricbuzzListHtml(recHtml, "completed") : [];
 
-      const liveParsed = parseCricbuzzListHtml(await rW.text(), false);
       const mergedMap = new Map();
 
-      liveParsed.forEach(m => {
-        if (recentMap[m.id] || m.type === "completed" || completedCache[String(m.id)]) {
-          m.type = "completed";
-          m.status = (recentMap[m.id] && recentMap[m.id].status) || completedCache[String(m.id)] || m.status;
-          markMatchCompleted(m.id, m.status);
+      liveList.forEach(m => {
+        if (m.type !== "completed" && completedCache[String(m.id)]) {
+          delete completedCache[String(m.id)];
+          localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
         }
+        if (m.type === "completed") markMatchCompleted(m.id, m.status);
         mergedMap.set(String(m.id), m);
       });
 
-      recentList.forEach(rm => {
-        if (!mergedMap.has(String(rm.id))) mergedMap.set(String(rm.id), rm);
+      upList.forEach(m => {
+        if (!mergedMap.has(String(m.id))) {
+          if (completedCache[String(m.id)]) {
+            delete completedCache[String(m.id)];
+            localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
+          }
+          mergedMap.set(String(m.id), m);
+        }
+      });
+
+      recList.forEach(m => {
+        if (!mergedMap.has(String(m.id))) {
+          m.type = "completed";
+          markMatchCompleted(m.id, m.status);
+          mergedMap.set(String(m.id), m);
+        }
       });
 
       const finalMatches = Array.from(mergedMap.values());
       if (finalMatches.length > 0) {
         matches = finalMatches;
         if (!activeMatch) renderList();
+      } else {
+        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Abhi koi match available nahi hai.</div>`;
       }
     } catch (e) {
       if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
