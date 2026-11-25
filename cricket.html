@@ -78,8 +78,8 @@
 <div class="bottom-nav">
   <div class="nav-item" onclick="location.href='game.html'">🎰<br>Games</div>
   <div class="nav-item active" onclick="loadMatches()">🏏<br>Cricket</div>
+  <div class="nav-item" onclick="location.href='mybets.html'">🏆<br>My Bets</div>
   <div class="nav-item" onclick="location.href='wallet.html'">💰<br>Wallet</div>
-  <div class="nav-item" onclick="location.href='refer.html'">🎁<br>Refer</div>
   <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
 </div>
 
@@ -139,25 +139,25 @@
       const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim();
       const rest = html.slice(m.index + m[0].length);
       const nextPos = rest.search(/href="\/(?:live-cricket-scores|cricket-scores)\/\d+\//);
-      const sub = html.slice(m.index, m.index + (nextPos > 0 ? Math.min(850, nextPos + m[0].length) : 650))
+      const sub = html.slice(m.index, m.index + (nextPos > 0 ? Math.min(450, nextPos + m[0].length) : 450))
         .replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
-      const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
+      const scores = sub.match(/\b[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?\s*(?:Ovs?)?\s*\)/g) || [];
       const isDone = /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(sub);
-      const isLiveTxt = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|toss)\b/i.test(sub);
+      const isLiveTxt = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+:\s*(?:stumps|lunch|tea)|rain stops play)\b/i.test(sub);
       const startMs = rawMsMap[id] || 0;
 
       let type = forcedBucket;
       if (!type) {
         if (isDone) type = "completed";
         else if (scores.length > 0 || isLiveTxt) type = "live";
-        else if (startMs > Date.now() + 180000) type = "upcoming";
         else type = "upcoming";
       }
 
       const stM = sub.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|[A-Za-z\s]{2,24}\s+opt to\s+(?:bat|bowl))/i);
+      const timeTxtM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*[•,]?\s*\d{1,2}:\d{2}\s*(?:AM|PM))/i);
       const cleanStatus = type === "upcoming"
-        ? (startMap[id] || "🕒 Upcoming Match")
+        ? (startMap[id] || (timeTxtM ? `🕒 ${timeTxtM[1]}` : "🕒 Upcoming Match"))
         : (stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News)\b\s*/gi, "").trim() : (type === "completed" ? "Match Completed" : "Live In Progress"));
 
       out.push({ id, title, scores, status: cleanStatus, startMs: startMs || 9e15, type });
@@ -180,11 +180,8 @@
       const doneList = parseMatchesFromHtml(rRec && rRec.ok ? await rRec.text() : "", "completed");
 
       const map = new Map();
-      // 1. Live & Auto matches
       autoList.forEach(m => map.set(m.id, m));
-      // 2. Upcoming matches (jo pehle se Live/Completed mein nahi hain)
       upList.forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
-      // 3. Completed matches (jo pehle se Live/Upcoming mein nahi hain)
       doneList.forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
 
       matches = Array.from(map.values());
