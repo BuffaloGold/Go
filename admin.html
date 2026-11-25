@@ -109,6 +109,46 @@
   </div>
 </div>
 
+<!-- ==================== ⚡ 10-MIN LIVE DEMO MATCH SIMULATOR ==================== -->
+<div class="wrap" style="margin-top: 14px;">
+  <div class="card" style="border: 2px solid #28e04d; background: linear-gradient(160deg, #12291c 0%, #1b0429 100%);">
+    <div class="row-between" style="margin-bottom:6px;">
+      <h3 style="color:#28e04d; font-size:15px;">⚡ 10-Min Live Demo Match Simulator</h3>
+      <span id="demoBadge" class="badge PENDING">OFF</span>
+    </div>
+    <p style="font-size:11px; color:#ccc; margin-bottom:10px;">10 minute mein poora T20 match (1st Inn → 2nd Inn → Auto Winner Payout) live test karein. Jab chahein delete kar dein.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div>
+        <label style="font-size:11px; color:#ffd700;">Team A (1st Bat):</label>
+        <input type="text" id="demo_tA" value="IND" maxlength="5" style="text-transform:uppercase; margin-bottom:8px;">
+      </div>
+      <div>
+        <label style="font-size:11px; color:#ffd700;">Team B (Chase):</label>
+        <input type="text" id="demo_tB" value="AUS" maxlength="5" style="text-transform:uppercase; margin-bottom:8px;">
+      </div>
+    </div>
+
+    <label style="font-size:11px; color:#ffd700;">Match Result Winner (10 Min baad kaun jeetega):</label>
+    <select id="demo_winner">
+      <option value="TEAM_A">🏆 Team A Jeetegi (1st Batting Defend)</option>
+      <option value="TEAM_B" selected>🏆 Team B Jeetegi (2nd Inning Chase)</option>
+    </select>
+
+    <div id="demoLiveStatusBox" style="background:#0f0217; border:1px solid #3c0c54; border-radius:8px; padding:9px; margin-bottom:10px; font-size:12px; color:#ffd700;">
+      Status: Koi demo match active nahi hai.
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <button type="button" class="btn btn-green" style="padding:11px; font-size:12px;" onclick="startDemoMatch()">▶️ Start 10-Min Demo</button>
+      <button type="button" class="btn btn-blue" style="padding:11px; font-size:12px;" onclick="fastForwardDemo(2)">⏩ +2 Min Fast-Fwd</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <button type="button" class="btn btn-gold" style="padding:10px; font-size:12px;" onclick="finishDemoNow()">🏆 End Match Now</button>
+      <button type="button" class="btn btn-del" style="padding:10px; font-size:12px;" onclick="stopDeleteDemo()">🗑️ Stop & Delete Demo</button>
+    </div>
+  </div>
+</div>
 <!-- ==================== CRICKET AUTO-LIMIT & RATE CONTROL ==================== -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
@@ -340,7 +380,8 @@
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
     }
   }
-   async function replyTicket(tktId) {
+
+  async function replyTicket(tktId) {
     const inp = document.getElementById("repInput_" + tktId);
     const msg = (inp.value || "").trim();
     if (!msg) return alert("Reply message likhein!");
@@ -449,6 +490,166 @@
 
   forceLoadAll();
   setInterval(forceLoadAll, 8000);
+
+  // ==================== ⚡ 10-MIN DEMO MATCH ENGINE ====================
+  const DEMO_MATCH_ID = "DEMO_999999";
+
+  function buildDemoSnapshot(cfg) {
+    const tA = (cfg.tA || "IND").toUpperCase();
+    const tB = (cfg.tB || "AUS").toUpperCase();
+    const winSide = cfg.winner || "TEAM_B";
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - cfg.startTime) / 1000));
+    const totalSec = 600; // 10 Minutes
+    const ballPool = ["1", "4", "0", "2", "6", "1", "W", "1", "4", "0", "2", "1"];
+    const bIdx = Math.floor(elapsedSec / 5);
+    const recentBalls = [];
+    for (let i = 5; i >= 0; i--) {
+      const idx = bIdx - i;
+      recentBalls.push(idx < 0 ? "•" : ballPool[idx % ballPool.length]);
+    }
+
+    const firstTarget = 178; // 1st Inning Final Score = 178/6 (Target 179)
+    let innList = [], headline = "", overs = "", status = "", runsNum = 0, wktsNum = 0, ovNum = 0, batTeam = tA, targetRuns = 0, firstInnRuns = 0, inningNo = 1, isInningsBreak = false, isDrawnOrDone = false, mathWinnerCode = "", type = "live";
+
+    if (elapsedSec < 280) {
+       // 0 to 4m 40s: 1st Inning (0.0 to 20.0 Ov)
+      const ballsBowled = Math.min(120, Math.floor((elapsedSec / 280) * 120));
+      const ovWhole = Math.floor(ballsBowled / 6), ovRem = ballsBowled % 6;
+      ovNum = Number(`${ovWhole}.${ovRem}`);
+      runsNum = Math.min(firstTarget, Math.round((ballsBowled / 120) * firstTarget));
+      wktsNum = Math.min(6, Math.floor(ballsBowled / 22));
+      batTeam = tA;
+      innList = [{ team: tA, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovWhole}.${ovRem}` }];
+      headline = `${tA} ${runsNum}/${wktsNum}`;
+      overs = `(${ovWhole}.${ovRem} Ov • CRR ${(runsNum / Math.max(0.5, ovNum)).toFixed(2)})`;
+      status = `${tA} batting • 1st Inning (10-Min Demo)`;
+    } else if (elapsedSec < 310) {
+      // 4m 40s to 5m 10s: Innings Break
+      inningNo = 2; isInningsBreak = true; firstInnRuns = firstTarget; targetRuns = firstTarget + 1;
+      batTeam = tB; runsNum = 0; wktsNum = 0; ovNum = 0;
+      innList = [{ team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" }];
+      headline = `${tA} ${firstTarget}/6`;
+      overs = `(Innings Break • Target ${targetRuns})`;
+      status = `Innings Break • ${tB} need ${targetRuns} runs`;
+    } else if (elapsedSec < totalSec) {
+      // 5m 10s to 10m 00s: 2nd Inning Chase
+      inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1; batTeam = tB;
+      const chaseFrac = (elapsedSec - 310) / (totalSec - 310);
+      const ballsBowled = Math.min(119, Math.floor(chaseFrac * 120));
+      const ovWhole = Math.floor(ballsBowled / 6), ovRem = ballsBowled % 6;
+      ovNum = Number(`${ovWhole}.${ovRem}`);
+      const finalBRuns = winSide === "TEAM_B" ? 179 : 164;
+      runsNum = Math.min(finalBRuns - 1, Math.round(chaseFrac * finalBRuns));
+      wktsNum = Math.min(8, Math.floor(ballsBowled / 16));
+      innList = [
+        { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
+        { team: tB, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovWhole}.${ovRem}` }
+      ];
+      headline = `${tB} ${runsNum}/${wktsNum}`;
+      overs = `(${ovWhole}.${ovRem} Ov • Target ${targetRuns})`;
+      status = `${tB} need ${Math.max(1, targetRuns - runsNum)} runs in ${Math.max(1, 120 - ballsBowled)} balls`;
+    } else {
+      // 10m 00s+: Match Completed!
+      type = "completed"; inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1;
+      isDrawnOrDone = true;
+      if (winSide === "TEAM_B") {
+        batTeam = tB; runsNum = 182; wktsNum = 4; ovNum = 19.2; mathWinnerCode = tB;
+        innList = [
+          { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
+          { team: tB, runs: 182, wkts: 4, ov: 19.2, ovStr: "19.2" }
+        ];
+        headline = `${tB} 182/4`;
+        overs = `(19.2 Ov)`;
+        status = `${tB} won by 6 wkts`;
+      } else {
+        batTeam = tB; runsNum = 164; wktsNum = 9; ovNum = 20.0; mathWinnerCode = tA;
+        innList = [
+          { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
+          { team: tB, runs: 164, wkts: 9, ov: 20.0, ovStr: "20.0" }
+        ];
+        headline = `${tB} 164/9`;
+        overs = `(20.0 Ov)`;
+        status = `${tA} won by 14 runs`;
+      }
+    }
+
+    const remSec = Math.max(0, totalSec - elapsedSec);
+    const mm = String(Math.floor(remSec / 60)).padStart(2, "0"), ss = String(remSec % 60).padStart(2, "0");
+
+    return {
+      id: DEMO_MATCH_ID,
+      title: `${tA} Vs ${tB} 10-Min Demo T20`,
+      type,
+      status,
+      scores: innList.map(x => `${x.team} ${x.runs}/${x.wkts} (${x.ovStr})`),
+      detail: {
+        headline, overs, status,
+        balls: recentBalls,
+        batters: `🏏 <b>Demo Star*</b><br>${targetRuns > 0 ? "🎯 Target: " + targetRuns : "📊 1st Inn Live"}`,
+        bowler: `⚾ <b>Demo Pacers</b><br>⏱️ Time Left: ${mm}:${ss}`,
+        shortComm: type === "completed" ? `🏆 Final Result: ${status}` : `Live Demo Ball • ${headline} ${overs}`,
+        runsNum, wktsNum, ovNum, batTeam, targetRuns, firstInnRuns,
+        maxOvers: 20, inningNo, isInningsBreak, isDrawnOrDone, mathWinnerCode, innList
+      }
+    };
+  }
+
+  async function startDemoMatch() {
+    const tA = (document.getElementById("demo_tA").value || "IND").trim().toUpperCase();
+    const tB = (document.getElementById("demo_tB").value || "AUS").trim().toUpperCase();
+    const winner = document.getElementById("demo_winner").value;
+    const cfg = { active: true, tA, tB, winner, startTime: Date.now() };
+    await dbPut("demoCricketConfig", cfg);
+    await syncDemoMatchTick();
+    alert(`✅ ${tA} vs ${tB} 10-Min Demo Match Shuru Ho Gaya!\nAb cricket.html khol kar bet lagayein.`);
+  }
+
+  async function fastForwardDemo(mins) {
+    const cfg = await dbGet("demoCricketConfig");
+    if (!cfg || !cfg.active) return alert("Pehle Start 10-Min Demo dabayein!");
+    cfg.startTime = Number(cfg.startTime) - (mins * 60 * 1000);
+    await dbPut("demoCricketConfig", cfg);
+    await syncDemoMatchTick();
+  }
+
+  async function finishDemoNow() {
+    const cfg = await dbGet("demoCricketConfig");
+    if (!cfg || !cfg.active) return alert("Pehle Start 10-Min Demo dabayein!");
+    cfg.startTime = Date.now() - (605 * 1000);
+    await dbPut("demoCricketConfig", cfg);
+    await syncDemoMatchTick();
+    alert("🏆 Demo Match End Ho Gaya! Ab cricket.html par saari bets settle ho jayengi.");
+  }
+
+  async function stopDeleteDemo() {
+    await Promise.all([
+      fetch(`${DB_URL}/demoCricketConfig.json`, { method: "DELETE" }),
+      fetch(`${DB_URL}/demoCricketMatch.json`, { method: "DELETE" }),
+      fetch(`${DB_URL}/cricketBets/${DEMO_MATCH_ID}.json`, { method: "DELETE" })
+    ]);
+    document.getElementById("demoBadge").innerText = "OFF";
+    document.getElementById("demoLiveStatusBox").innerText = "Status: Demo match delete kar diya gaya hai.";
+    alert("🗑️ Demo Match aur uski test bets delete ho gayi!");
+  }
+
+  async function syncDemoMatchTick() {
+    try {
+      const cfg = await dbGet("demoCricketConfig");
+      const badge = document.getElementById("demoBadge");
+      const box = document.getElementById("demoLiveStatusBox");
+      if (!cfg || !cfg.active) {
+        badge.innerText = "OFF";
+        return;
+      }
+      const snap = buildDemoSnapshot(cfg);
+      await dbPut("demoCricketMatch", snap);
+      badge.innerText = snap.type === "completed" ? "ENDED" : "LIVE";
+      box.innerHTML = `<strong>${snap.title}</strong><br>${snap.detail.headline} ${snap.detail.overs}<br><span style="color:#28e04d;">${snap.status}</span>`;
+    } catch (e) {}
+  }
+
+  syncDemoMatchTick();
+  setInterval(syncDemoMatchTick, 4000);
 
   // ==================== CRICKET AUTO-LIMIT & RATE MODULE ====================
   const CRIC_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
