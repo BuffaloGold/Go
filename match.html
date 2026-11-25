@@ -298,124 +298,6 @@
     if (needM && out.inningNo === 2 && out.targetRuns === 0) out.targetRuns = out.runsNum + Number(needM[1]);
     return out;
   }
-
-<script>
-  const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
-  const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
-  const mob = String(localStorage.getItem("activeUser") || "").trim();
-  if (!mob) window.location.replace("index.html");
-
-  const q = new URLSearchParams(window.location.search);
-  const saved = JSON.parse(localStorage.getItem("bg_selected_match") || "null");
-  const matchId = q.get("id") || (saved && String(saved.id)) || "";
-  if (!matchId) window.location.replace("cricket.html");
-
-  let matchInfo = {
-    id: String(matchId),
-    title: q.get("title") || (saved && saved.title) || "Cricket Match",
-    type: q.get("type") || (saved && saved.type) || "live",
-    scoreText: (saved && saved.scores && saved.scores.join(" | ")) || "LIVE",
-    oversText: "0.0 Ov",
-    statusText: (saved && saved.status) || "Live In Progress",
-    isEnded: (q.get("type") || (saved && saved.type)) === "completed"
-  };
-
-  let userBal = 0, userNameStr = "Player", ctrl = {}, customContestsObj = {}, winRate = 35, selBet = null;
-  let matchBetsStats = {}, teamExposure = {};
-  let liveState = { runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, formatType: "T20", maxOvers: 20, inningNo: 1, isInningsBreak: false, isEnded: matchInfo.isEnded };
-
-  function renderUser(u) {
-    if (!u) return;
-    userNameStr = u.name || "Player";
-    document.getElementById("userName").innerText = userNameStr;
-    document.getElementById("userMob").innerText = mob;
-    const d = Number(u.depositBal ?? u.depositBalance ?? 0), w = Number(u.winningBal ?? u.winningBalance ?? 0);
-    userBal = d + w;
-    document.getElementById("topDep").innerText = "₹" + d;
-    document.getElementById("topWin").innerText = "₹" + w;
-  }
-  try { renderUser(JSON.parse(localStorage.getItem("cachedUser") || "{}")); } catch (e) {}
-
-  async function syncWallet() {
-    try {
-      const u = await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json();
-      if (u) { localStorage.setItem("cachedUser", JSON.stringify(u)); renderUser(u); }
-    } catch (e) {}
-  }
-
-  function parseTeams(title) {
-    const clean = String(title || "").split(/\b(?:\d+(?:st|nd|rd|th)|Final|Semi|Quarter|Qualifier|Eliminator|Icc|Womens?|Mens?|Emerging|Trophy|Cup|League|Series|Elite|Group|Match|Test|Odi|T20)\b/i)[0].trim();
-    const parts = clean.split(/\s+vs\s+/i);
-    if (parts.length >= 2) return [parts[0].trim().toUpperCase(), parts[1].trim().split(/\s+/)[0].trim().toUpperCase()];
-    return ["TEAM A", "TEAM B"];
-  }
-
-  function toTotalBalls(ovStr) {
-    const p = String(ovStr || "0").split(".");
-    return ((parseInt(p[0], 10) || 0) * 6) + Math.min(5, parseInt(p[1], 10) || 0);
-  }
-
-  function detectMatchFormat(title, maxOvObserved) {
-    const t = String(title || "");
-    const isTest = /\b(test|shield|ranji|county|plunket|duleep|irani|4-day|four day)\b/i.test(t) && !/t20|odi|one day|list a|mushtaq|bbl|ipl|psl|ilt20/i.test(t);
-    const isOdi = /\b(odi|one day|vijay hazare|list a|50 over|world cup)\b/i.test(t) && !/t20/i.test(t);
-    if (isTest) return { formatType: "TEST", maxOvers: 90 };
-    if (isOdi || maxOvObserved > 20) return { formatType: "ODI (50 OV)", maxOvers: 50 };
-    return { formatType: "T20 (20 OV)", maxOvers: 20 };
-  }
-
-  function cleanNavNoise(str) {
-    return String(str || "")
-      .replace(/^.*?\b(?:Full Commentary|Commentary|Scorecard|Squads|Highlights|News|Photos|Videos|Info|Live Cricket Score)\b\s*/gi, "")
-      .trim();
-  }
-
-  function parseCricbuzzMatchHtml(html, title) {
-    const txt = String(html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-    const head = txt.slice(0, 4500);
-    const [tA, tB] = parseTeams(title);
-
-    const stM = head.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,36}?\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
-    const status = stM ? cleanNavNoise(stM[1]) : "";
-
-    const scMatches = [...txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
-    const uniqueInns = [];
-    let highestOv = 0;
-    scMatches.forEach(x => {
-      const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]);
-      if (tA !== "TEAM A" && team !== tA && team !== tB && !tA.startsWith(team) && !tB.startsWith(team)) return;
-      if (ov > highestOv) highestOv = ov;
-      const idx = uniqueInns.findIndex(u => u.team === team);
-      if (idx === -1) uniqueInns.push({ team, runs, wkts, ov, ovStr });
-      else if (toTotalBalls(ovStr) >= toTotalBalls(uniqueInns[idx].ovStr)) uniqueInns[idx] = { team, runs, wkts, ov, ovStr };
-    });
-
-    const fmt = detectMatchFormat(title, highestOv);
-    const out = {
-      headline: "", overs: "", status, runsNum: 0, wktsNum: 0, ovNum: 0,
-      batTeam: "", targetRuns: 0, firstInnRuns: 0,
-      formatType: fmt.formatType, maxOvers: fmt.maxOvers,
-      inningNo: 1, isInningsBreak: false,
-      isEnded: matchInfo.isEnded || /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(status)
-    };
-
-    if (uniqueInns.length) {
-      const first = uniqueInns[0], last = uniqueInns[uniqueInns.length - 1];
-      out.firstInnRuns = first.runs;
-      const is2ndStarted = uniqueInns.length >= 2 && last.team !== first.team;
-      const is1stDone = !is2ndStarted && (/\binnings break\b/i.test(status) || last.wkts >= 10 || (fmt.formatType !== "TEST" && last.ov >= fmt.maxOvers));
-      if (is2ndStarted) { out.inningNo = 2; out.isInningsBreak = false; if (fmt.formatType !== "TEST") out.targetRuns = first.runs + 1; }
-      else if (is1stDone) { out.inningNo = 2; out.isInningsBreak = true; if (fmt.formatType !== "TEST") out.targetRuns = first.runs + 1; }
-      out.batTeam = last.team;
-      out.headline = `${last.team} ${last.runs}/${last.wkts}`;
-      out.overs = `(${last.ovStr} Ov)`;
-      out.runsNum = last.runs; out.wktsNum = last.wkts; out.ovNum = last.ov;
-    }
-
-    const needM = status.match(/need\s*(\d+)\s*runs/i);
-    if (needM && out.inningNo === 2 && out.targetRuns === 0) out.targetRuns = out.runsNum + Number(needM[1]);
-    return out;
-  }
     function computeDynamicMatchOdds(tA, tB, sd, wr) {
     let probA = 0.50;
     const runs = sd.runsNum || 0, wkts = sd.wktsNum || 0, ov = sd.ovNum || 0, maxOv = sd.maxOvers || 20;
@@ -542,7 +424,49 @@
     fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE";
     fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
-    // 1. Admin Special Manual Contests
+    // 1. BALL TO BALL AUTO-ROTATING CONTEST (SABSE UPAR)
+    const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
+    const curOverPart = Math.floor(curOvVal);
+    const curBallPart = Math.round((curOvVal - curOverPart) * 10);
+    let nextOv = curOverPart, nextBall = curBallPart + 1;
+    if (nextBall > 6) { nextOv = curOverPart + 1; nextBall = 1; }
+    const nextBallLabel = `${nextOv}.${nextBall}`;
+    const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
+    const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
+
+    document.getElementById("nextBallTitle").innerText = `⚡ ${inn === 2 ? "2nd Inn" : "1st Inn"} Ball ${nextBallLabel} Result (${fTeam})`;
+    const nbBadge = document.getElementById("nextBallBadge");
+    nbBadge.innerText = gLock ? "🔒 LOCKED" : "● AUTO ROTATE";
+    nbBadge.style.color = gLock ? "#ff4d6d" : "#28e04d";
+
+    const ballOptions = [
+      { lbl: "Dot Ball (0)", odd: "2.60" },
+      { lbl: "Single (1)", odd: "2.40" },
+      { lbl: "Double (2)", odd: "5.50" },
+      { lbl: "Triple (3)", odd: "14.00" },
+      { lbl: "Boundary (4 / 6)", odd: "3.20" },
+      { lbl: "Wicket", odd: "6.50" },
+      { lbl: "Extra (Wd / Nb)", odd: "4.80" },
+      { lbl: "Any Other", odd: "9.00" }
+    ];
+
+    document.getElementById("nextBallBody").innerHTML = ballOptions.map(bo => `
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">${bo.lbl}</div>
+          <div class="runner-sub">Ball ${nextBallLabel} • Auto-Next Ball</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-back" style="width:86px;" onclick="openBet('Ball ${nextBallLabel} (${fTeam})','BACK','${bo.lbl}',${bo.odd})">
+            <span class="rate-main">${bo.odd}x</span>
+            <span class="rate-sub">Back</span>
+          </div>
+          ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+        </div>
+      </div>
+    `).join("");
+
+    // 2. Admin Special Manual Contests
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const cLock = gLock || c.status !== "OPEN";
@@ -577,7 +501,7 @@
     const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
     const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
 
-    // 2. Match Odds & Tied Match
+    // 3. Match Odds & Tied Match
     document.getElementById("oddsBody").innerHTML = `
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${ovA}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${ovB}</div>` : ''}</div></div>`;
@@ -586,7 +510,7 @@
       <div class="contest-row"><div class="runner-name">YES (Match Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Tied YES',12.0)"><span class="rate-main">12.0</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied NO',14.0)"><span class="rate-main">14.0</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">NO (Not Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Not Tied',1.05)"><span class="rate-main">1.05</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied Lay',1.08)"><span class="rate-main">1.08</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
-    // 3. Bookmaker 0% & Bookmaker 1.0%
+    // 4. Bookmaker 0% & Bookmaker 1.0%
     const bmAB = ctrl.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ctrl.bmALay || (Number(bmAB) + 3);
     const bmBB = ctrl.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100)), bmBL = ctrl.bmBLay || (Number(bmBB) + 4);
     const bmABDec = (1 + (Number(bmAB) / 100)).toFixed(2), bmALDec = (1 + (Number(bmAL) / 100)).toFixed(2);
@@ -601,48 +525,6 @@
     document.getElementById("bm1Body").innerHTML = `
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
-
-    // 4. Next Ball Auto-Rotating Contest (0.1 -> 0.2 -> ... -> 0.6 -> 1.1) — All 8 Options
-    const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
-    const curOverPart = Math.floor(curOvVal);
-    const curBallPart = Math.round((curOvVal - curOverPart) * 10);
-    let nextOv = curOverPart, nextBall = curBallPart + 1;
-    if (nextBall > 6) { nextOv = curOverPart + 1; nextBall = 1; }
-    const nextBallLabel = `${nextOv}.${nextBall}`;
-    const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
-    const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
-
-    document.getElementById("nextBallTitle").innerText = `⚡ ${inn === 2 ? "2nd Inn" : "1st Inn"} Ball ${nextBallLabel} Result (${fTeam})`;
-    const nbBadge = document.getElementById("nextBallBadge");
-    nbBadge.innerText = gLock ? "🔒 LOCKED" : "● AUTO ROTATE";
-    nbBadge.style.color = gLock ? "#ff4d6d" : "#28e04d";
-
-    const ballOptions = [
-      { lbl: "Dot Ball (0)", odd: "2.60" },
-      { lbl: "Single (1)", odd: "2.40" },
-      { lbl: "Double (2)", odd: "5.50" },
-      { lbl: "Triple (3)", odd: "14.00" },
-      { lbl: "Boundary (4 / 6)", odd: "3.20" },
-      { lbl: "Wicket", odd: "6.50" },
-      { lbl: "Extra (Wd / Nb)", odd: "4.80" },
-      { lbl: "Any Other", odd: "9.00" }
-    ];
-
-    document.getElementById("nextBallBody").innerHTML = ballOptions.map(bo => `
-      <div class="contest-row">
-        <div>
-          <div class="runner-name">${bo.lbl}</div>
-          <div class="runner-sub">Ball ${nextBallLabel} • Auto-Next Ball</div>
-        </div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-back" style="width:86px;" onclick="openBet('Ball ${nextBallLabel} (${bo.lbl})','BACK','${bo.lbl}',${bo.odd})">
-            <span class="rate-main">${bo.odd}x</span>
-            <span class="rate-sub">Back</span>
-          </div>
-          ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
-        </div>
-      </div>
-    `).join("");
 
     // 5. Over By Over & Session Runs
     const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
@@ -723,9 +605,9 @@
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("customContestsBox").style.display = (type === "all") ? "block" : "none";
+    document.querySelectorAll(".sec-ball").forEach(el => el.style.display = (type === "all" || type === "ball") ? "block" : "none");
     document.querySelectorAll(".sec-odds").forEach(el => el.style.display = (type === "all" || type === "odds") ? "block" : "none");
     document.querySelectorAll(".sec-bookmaker").forEach(el => el.style.display = (type === "all" || type === "bookmaker") ? "block" : "none");
-    document.querySelectorAll(".sec-ball").forEach(el => el.style.display = (type === "all" || type === "ball") ? "block" : "none");
     document.querySelectorAll(".sec-fancy").forEach(el => el.style.display = (type === "all" || type === "fancy") ? "block" : "none");
     document.querySelectorAll(".sec-digit").forEach(el => el.style.display = (type === "all" || type === "digit") ? "block" : "none");
   }
@@ -813,7 +695,10 @@
         market: selBet.mkt, side: selBet.side, lockedLine: selBet.line, lockedOdd: selBet.odd,
         customContestId: selBet.customContestId || "",
         stake: f.debit, profitTarget: f.profit, lockedReturn: f.ret,
-        status: "OPEN", time: new Date().toLocaleString("en-IN")
+        status: "OPEN", time: new Date().toLocaleString("en-IN"),
+        entryRuns: liveState.runsNum || 0,
+        entryWkts: liveState.wktsNum || 0,
+        entryOv: liveState.ovNum || 0
       };
       await fetch(`${FB_URL}/cricketBets/${matchId}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
       document.getElementById("betModal").classList.remove("open");
