@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10-Min Cricket Exchange Demo - Buffalo Gold</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: radial-gradient(circle at top, #230436 0%, #0d0114 100%); color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
+    .container { width: 100%; max-width: 430px; background: rgba(24, 3, 36, 0.96); min-height: 100vh; padding: 10px; box-shadow: 0 0 35px rgba(0,0,0,0.95); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: linear-gradient(135deg, #2d0742, #1a0326); padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.4); }
+    .user-info h3 { font-size: 14px; color: #ffd700; }
+    .user-info span { font-size: 11px; color: #bbb; }
+    .mini-wallet { text-align: right; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(40, 224, 77, 0.35); }
+    .mini-wallet div { font-size: 10px; color: #ccc; }
+    .mini-wallet strong { font-size: 13px; color: #28e04d; }
+    .demo-bar { background: linear-gradient(135deg, #102b1c, #240636); border: 1.5px solid #28e04d; border-radius: 14px; padding: 10px; margin-bottom: 10px; }
+    .demo-bar-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .demo-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .d-btn { border: none; border-radius: 8px; padding: 8px 4px; font-size: 11px; font-weight: 900; cursor: pointer; }
+    .score-banner { background: linear-gradient(145deg, #320847, #13021c); border: 2px solid #ffd700; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+    .big-runs { font-size: 21px; font-weight: 900; color: #ffd700; }
+    .ball-strip { background: #100217; border: 1px solid #59167a; border-radius: 8px; padding: 7px 10px; margin-top: 7px; font-size: 11px; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .market-pills::-webkit-scrollbar { display: none; }
+    .pill-btn { white-space: nowrap; padding: 7px 13px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .pill-btn.active { background: linear-gradient(180deg, #28e04d, #16a34a); color: #000; border-color: #28e04d; }
+    .market-card { background: #20042e; border: 1px solid #6b1d91; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+    .market-head { background: linear-gradient(90deg, #33094a, #240533); padding: 9px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
+    .cashout-tag { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .col-headers { display: flex; justify-content: flex-end; background: #170221; padding: 4px 10px; font-size: 10px; font-weight: 800; color: #bbb; gap: 6px; }
+    .col-headers span { width: 62px; text-align: center; }
+    .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #3c0c54; position: relative; }
+    .contest-row:last-child { border-bottom: none; }
+    .runner-name { font-size: 12px; font-weight: 700; color: #fff; flex: 1; padding-right: 6px; }
+    .runner-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .rate-boxes { display: flex; gap: 6px; position: relative; }
+    .rate-btn { width: 62px; height: 42px; border-radius: 7px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; }
+    .rate-back { background: linear-gradient(180deg, #8ecbf5, #5aaee8); }
+    .rate-lay { background: linear-gradient(180deg, #fcb9c8, #f58fa6); }
+    .rate-main { font-size: 13px; font-weight: 900; line-height: 1.1; }
+    .rate-sub { font-size: 9px; opacity: 0.85; font-weight: 700; }
+    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.92); border: 1px solid #ef4444; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
+    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; background: #190324; }
+    .digit-box { background: linear-gradient(180deg, #8ecbf5, #5aaee8); color: #000; border-radius: 7px; padding: 7px 4px; text-align: center; cursor: pointer; }
+    .digit-num { font-size: 14px; font-weight: 900; display: block; }
+    .digit-odd { font-size: 10px; font-weight: 700; opacity: 0.85; }
+    .bet-item-card { margin: 8px; padding: 11px; border-radius: 10px; background: #180324; border: 1px solid #4c1169; font-size: 12px; }
+    .bet-item-card.bet-won { background: linear-gradient(135deg, rgba(255, 215, 0, 0.14), rgba(22, 163, 74, 0.18)); border: 1.5px solid #ffd700; }
+    .bet-item-card.bet-lost { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.45); }
+    .status-pill { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+    .pill-won { background: linear-gradient(90deg, #ffd700, #28e04d); color: #000; }
+    .pill-lost { background: #ef4444; color: #fff; }
+    .pill-open { background: #4b5563; color: #ffd700; }
+    .empty-msg { padding: 24px 15px; text-align: center; color: #ccc; font-size: 13px; }
+    .win-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 16px; }
+    .win-popup-backdrop.show { display: flex; }
+    .win-popup-card { width: 100%; max-width: 370px; background: linear-gradient(160deg, #3b0954 0%, #170224 100%); border: 2.5px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; }
+    .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; }
+    .bet-modal.open { display: block; }
+    .bet-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 14px; font-weight: 700; margin: 8px 0; }
+    .quick-stakes { display: flex; gap: 6px; margin-bottom: 10px; }
+    .stake-chip { flex: 1; background: #3b0a52; color: #ffd700; border: 1px solid #75229e; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
+    .nav-item { text-align: center; color: #bbb; font-size: 11px; cursor: pointer; flex: 1; }
+    .nav-item.active { color: #ffd700; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div class="user-info">
+      <h3 id="userName">Player</h3>
+      <span>📱 <span id="userMob">-</span></span>
+    </div>
+    <div class="mini-wallet" onclick="location.href='wallet.html'">
+      <div>Deposit: <strong id="topDep">₹0</strong></div>
+      <div>Winning: <strong id="topWin">₹0</strong></div>
+    </div>
+  </div>
+
+  <!-- 10-MIN DEMO SIMULATOR CONTROLLER -->
+  <div class="demo-bar">
+    <div class="demo-bar-head">
+      <span style="font-size:12px; font-weight:900; color:#28e04d;">⚡ 10-MIN LIVE EXCHANGE DEMO</span>
+      <span id="demoTimerTag" style="font-size:11px; font-weight:900; color:#ffd700;">10:00 Left</span>
+    </div>
+    <div style="display:flex; gap:6px; margin-bottom:8px; align-items:center;">
+      <span style="font-size:11px; color:#ccc;">Winner Set:</span>
+      <select id="demoWinnerPick" style="flex:1; padding:5px 8px; border-radius:6px; background:#12021a; color:#ffd700; border:1px solid #6b1d91; font-size:11px; font-weight:700;">
+        <option value="AUS">🏆 AUS Jeetegi (Chase Win)</option>
+        <option value="IND">🏆 IND Jeetegi (1st Bat Defend)</option>
+      </select>
+    </div>
+    <div class="demo-btns">
+      <button class="d-btn" style="background:#28e04d; color:#000;" onclick="restartDemoMatch()">🔄 New 10m</button>
+      <button class="d-btn" style="background:#3b82f6; color:#fff;" onclick="fastForwardDemo(2)">⏩ +2 Min</button>
+      <button class="d-btn" style="background:#ffd700; color:#000;" onclick="finishDemoNow()">🏆 End Now</button>
+    </div>
+  </div>
+
+  <div class="score-banner">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div style="flex:1; padding-right:8px;">
+        <h4 id="cTitle" style="font-size:14px; color:#fff;">IND Vs AUS 10-Min Demo T20</h4>
+        <p id="cStatus" style="font-size:11px; color:#ffd700; margin-top:3px; font-weight:700;">Live Demo Match</p>
+      </div>
+      <div style="text-align:right; min-width:110px;">
+        <div class="big-runs" id="cRuns">IND 0/0</div>
+        <div id="cOvers" style="font-size:11px; color:#28e04d; font-weight:800;">(0.0 Ov)</div>
+      </div>
+    </div>
+    <div id="recentBallsBar" style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-top:8px; padding:6px 8px; background:#12021a; border-radius:8px; border:1px solid #4a1266;">
+      <span style="font-size:10px; color:#aaa; font-weight:700;">BALLS (6):</span>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:7px; font-size:11px;">
+      <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="batBox">🏏 Live Batting</div>
+      <div style="background:#190324; padding:6px 8px; border-radius:7px; border:1px solid #3c0c54;" id="bowlBox">⚾ Live Bowling</div>
+    </div>
+    <div class="ball-strip" id="cBalls">💬 Live ball-by-ball demo updates...</div>
+  </div>
+
+  <div class="market-pills">
+    <button class="pill-btn active" onclick="filterMarket('all', this)">All Markets</button>
+    <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
+    <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
+    <button class="pill-btn" onclick="filterMarket('fancy', this)">Over Sessions</button>
+    <button class="pill-btn" onclick="filterMarket('digit', this)">Last Digit</button>
+    <button class="pill-btn" onclick="filterMarket('mybets', this)">🏆 My Demo Bets</button>
+  </div>
+
+  <div class="market-card sec-odds">
+    <div class="market-head"><span>Match Odds <span class="cashout-tag">REAL EXCHANGE</span></span><span id="oddsStatus" style="font-size:10px; color:#28e04d;">● LIVE OPEN</span></div>
+    <div class="col-headers"><span>Back (Blue)</span><span>Lay (Pink)</span></div>
+    <div id="oddsBody"></div>
+  </div>
+
+  <div class="market-card sec-bookmaker">
+    <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">PAISE RATE</span></span><span style="font-size:10px; color:#aaa;">0% Comm</span></div>
+    <div class="col-headers"><span>Back (Blue)</span><span>Lay (Pink)</span></div>
+    <div id="bmBody"></div>
+  </div>
+
+  <div class="market-card sec-fancy">
+    <div class="market-head"><span id="fancyHeaderTitle">Over Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
+    <div class="col-headers"><span>No</span><span>Yes</span></div>
+    <div id="fancyBody"></div>
+  </div>
+
+  <div id="digitBody" class="sec-digit"></div>
+
+  <div class="market-card sec-mybets" style="display:none;">
+    <div class="market-head"><span>🏆 My Demo Bets & Auto-Settlement</span><span style="font-size:10px; color:#28e04d;">LIVE PAYOUT</span></div>
+    <div id="myBetsList"><div class="empty-msg">Abhi koi demo bet nahi lagi hai.</div></div>
+  </div>
+</div>
+
+<div class="win-popup-backdrop" id="winPopupModal">
+  <div class="win-popup-card">
+    <div style="font-size:52px; margin-bottom:6px;">🏆</div>
+    <div style="font-size:12px; color:#28e04d; font-weight:900; letter-spacing:1.5px;">CONGRATULATIONS! YOU WON</div>
+    <h2 id="winPopupAmount" style="font-size:32px; color:#ffd700; margin:8px 0;">+₹0</h2>
+    <div id="winPopupMatch" style="font-size:13px; font-weight:800; color:#fff; margin-bottom:4px;">Match Name</div>
+    <div id="winPopupMarket" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:6px;">Market</div>
+    <div id="winPopupResult" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,215,0,0.35); border-radius:10px; padding:8px; font-size:11px; color:#e2e8f0; margin-bottom:14px;">Result</div>
+    <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
+  </div>
+</div>
+<div class="bet-modal" id="betModal">
+  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
+  <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
+  <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateBetReturn()" placeholder="Enter Stake / Profit (Min ₹100)" />
+  <div class="quick-stakes">
+    <button class="stake-chip" onclick="setStake(100)">+100</button>
+    <button class="stake-chip" onclick="setStake(500)">+500</button>
+    <button class="stake-chip" onclick="setStake(1000)">+1K</button>
+    <button class="stake-chip" onclick="setStake(5000)">+5K</button>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <button style="flex:1; padding:10px; background:#4b5563; color:#fff; border:none; border-radius:8px; font-weight:700;" onclick="document.getElementById('betModal').classList.remove('open')">Cancel</button>
+    <button style="flex:2; padding:10px; background:#28e04d; color:#000; border:none; border-radius:8px; font-weight:800;" onclick="placeDemoBet()">Confirm & Lock Bet</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="location.href='game.html'">🎰<br>Games</div>
+  <div class="nav-item" onclick="location.href='cricket.html'">🏏<br>Live Cricket</div>
+  <div class="nav-item active">⚡<br>10m Demo</div>
+  <div class="nav-item" onclick="location.href='wallet.html'">💰<br>Wallet</div>
+  <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
+</div>
+
+<script>
+  const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const mob = String(localStorage.getItem("activeUser") || "").trim();
+  if (!mob) window.location.replace("index.html");
+
+  let userBal = 0, userNameStr = "Player", selBet = null, isPlacingBet = false, isSettling = false;
+  let demoStartTime = Number(localStorage.getItem("bg_demo_start") || 0);
+  if (!demoStartTime) {
+    demoStartTime = Date.now();
+    localStorage.setItem("bg_demo_start", String(demoStartTime));
+  }
+
+  function restartDemoMatch() {
+    demoStartTime = Date.now();
+    localStorage.setItem("bg_demo_start", String(demoStartTime));
+    renderDemoTick();
+  }
+
+  function fastForwardDemo(mins) {
+    demoStartTime -= (mins * 60 * 1000);
+    localStorage.setItem("bg_demo_start", String(demoStartTime));
+    renderDemoTick();
+  }
+
+  function finishDemoNow() {
+    demoStartTime = Date.now() - (605 * 1000);
+    localStorage.setItem("bg_demo_start", String(demoStartTime));
+    renderDemoTick();
+  }
+
+  async function syncUserWallet() {
+    try {
+      const u = (await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json()) || {};
+      userNameStr = u.name || "Player";
+      document.getElementById("userName").innerText = userNameStr;
+      document.getElementById("userMob").innerText = mob;
+      const d = Number(u.depositBal ?? u.depositBalance ?? 0);
+      const w = Number(u.winningBal ?? u.winningBalance ?? 0);
+      userBal = d + w;
+      document.getElementById("topDep").innerText = "₹" + d;
+      document.getElementById("topWin").innerText = "₹" + w;
+    } catch (e) {}
+  }
+
+  function getDemoState() {
+    const tA = "IND", tB = "AUS";
+    const winTeam = document.getElementById("demoWinnerPick").value || "AUS";
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - demoStartTime) / 1000));
+    const totalSec = 600; // 10 Minutes
+    const ballPool = ["1", "4", "0", "2", "6", "1", "W", "1", "4", "0", "2", "1"];
+    const bIdx = Math.floor(elapsedSec / 4);
+    const balls = [];
+    for (let i = 5; i >= 0; i--) balls.push((bIdx - i) < 0 ? "•" : ballPool[(bIdx - i) % ballPool.length]);
+
+    const firstTarget = 178; // 1st Inn Final = 178/6 (Target 179)
+    let innList = [], headline = "", overs = "", status = "", runsNum = 0, wktsNum = 0, ovNum = 0, batTeam = tA, targetRuns = 0, firstInnRuns = 0, inningNo = 1, isInningsBreak = false, isDone = false, winnerCode = "";
+
+    if (elapsedSec < 280) {
+      const ballsBowled = Math.min(120, Math.floor((elapsedSec / 280) * 120));
+      const ovW = Math.floor(ballsBowled / 6), ovR = ballsBowled % 6;
+      ovNum = Number(`${ovW}.${ovR}`);
+      runsNum = Math.min(firstTarget, Math.round((ballsBowled / 120) * firstTarget));
+      wktsNum = Math.min(6, Math.floor(ballsBowled / 22));
+      batTeam = tA;
+      innList = [{ team: tA, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovW}.${ovR}` }];
+      headline = `${tA} ${runsNum}/${wktsNum}`;
+      overs = `(${ovW}.${ovR} Ov)`;
+      status = `${tA} Batting • 1st Inning`;
+    } else if (elapsedSec < 310) {
+      inningNo = 2; isInningsBreak = true; firstInnRuns = firstTarget; targetRuns = firstTarget + 1; batTeam = tB;
+      innList = [{ team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" }];
+      headline = `${tA} ${firstTarget}/6`;
+      overs = `(Innings Break)`;
+      status = `Innings Break • ${tB} need ${targetRuns} runs`;
+    } else if (elapsedSec < totalSec) {
+      inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1; batTeam = tB;
+      const frac = (elapsedSec - 310) / (totalSec - 310);
+      const ballsBowled = Math.min(119, Math.floor(frac * 120));
+      const ovW = Math.floor(ballsBowled / 6), ovR = ballsBowled % 6;
+      ovNum = Number(`${ovW}.${ovR}`);
+      const capRuns = winTeam === "AUS" ? 179 : 164;
+      runsNum = Math.min(capRuns - 1, Math.round(frac * capRuns));
+      wktsNum = Math.min(8, Math.floor(ballsBowled / 16));
+      innList = [
+        { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
+        { team: tB, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovW}.${ovR}` }
+      ];
+      headline = `${tB} ${runsNum}/${wktsNum}`;
+      overs = `(${ovW}.${ovR} Ov • Target ${targetRuns})`;
+      status = `${tB} need ${Math.max(1, targetRuns - runsNum)} runs in ${Math.max(1, 120 - ballsBowled)} balls`;
+    } else {
+      isDone = true; inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1; winnerCode = winTeam;
+      if (winTeam === "AUS") {
+        batTeam = tB; runsNum = 182; wktsNum = 4; ovNum = 19.2;
+        innList = [{ team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" }, { team: tB, runs: 182, wkts: 4, ov: 19.2, ovStr: "19.2" }];
+        headline = `${tB} 182/4`; overs = `(19.2 Ov)`; status = `AUS won by 6 wkts`;
+      } else {
+        batTeam = tB; runsNum = 164; wktsNum = 9; ovNum = 20.0;
+        innList = [{ team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" }, { team: tB, runs: 164, wkts: 9, ov: 20.0, ovStr: "20.0" }];
+        headline = `${tB} 164/9`; overs = `(20.0 Ov)`; status = `IND won by 14 runs`;
+      }
+    }
+
+    const rem = Math.max(0, totalSec - elapsedSec);
+    const timeStr = `${String(Math.floor(rem / 60)).padStart(2, "0")}:${String(rem % 60).padStart(2, "0")}`;
+    return { tA, tB, balls, headline, overs, status, runsNum, wktsNum, ovNum, batTeam, targetRuns, firstInnRuns, inningNo, isInningsBreak, isDone, winnerCode, innList, timeStr };
+  }
+
+  function computeOdds(sd) {
+    let probA = 0.50;
+    const isABat = sd.batTeam === sd.tA;
+    if (sd.isInningsBreak) probA = 0.56;
+    else if (sd.inningNo === 2 && sd.targetRuns > 0) {
+      const need = Math.max(0, sd.targetRuns - sd.runsNum);
+      const ovLeft = Math.max(0.2, 20 - sd.ovNum);
+      const chaseP = Math.min(0.94, Math.max(0.08, 0.58 - (((need / ovLeft) - 8.5) * 0.065) - (sd.wktsNum * 0.045)));
+      probA = 1 - chaseP;
+    } else if (sd.ovNum > 0) {
+      probA = Math.min(0.85, Math.max(0.15, 0.50 + (((sd.runsNum / Math.max(0.5, sd.ovNum)) - 8.2) * 0.035) - (sd.wktsNum * 0.04)));
+    }
+    const oA = Math.min(12.0, Math.max(1.06, (1 / probA) * 0.96));
+    const oB = Math.min(12.0, Math.max(1.06, (1 / (1 - probA)) * 0.96));
+    return { aB: oA.toFixed(2), aL: (oA + 0.03).toFixed(2), bB: oB.toFixed(2), bL: (oB + 0.04).toFixed(2) };
+  }
+    function renderDemoTick() {
+    const sd = getDemoState();
+    document.getElementById("demoTimerTag").innerText = sd.isDone ? "✅ ENDED" : `⏱️ ${sd.timeStr} Left`;
+    document.getElementById("cStatus").innerText = sd.status;
+    document.getElementById("cRuns").innerText = sd.headline;
+    document.getElementById("cOvers").innerText = sd.overs;
+
+    document.getElementById("recentBallsBar").innerHTML = `<span style="font-size:10px; color:#aaa; font-weight:700;">BALLS (6):</span>` + sd.balls.map(b => {
+      const bg = b === "W" ? "#ef4444" : b === "6" ? "#22c55e" : b === "4" ? "#3b82f6" : "#3b0a52";
+      const fg = (b === "W" || b === "6" || b === "4") ? "#fff" : "#ffd700";
+      return `<span style="min-width:22px; height:22px; padding:0 5px; border-radius:50%; background:${bg}; color:${fg}; font-size:11px; font-weight:900; display:inline-flex; align-items:center; justify-content:center;">${b}</span>`;
+    }).join("");
+
+    document.getElementById("batBox").innerHTML = sd.inningNo === 2 ? `🏏 <b>Maxwell*</b><br>🎯 Target: ${sd.targetRuns}` : `🏏 <b>Suryakumar*</b><br>📊 1st Inn Live`;
+    document.getElementById("bowlBox").innerHTML = sd.inningNo === 2 ? `⚾ <b>Bumrah</b><br>📊 1st Inn: ${sd.firstInnRuns}` : `⚾ <b>Starc</b><br>⚡ Demo Live`;
+    document.getElementById("cBalls").innerText = sd.isDone ? `🏆 Final Result: ${sd.status}` : `💬 ${sd.headline} ${sd.overs} • Real Exchange Rates Active`;
+
+    const lk = sd.isDone ? `<div class="suspended-overlay">Match Ended</div>` : "";
+    document.getElementById("oddsStatus").innerText = sd.isDone ? "✅ MATCH ENDED" : "● LIVE OPEN";
+    document.getElementById("oddsStatus").style.color = sd.isDone ? "#ff4d6d" : "#28e04d";
+
+    const od = computeOdds(sd);
+    document.getElementById("oddsBody").innerHTML = `
+      <div class="contest-row"><div class="runner-name">${sd.tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${sd.tA} (Match Odds)','BACK','${sd.tA} Win',${od.aB})"><span class="rate-main">${od.aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${sd.tA} (Match Odds)','LAY','${sd.tA} Lose',${od.aL})"><span class="rate-main">${od.aL}</span><span class="rate-sub">Lay</span></div>${lk}</div></div>
+      <div class="contest-row"><div class="runner-name">${sd.tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${sd.tB} (Match Odds)','BACK','${sd.tB} Win',${od.bB})"><span class="rate-main">${od.bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${sd.tB} (Match Odds)','LAY','${sd.tB} Lose',${od.bL})"><span class="rate-main">${od.bL}</span><span class="rate-sub">Lay</span></div>${lk}</div></div>`;
+
+    const bmAB = Math.max(5, Math.round((parseFloat(od.aB) - 1) * 100)), bmAL = bmAB + 3;
+    const bmBB = Math.max(5, Math.round((parseFloat(od.bB) - 1) * 100)), bmBL = bmBB + 4;
+    const bmABDec = (1 + (bmAB / 100)).toFixed(2), bmALDec = (1 + (bmAL / 100)).toFixed(2);
+    const bmBBDec = (1 + (bmBB / 100)).toFixed(2), bmBLDec = (1 + (bmBL / 100)).toFixed(2);
+
+    document.getElementById("bmBody").innerHTML = `
+      <div class="contest-row"><div class="runner-name">${sd.tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${sd.tA} (Bookmaker)','BACK','BM ${bmAB}',${bmABDec})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${sd.tA} (Bookmaker)','LAY','BM ${bmAL}',${bmALDec})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${lk}</div></div>
+      <div class="contest-row"><div class="runner-name">${sd.tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${sd.tB} (Bookmaker)','BACK','BM ${bmBB}',${bmBBDec})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${sd.tB} (Bookmaker)','LAY','BM ${bmBL}',${bmBLDec})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${lk}</div></div>`;
+
+    const fTeam = sd.batTeam, effO = sd.isInningsBreak ? 0 : sd.ovNum, effR = sd.isInningsBreak ? 0 : sd.runsNum;
+    document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${sd.inningNo === 2 ? "2nd" : "1st"} Inn)`;
+    const sessList = [6, 10, 15, 20].map(ov => {
+      const noRun = effO === 0 ? Math.round(ov * 8.6) : Math.round(effR + Math.max(0, ov - effO) * 8.8);
+      return { title: `${ov} Over Run (${fTeam})`, ov, n: noRun, y: noRun + 2 };
+    });
+    document.getElementById("fancyBody").innerHTML = sessList.map(f => {
+      const passed = !sd.isInningsBreak && effO >= f.ov;
+      const ovLay = (sd.isDone || passed) ? `<div class="suspended-overlay">${passed ? f.ov + " Ov Over" : "Match Ended"}</div>` : "";
+      return `<div class="contest-row"><div><div class="runner-name">${f.title}</div><div class="runner-sub">Session Market</div></div><div class="rate-boxes"><div class="rate-btn rate-lay" onclick="openBet('${f.title}','NO','Under ${f.n} Runs',1.95)"><span class="rate-main">${f.n}</span><span class="rate-sub">95</span></div><div class="rate-btn rate-back" onclick="openBet('${f.title}','YES','${f.y}+ Runs',1.95)"><span class="rate-main">${f.y}</span><span class="rate-sub">95</span></div>${ovLay}</div></div>`;
+    }).join("");
+
+    const dBlocks = [{ t: "1st Inning 10 Over Last Digit", i: 1, o: 10 }, { t: "1st Inning 20 Over Last Digit", i: 1, o: 20 }, { t: "2nd Inning 10 Over Last Digit", i: 2, o: 10 }, { t: "2nd Inning 20 Over Last Digit", i: 2, o: 20 }];
+    document.getElementById("digitBody").innerHTML = dBlocks.map(db => {
+      const passed = (db.i === 1 && sd.inningNo >= 2) || (db.i === sd.inningNo && !sd.isInningsBreak && effO >= db.o);
+      if (sd.isDone || passed) return `<div class="market-card"><div class="market-head"><span>${db.t}</span><span style="font-size:10px; color:#ff4d6d;">🔒 ${passed ? "Over Done" : "Match Ended"}</span></div></div>`;
+      let g = ""; for (let d = 0; d <= 9; d++) g += `<div class="digit-box" onclick="openBet('${db.t}','DIGIT','Last Digit [${d}]',9.25)"><span class="digit-num">${d}</span><span class="digit-odd">9.25</span></div>`;
+      return `<div class="market-card"><div class="market-head"><span>${db.t}</span><span style="font-size:10px; color:#28e04d;">9.25x Payout</span></div><div class="digit-grid">${g}</div></div>`;
+    }).join("");
+
+    settleAndLoadDemoBets(sd);
+  }
+
+  function filterMarket(type, btn) {
+    document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active");
+    [".sec-odds", ".sec-bookmaker", ".sec-fancy", ".sec-digit", ".sec-mybets"].forEach((s, idx) => {
+      const keys = ["odds", "bookmaker", "fancy", "digit", "mybets"];
+      document.querySelector(s).style.display = (type === "all" && idx < 4) || type === keys[idx] ? "block" : "none";
+    });
+  }
+
+  function calcBetFinancials(side, rawInput, oddMult) {
+    const val = Number(rawInput || 0);
+    if (side === "LAY") {
+      const liability = Number((val * Math.max(0.01, oddMult - 1)).toFixed(2));
+      return { debit: liability, profit: val, totalReturn: Number((liability + val).toFixed(2)) };
+    }
+    const totalReturn = Number((val * oddMult).toFixed(2));
+    return { debit: val, profit: Number((totalReturn - val).toFixed(2)), totalReturn };
+  }
+
+  function openBet(mkt, side, line, odd) {
+    selBet = { marketName: mkt, side, lockedLine: line, oddMult: Number(odd) };
+    document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line})`;
+    document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    document.getElementById("betModal").classList.add("open");
+    updateBetReturn();
+  }
+  function setStake(v) { document.getElementById("stakeInput").value = v; updateBetReturn(); }
+  function updateBetReturn() {
+    if (!selBet) return;
+    const st = Number(document.getElementById("stakeInput").value || 0);
+    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
+    document.getElementById("betSnapshotNote").innerText = selBet.side === "LAY"
+      ? `Liability (Debit): ₹${fin.debit} | Profit: ₹${fin.profit} → Return: ₹${fin.totalReturn}`
+      : `Locked Return: ₹${fin.totalReturn} (${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+  }
+
+  async function placeDemoBet() {
+    if (isPlacingBet || !selBet) return;
+    const st = Number(document.getElementById("stakeInput").value);
+    if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
+    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
+    if (fin.debit > userBal) return alert(`Insufficient Balance! ₹${fin.debit} chahiye.`);
+    isPlacingBet = true;
+    try {
+      const u = (await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json()) || {};
+      let d = Number(u.depositBal ?? u.depositBalance ?? 0), w = Number(u.winningBal ?? u.winningBalance ?? 0);
+      if (d + w < fin.debit) return alert("Insufficient Wallet Balance!");
+      if (d >= fin.debit) d -= fin.debit; else { w = Math.max(0, w - (fin.debit - d)); d = 0; }
+      const p = { depositBal: d, winningBal: w };
+      if ("depositBalance" in u) p.depositBalance = d; if ("winningBalance" in u) p.winningBalance = w;
+      await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+      await syncUserWallet();
+
+      const rec = { betId: "DEMO_" + Date.now(), mobile: mob, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine, lockedOdd: selBet.oddMult, stake: fin.debit, lockedReturn: fin.totalReturn, status: "OPEN", time: new Date().toLocaleTimeString("en-IN") };
+      await fetch(`${FB_URL}/demoCricketBets/${mob}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+      document.getElementById("betModal").classList.remove("open");
+      alert(`✅ Demo Bet Locked!\n${rec.market}\n${selBet.side === "LAY" ? "Liability Debit" : "Stake"}: ₹${fin.debit} → Return: ₹${fin.totalReturn}`);
+      renderDemoTick();
+    } finally { isPlacingBet = false; }
+  }
+
+  function evaluateDemoBet(b, sd) {
+    const mkt = b.market, side = b.side, line = b.lockedLine;
+    const sessM = mkt.match(/(\d+)\s*Over Run\s*\(([^)]+)\)/i);
+    if (sessM) {
+      const tOv = Number(sessM[1]), tCode = sessM[2], reqR = Number((line.match(/(\d+)/) || [0, 0])[1]);
+      const inn = sd.innList.find(x => x.team === tCode);
+      if (inn && (inn.ov >= tOv || sd.isDone || (sd.innList.length >= 2 && inn !== sd.innList[sd.innList.length - 1]))) {
+        const act = inn.ov > tOv ? Math.round((inn.runs / inn.ov) * tOv) : inn.runs;
+        const won = (side === "YES" && act >= reqR) || (side === "NO" && act < reqR);
+        return { settled: true, status: won ? "WON" : "LOST", info: `${tCode} ${tOv} Ov Score: ${act} runs` };
+      }
+      return { settled: false };
+    }
+    if (/Last Digit/i.test(mkt)) {
+      const tOv = Number((mkt.match(/(\d+)\s*Over/i) || [0, 20])[1]), is2nd = /2nd Inning/i.test(mkt), inn = is2nd ? sd.innList[1] : sd.innList[0], dig = Number((line.match(/\[(\d)\]/) || [0, -1])[1]);
+      if (inn && (inn.ov >= tOv || sd.isDone || (!is2nd && sd.innList.length >= 2))) {
+        const rOv = inn.ov > tOv ? Math.round((inn.runs / inn.ov) * tOv) : inn.runs, actD = rOv % 10;
+        return { settled: true, status: actD === dig ? "WON" : "LOST", info: `Score: ${rOv} (Last Digit: ${actD})` };
+      }
+      return { settled: false };
+    }
+    if (/Match Odds|Bookmaker/i.test(mkt) && sd.isDone && sd.winnerCode) {
+      const pick = mkt.split("(")[0].trim().toUpperCase();
+      const hit = pick === sd.winnerCode;
+      return { settled: true, status: ((side === "BACK" && hit) || (side === "LAY" && !hit)) ? "WON" : "LOST", info: `🏆 ${sd.status}` };
+    }
+    return { settled: false };
+  }
+
+  async function settleAndLoadDemoBets(sd) {
+    try {
+      const obj = (await (await fetch(`${FB_URL}/demoCricketBets/${mob}.json?t=${Date.now()}`)).json()) || {};
+      const list = Object.values(obj);
+      if (!isSettling) {
+        isSettling = true;
+        for (const b of list) {
+          if (b && b.status === "OPEN") {
+            const res = evaluateDemoBet(b, sd);
+            if (res.settled) {
+              b.status = res.status; b.resultInfo = res.info;
+              await fetch(`${FB_URL}/demoCricketBets/${mob}/${b.betId}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: res.status, resultInfo: res.info }) });
+              if (res.status === "WON") {
+                const u = (await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json()) || {};
+                const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn)).toFixed(2));
+                const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+                await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+                await syncUserWallet();
+                document.getElementById("winPopupAmount").innerText = `+₹${b.lockedReturn}`;
+                document.getElementById("winPopupMatch").innerText = "🏏 IND Vs AUS 10-Min Demo T20";
+                document.getElementById("winPopupMarket").innerText = `${b.market} (${b.lockedLine})`;
+                document.getElementById("winPopupResult").innerText = `🎉 Result: ${res.info}`;
+                document.getElementById("winPopupModal").classList.add("show");
+              }
+            }
+          }
+        }
+        isSettling = false;
+      }
+      list.sort((a, b) => String(b.betId).localeCompare(String(a.betId)));
+      const box = document.getElementById("myBetsList");
+      if (!list.length) { box.innerHTML = `<div class="empty-msg">Abhi koi demo bet nahi lagi hai.</div>`; return; }
+      box.innerHTML = list.map(b => {
+        const cls = b.status === "WON" ? "bet-won" : b.status === "LOST" ? "bet-lost" : "";
+        const pCls = b.status === "WON" ? "pill-won" : b.status === "LOST" ? "pill-lost" : "pill-open";
+        const pTxt = b.status === "WON" ? `🏆 WON +₹${b.lockedReturn}` : b.status === "LOST" ? `❌ LOST` : `⏳ LIVE OPEN`;
+        return `<div class="bet-item-card ${cls}"><div style="display:flex; justify-content:space-between; margin-bottom:4px;"><strong style="color:#ffd700;">${b.market} (${b.side})</strong><span class="status-pill ${pCls}">${pTxt}</span></div><div>Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • ${b.side === "LAY" ? "Liability" : "Stake"}: <b>₹${b.stake}</b> → Return: <b style="color:#28e04d;">₹${b.lockedReturn}</b></div>${b.resultInfo ? `<div style="margin-top:5px; color:#ffd700; font-size:11px;">📢 ${b.resultInfo}</div>` : ""}</div>`;
+      }).join("");
+    } catch (e) { isSettling = false; }
+  }
+
+  syncUserWallet();
+  renderDemoTick();
+  setInterval(() => { syncUserWallet(); renderDemoTick(); }, 3000);
+</script>
+</body>
+</html>
