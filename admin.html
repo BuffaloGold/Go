@@ -19,7 +19,14 @@
   .btn-qr { background: #3d0c57; border: 1px solid #28e04d; color: #28e04d; width: 100%; padding: 9px; font-size: 12px; margin-bottom: 6px; }
   .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 6px 9px; font-size: 11px; }
   .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
-  .admin-own-wallet { background: linear-gradient(135deg, #102a1c, #1f042e); border: 1.5px solid #28e04d; padding: 11px 12px; border-radius: 12px; margin-bottom: 10px; }
+  .ledger-card { background: linear-gradient(145deg, #162e21 0%, #1d042b 100%); border: 1.5px solid #ffd700; padding: 12px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 18px rgba(0,0,0,0.6); }
+  .ledger-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid rgba(255,215,0,0.25); }
+  .ledger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+  .l-box { background: rgba(12, 2, 18, 0.75); border: 1px solid #4d146b; border-radius: 9px; padding: 8px 9px; }
+  .l-box span { display: block; font-size: 10px; color: #cbd5e1; margin-bottom: 2px; }
+  .l-box strong { display: block; font-size: 15px; font-weight: 900; }
+  .l-box small { display: block; font-size: 10px; color: #94a3b8; margin-top: 2px; }
+  .profit-banner { border-radius: 9px; padding: 9px 10px; font-size: 12px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
   .check-box { background: #12021a; border: 1px solid #38bdf8; border-radius: 9px; padding: 9px 11px; margin-bottom: 10px; font-size: 11px; line-height: 1.5; color: #e2e8f0; }
   .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
@@ -64,19 +71,49 @@
     </div>
   </div>
 
-  <!-- AAPKA ALAG ADMIN WALLET (GAME WALLET SE ALAG) -->
-  <div class="admin-own-wallet">
-    <div class="row-between">
+  <!-- ADMIN LIVE HISAB-KITAB & PROFIT/LIABILITY LEDGER -->
+  <div class="ledger-card">
+    <div class="ledger-head">
       <div>
-        <div style="font-size:10px; color:#86efac; font-weight:bold;">💼 ADMIN MASTER WALLET (SEPARATE)</div>
-        <div style="font-size:20px; font-weight:900; color:#ffd700; margin-top:2px;" id="ownAdminBal">₹0</div>
+        <div style="font-size:12px; font-weight:900; color:#ffd700;">💼 ADMIN HISAB-KITAB & PROFIT LEDGER</div>
+        <div style="font-size:10px; color:#cbd5e1;" id="admFundNote">Admin Own Reserve: ₹0</div>
       </div>
-      <div style="display:flex; gap:5px;">
-        <button type="button" class="btn btn-green" onclick="updateOwnAdminWallet('add')">+ Add Fund</button>
-        <button type="button" class="btn btn-red" onclick="updateOwnAdminWallet('sub')">- Withdraw</button>
+      <div style="display:flex; gap:4px;">
+        <button type="button" class="btn btn-green" style="padding:5px 7px; font-size:10px;" onclick="updateOwnAdminWallet('add')">+ Reserve</button>
+        <button type="button" class="btn btn-red" style="padding:5px 7px; font-size:10px;" onclick="updateOwnAdminWallet('sub')">- Withdraw</button>
       </div>
     </div>
-    <div style="font-size:10px; color:#aaa; margin-top:4px;" id="ownAdminStats">Cricket Pool Net: ₹0</div>
+
+    <div class="ledger-grid">
+      <div class="l-box" style="border-color:#28e04d;">
+        <span>📥 TOTAL USERS DEPOSIT (AAYA)</span>
+        <strong style="color:#28e04d;" id="ldgTotalDep">₹0</strong>
+        <small id="ldgDepUsers">0 Users ne deposit kiya</small>
+      </div>
+      <div class="l-box" style="border-color:#38bdf8;">
+        <span>💸 TOTAL PAID OUT (DIYA)</span>
+        <strong style="color:#38bdf8;" id="ldgTotalPaid">₹0</strong>
+        <small id="ldgPaidBreak">Withdraw: ₹0 | Win Paid: ₹0</small>
+      </div>
+      <div class="l-box" style="border-color:#f59e0b;">
+        <span>⏳ ABHI DENA HAI (LIABILITY)</span>
+        <strong style="color:#fbbf24;" id="ldgMustPay">₹0</strong>
+        <small id="ldgPayBreak">Pending WD: ₹0 | Open Bets: ₹0</small>
+      </div>
+      <div class="l-box" style="border-color:#a855f7;">
+        <span>🚫 NAHI DENA (SAFE / LOST BETS)</span>
+        <strong style="color:#e879f9;" id="ldgNotToPay">₹0</strong>
+        <small id="ldgBetBreak">Total Bet Stake: ₹0</small>
+      </div>
+    </div>
+
+    <div class="profit-banner" id="ldgProfitBox" style="background:rgba(40,224,77,0.16); border:1px solid #28e04d; color:#28e04d;">
+      <div>
+        <div style="font-size:10px; opacity:0.9;" id="ldgProfitLabel">✅ ABHI TAK KA NET PROFIT (SETTLED)</div>
+        <div style="font-size:10px; font-weight:600; color:#e2e8f0; margin-top:2px;" id="ldgWorstCase">Agar sab open bets jeetein toh: ₹0</div>
+      </div>
+      <div style="font-size:18px; font-weight:900;" id="ldgNetProfit">+₹0</div>
+    </div>
   </div>
 
   <div class="status-bar" id="connStatus">⏳ Direct Fast-Sync se data aa raha hai...</div>
@@ -138,7 +175,6 @@
       <option value="">Matches load ho rahe hain...</option>
     </select>
 
-    <!-- LIVE MATCH PRE-CHECK INTELLIGENCE BOX -->
     <div class="check-box" id="matchIntelBox">
       ⏳ Match ki live स्थिति (Inning, Overs, Batting Team) check ho rahi hai...
     </div>
@@ -182,7 +218,6 @@
     <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
 
-    <!-- SMART MANUAL CONTEST CREATOR -->
     <div style="margin-top:16px; padding-top:14px; border-top:1.5px dashed #ffd700;">
       <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (With Live Pre-Check)</h4>
       <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Inning, Overs, Batting Team aur Rate check karke hi contest banega</p>
@@ -285,38 +320,121 @@
     return await res.json();
   }
 
-  // ==================== AAPKA ALAG ADMIN MASTER WALLET ====================
-  async function loadOwnAdminWallet() {
-    try {
-      const [admData, allBets] = await Promise.all([
-        dbGet("adminWallet/9794408205"),
-        dbGet("cricketBets")
-      ]);
-      const baseBal = Number((admData && admData.balance) || 0);
-      let totalIn = 0, totalOut = 0;
-      Object.values(allBets || {}).forEach(mObj => {
-        Object.values(mObj || {}).forEach(b => {
-          if (!b) return;
-          totalIn += Number(b.stake || 0);
-          if (String(b.status || "").toUpperCase() === "WON") totalOut += Number(b.lockedReturn || 0);
-          else if (String(b.status || "").toUpperCase() === "VOID") totalOut += Number(b.stake || 0);
-        });
+  // ==================== ADMIN LIVE HISAB-KITAB & PROFIT/LIABILITY LEDGER ====================
+  async function updateAdminBusinessLedger(uData, wData, dData, allBets, admReserve) {
+    const users = uData || {};
+    const wds = wData || {};
+    const deps = dData || {};
+    const bets = allBets || {};
+
+    // 1. Kitne users ne deposit kiya aur total kitna amount aaya
+    let totalDepAmt = 0;
+    const depositorsSet = new Set();
+    Object.values(deps).forEach(d => {
+      if (!d) return;
+      const st = String(d.status || "APPROVED").toUpperCase();
+      if (st === "APPROVED" || st === "AUTO_APPROVED") {
+        const amt = Number(d.amount || 0);
+        if (amt > 0) {
+          totalDepAmt += amt;
+          if (d.mobile) depositorsSet.add(String(d.mobile).trim());
+        }
+      }
+    });
+    Object.entries(users).forEach(([m, u]) => {
+      if (!u) return;
+      const uDep = getUserTotalDep(u);
+      if (uDep > 0 && !depositorsSet.has(String(m).trim())) {
+        depositorsSet.add(String(m).trim());
+        totalDepAmt += uDep;
+      }
+    });
+
+    // 2. Withdrawals (Paid vs Pending)
+    let wdPaidAmt = 0, wdPendingAmt = 0, wdPendingUsers = 0;
+    Object.values(wds).forEach(w => {
+      if (!w) return;
+      const amt = Number(w.amount || 0);
+      const st = String(w.status || "PENDING").toUpperCase();
+      if (st === "APPROVED") wdPaidAmt += amt;
+      else if (st === "PENDING") { wdPendingAmt += amt; wdPendingUsers++; }
+    });
+
+    // 3. Cricket Bets Hisab (Total Stake, Won Paid, Lost/Nahi Dena, Open Liability)
+    let betTotalStake = 0, betWonPaid = 0, betLostKept = 0, betOpenStake = 0, betOpenMaxPayout = 0;
+    Object.values(bets).forEach(mObj => {
+      Object.values(mObj || {}).forEach(b => {
+        if (!b) return;
+        const st = String(b.status || "OPEN").toUpperCase();
+        const stake = Number(b.stake || 0);
+        const ret = Number(b.lockedReturn || 0);
+        betTotalStake += stake;
+        if (st === "WON") {
+          betWonPaid += ret;
+        } else if (st === "LOST") {
+          betLostKept += stake;
+        } else if (st === "OPEN") {
+          betOpenStake += stake;
+          betOpenMaxPayout += ret;
+        }
       });
-      const netProfit = Number((totalIn - totalOut).toFixed(2));
-      document.getElementById("ownAdminBal").innerText = "₹" + baseBal.toFixed(2).replace(/\.00$/, "");
-      document.getElementById("ownAdminStats").innerText = `Cricket Bets Collected: ₹${totalIn} | Paid Out: ₹${totalOut} | Net Profit: ${netProfit >= 0 ? "+₹" + netProfit : "-₹" + Math.abs(netProfit)}`;
-    } catch (e) {}
+    });
+
+    // 4. Total Paid Out, Abhi Dena Hai, Nahi Dena, aur Net Profit/Loss
+    const totalPaidOut = Number((wdPaidAmt + betWonPaid).toFixed(2));
+    const totalMustPay = Number((wdPendingAmt + betOpenMaxPayout).toFixed(2));
+    const totalNotToPay = Number(betLostKept.toFixed(2));
+
+    // Settled Net Profit = (Total Deposits + Lost Bets) - (Withdrawals Paid + Winning Paid)
+    // Ya Cashflow Hisab: (Total Deposits Collected) - (Total Withdrawals Paid + Pending Withdrawals + Open Bets Max Liability)
+    const settledNetProfit = Number(((totalDepAmt + betLostKept) - (wdPaidAmt + betWonPaid)).toFixed(2));
+    const worstCaseNet = Number((totalDepAmt - (wdPaidAmt + wdPendingAmt + betOpenMaxPayout)).toFixed(2));
+
+    const reserveBal = Number((admReserve && admReserve.balance) || 0);
+    document.getElementById("admFundNote").innerText = `Admin Own Reserve: ₹${reserveBal} • Depositors: ${depositorsSet.size} Users`;
+
+    document.getElementById("ldgTotalDep").innerText = "₹" + totalDepAmt.toFixed(0);
+    document.getElementById("ldgDepUsers").innerText = `${depositorsSet.size} Users ne deposit kiya`;
+
+    document.getElementById("ldgTotalPaid").innerText = "₹" + totalPaidOut.toFixed(0);
+    document.getElementById("ldgPaidBreak").innerText = `WD Paid: ₹${wdPaidAmt} | Win Paid: ₹${betWonPaid}`;
+
+    document.getElementById("ldgMustPay").innerText = "₹" + totalMustPay.toFixed(0);
+    document.getElementById("ldgPayBreak").innerText = `Pending WD: ₹${wdPendingAmt} (${wdPendingUsers}) | Open Bets: ₹${betOpenMaxPayout}`;
+
+    document.getElementById("ldgNotToPay").innerText = "₹" + totalNotToPay.toFixed(0);
+    document.getElementById("ldgBetBreak").innerText = `Total Bet Stake: ₹${betTotalStake} (Open: ₹${betOpenStake})`;
+
+    const pBox = document.getElementById("ldgProfitBox");
+    const pLbl = document.getElementById("ldgProfitLabel");
+    const pVal = document.getElementById("ldgNetProfit");
+    const wVal = document.getElementById("ldgWorstCase");
+
+    if (settledNetProfit >= 0) {
+      pBox.style.background = "rgba(40, 224, 77, 0.16)";
+      pBox.style.borderColor = "#28e04d";
+      pBox.style.color = "#28e04d";
+      pLbl.innerText = "✅ ABHI AAP PROFIT MEIN HAIN (NET PROFIT)";
+      pVal.innerText = "+₹" + settledNetProfit.toFixed(0);
+    } else {
+      pBox.style.background = "rgba(239, 68, 68, 0.18)";
+      pBox.style.borderColor = "#ef4444";
+      pBox.style.color = "#ff6b6b";
+      pLbl.innerText = "⚠️ ABHI AAP GHATE (LOSS) MEIN HAIN";
+      pVal.innerText = "-₹" + Math.abs(settledNetProfit).toFixed(0);
+    }
+    wVal.innerText = `Agar saari Open Bets bhi jeetein toh: ${worstCaseNet >= 0 ? "+₹" + worstCaseNet.toFixed(0) + " Bachat" : "-₹" + Math.abs(worstCaseNet).toFixed(0) + " Dena Padega"}`;
   }
 
   async function updateOwnAdminWallet(mode) {
-    const amtStr = prompt(mode === "add" ? "Apne Admin Master Wallet mein kitna add karna hai (₹)?" : "Admin Master Wallet se kitna nikalna hai (₹)?");
+    const amtStr = prompt(mode === "add" ? "Apne Admin Reserve Fund mein kitna add karna hai (₹)?" : "Admin Reserve Fund se kitna nikalna hai (₹)?");
     const amt = Number(amtStr || 0);
     if (!amt || amt <= 0) return;
     const cur = await dbGet("adminWallet/9794408205");
     const oldBal = Number((cur && cur.balance) || 0);
     const newBal = mode === "add" ? oldBal + amt : Math.max(0, oldBal - amt);
     await dbPut("adminWallet/9794408205", { balance: newBal, updatedAt: new Date().toLocaleString("en-IN") });
-    loadOwnAdminWallet();
+    forceLoadAll();
   }
 
   function getUserTotalDep(u) {
@@ -429,15 +547,16 @@
 
   async function forceLoadAll() {
     try {
-      loadOwnAdminWallet();
       const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
       const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
       const isChangingRate = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("rate_");
       if (anyQrOpen || isTypingReply || isChangingRate) return;
 
-      const [uData, wData, dData, tData, ratesData] = await Promise.all([
-        dbGet("users"), dbGet("withdrawals"), dbGet("deposits"), dbGet("supportTickets"), dbGet("settings/rates")
+      const [uData, wData, dData, tData, ratesData, betsData, admRes] = await Promise.all([
+        dbGet("users"), dbGet("withdrawals"), dbGet("deposits"), dbGet("supportTickets"),
+        dbGet("settings/rates"), dbGet("cricketBets"), dbGet("adminWallet/9794408205")
       ]);
+      updateAdminBusinessLedger(uData, wData, dData, betsData, admRes);
       updateUsersUI(uData);
       updateWithdrawalsUI(wData);
       updateDepositsUI(dData);
@@ -522,7 +641,7 @@
         <div class="row-between"><strong>👤 ${u.name || 'User'}</strong><span style="color:#ffd700; font-size:12px;">📱 ${k}</span></div>
         <div style="font-size:12px; color:#ccc; margin:6px 0;">Deposit: <strong style="color:#28e04d;">₹${dep}</strong> | Winning: <strong style="color:#ffd700;">₹${win}</strong></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-green" style="flex:1;" onclick="adjustUserBal('${k}', 100)">+100</button>
+           <button type="button" class="btn btn-green" style="flex:1;" onclick="adjustUserBal('${k}', 100)">+100</button>
           <button type="button" class="btn btn-red" style="flex:1;" onclick="adjustUserBal('${k}', -100)">-100</button>
           <button type="button" class="btn btn-del" onclick="deleteUser('${k}')">🗑️</button>
         </div>
@@ -753,42 +872,23 @@
 
     if (!mId || !title) return alert("Match aur Contest Question dalein!");
 
-    // ==================== SMART PRE-CHECK VALIDATION ====================
     const st = selectedMatchLiveState;
     if (st) {
-      if (st.isEnded) {
-        return alert("🚫 BLOCKED: Ye match pehle hi khatam ho chuka hai (" + st.status + ")! Naya contest nahi ban sakta.");
-      }
-      if (innChoice === "1" && st.inningNo === 2) {
-        return alert(`🚫 BLOCKED: 1st Inning (${st.playedTeam}) pehle hi khel chuki hai! Abhi 2nd Inning chal rahi hai.`);
-      }
-      if (chosenTeam && st.playedTeam && chosenTeam === st.playedTeam && st.inningNo === 2) {
-        return alert(`🚫 BLOCKED: ${st.playedTeam} apni batting poori kar chuki hai! Abhi ${st.activeBatTeam} batting kar rahi hai.`);
-      }
+      if (st.isEnded) return alert("🚫 BLOCKED: Ye match pehle hi khatam ho chuka hai (" + st.status + ")!");
+      if (innChoice === "1" && st.inningNo === 2) return alert(`🚫 BLOCKED: 1st Inning (${st.playedTeam}) pehle hi khel chuki hai!`);
+      if (chosenTeam && st.playedTeam && chosenTeam === st.playedTeam && st.inningNo === 2) return alert(`🚫 BLOCKED: ${st.playedTeam} apni batting poori kar chuki hai!`);
       if (targetOv > 0) {
-        if (targetOv > st.maxOv) {
-          return alert(`🚫 BLOCKED: Ye match sirf ${st.maxOv} overs ka hai, ${targetOv} over ka contest nahi ban sakta!`);
-        }
-        if (st.curOv >= targetOv && (innChoice === "AUTO" || Number(innChoice) === st.inningNo)) {
-          return alert(`🚫 BLOCKED: Match mein pehle hi ${st.curOv} overs ho chuke hain! ${targetOv} over ka contest nikal chuka hai.`);
-        }
+        if (targetOv > st.maxOv) return alert(`🚫 BLOCKED: Ye match sirf ${st.maxOv} overs ka hai!`);
+        if (st.curOv >= targetOv && (innChoice === "AUTO" || Number(innChoice) === st.inningNo)) return alert(`🚫 BLOCKED: Match mein pehle hi ${st.curOv} overs ho chuke hain!`);
       }
       if (targetRuns > 0 && targetOv > 0) {
         const remOv = Math.max(0.1, targetOv - st.curOv);
         const needRuns = targetRuns - st.curRuns;
-        const reqRr = needRuns / remOv;
-        if (needRuns <= 0) {
-          return alert(`🚫 BLOCKED: Team pehle hi ${st.curRuns} runs bana chuki hai (${targetRuns} se zyada)!`);
-        }
-        if (reqRr > 24) {
-          if (!confirm(`⚠️ WARNING: Bache ${remOv.toFixed(1)} overs mein ${needRuns} runs (${reqRr.toFixed(1)} RPO) banana lagbhag namumkin hai! Phir bhi contest banayein?`)) return;
-        }
+        if (needRuns <= 0) return alert(`🚫 BLOCKED: Team pehle hi ${st.curRuns} runs bana chuki hai!`);
+        if ((needRuns / remOv) > 24 && !confirm(`⚠️ WARNING: Bache ${remOv.toFixed(1)} overs mein ${needRuns} runs banana mushkil hai! Phir bhi banayein?`)) return;
       }
-      if (st.target > 0 && st.inningNo === 2) {
-        const runsToWin = st.target - st.curRuns;
-        if (runsToWin <= 12 && st.curWkts <= 6 && (rate1 > 1.40 || rate2 > 1.40)) {
-          if (!confirm(`⚠️ HIGH RISK ALERT: ${st.activeBatTeam} ko jeetne ke liye sirf ${runsToWin} runs chahiye (almost jeet rahi hai). Kya aap sach mein ye rate (${rate1}x / ${rate2}x) dena chahte hain?`)) return;
-        }
+      if (st.target > 0 && st.inningNo === 2 && (st.target - st.curRuns) <= 12 && st.curWkts <= 6 && (rate1 > 1.40 || rate2 > 1.40)) {
+        if (!confirm(`⚠️ HIGH RISK ALERT: ${st.activeBatTeam} ko jeetne ke liye sirf ${st.target - st.curRuns} runs chahiye. Phir bhi ye rate (${rate1}x / ${rate2}x) dena chahte hain?`)) return;
       }
     }
 
