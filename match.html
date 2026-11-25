@@ -205,13 +205,19 @@
     return { formatType: "T20 (20 OV)", maxOvers: 20 };
   }
 
+  function cleanNavNoise(str) {
+    return String(str || "")
+      .replace(/^.*?\b(?:Full Commentary|Commentary|Scorecard|Squads|Highlights|News|Photos|Videos|Info|Live Cricket Score)\b\s*/gi, "")
+      .trim();
+  }
+
   function parseCricbuzzMatchHtml(html, title) {
     const txt = String(html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
     const head = txt.slice(0, 4500);
     const [tA, tB] = parseTeams(title);
 
     const stM = head.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,36}?\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
-    const status = stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News|Live Cricket Score)\b\s*/gi, "").trim() : "";
+    const status = stM ? cleanNavNoise(stM[1]) : "";
 
     const scMatches = [...txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
     const uniqueInns = [];
@@ -357,7 +363,9 @@
     document.getElementById("mFormatBadge").innerText = liveState.formatType;
     document.getElementById("mScore").innerText = ctrl.liveRuns || matchInfo.scoreText || (matchInfo.isEnded ? "ENDED" : "LIVE");
     document.getElementById("mOvers").innerText = ctrl.liveOvers ? `(${ctrl.liveOvers} Ov)` : matchInfo.oversText;
-    document.getElementById("mStatus").innerText = matchInfo.statusText || "Live Match";
+
+    const cleanSt = cleanNavNoise(matchInfo.statusText || "Live Match");
+    document.getElementById("mStatus").innerText = matchInfo.isEnded ? `🏆 ${cleanSt}` : cleanSt;
 
     const maxU = Number(ctrl.maxUsers || 25), maxM = Number(ctrl.maxMoney || 15000), maxB = Number(ctrl.maxBet || 0);
     document.getElementById("limitTag").innerText = `Min ₹100 | Max ${maxB > 0 ? "₹" + maxB : "₹50K"}`;
@@ -378,10 +386,13 @@
     const bB = ctrl.teamBBack || dyn.bBack, bL = ctrl.teamBLay || (ctrl.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
     const lA = checkLimit(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimit(`${tB} (Match Odds)`, maxU, maxM);
 
+    const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
+    const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
+
     // 1. Match Odds
     document.getElementById("oddsBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${lA.reason || lockTxt}</div>` : ''}</div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${lB.reason || lockTxt}</div>` : ''}</div></div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${ovA}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${ovB}</div>` : ''}</div></div>`;
 
     // 2. Bookmaker 0%
     const bmAB = ctrl.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ctrl.bmALay || (Number(bmAB) + 3);
@@ -424,7 +435,7 @@
         <div class="rate-boxes">
           <div class="rate-btn rate-lay" onclick="openBet('${mktTitle}','NO','Under ${noRuns} Runs',${mult})"><span class="rate-main">${noRuns}</span><span class="rate-sub">${fPay}</span></div>
           <div class="rate-btn rate-back" onclick="openBet('${mktTitle}','YES','${yesRuns}+ Runs',${mult})"><span class="rate-main">${yesRuns}</span><span class="rate-sub">${fPay}</span></div>
-          ${lk ? `<div class="suspended-overlay">${passed ? ovTarget + " Ov Over" : (lim.reason || lockTxt)}</div>` : ''}
+          ${lk ? `<div class="suspended-overlay">${isDone ? "Match Ended" : (passed ? ovTarget + " Ov Over" : (lim.reason || lockTxt))}</div>` : ''}
         </div>
       </div>`;
     }).join("");
