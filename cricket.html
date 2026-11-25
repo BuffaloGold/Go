@@ -228,6 +228,13 @@
   let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
   let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
 
+  const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
+  function markMatchCompleted(id, statusText) {
+    if (!id) return;
+    completedCache[String(id)] = statusText || "Match Completed";
+    localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
+  }
+
   function renderUserBox(u, checkCredit) {
     if (!u) return;
     userObj = u; userNameStr = u.name || "Player";
@@ -306,10 +313,11 @@
   }
 
   function parseCricbuzzListHtml(html) {
-    const seen = new Set(), list = [], startMap = {};
+    const seen = new Set(), list = [], startMap = {}, rawMsMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
       let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
+      rawMsMap[tm[1]] = ms;
       const dt = new Date(ms);
       if (!isNaN(dt.getTime())) {
         const now = new Date(), tmrw = new Date(now.getTime() + 86400000);
@@ -328,12 +336,14 @@
       const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       const scores = sub.match(/[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\)/g) || [];
       const isDone = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|abandoned|match tied|no result)\b/i.test(sub);
+      const rawStartMs = rawMsMap[m[1]] || 0;
+      const isPastMatch = rawStartMs > 0 && rawStartMs < (Date.now() - 21600000);
       const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
-      const type = isDone ? "completed" : isExplicitUp ? "upcoming" : "live";
+      const type = (isDone || isPastMatch || completedCache[m[1]]) ? "completed" : isExplicitUp ? "upcoming" : "live";
       const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,25}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
       const exactStartTime = startMap[m[1]] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress"));
+      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (completedCache[m[1]] || (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress")));
       list.push({ id: m[1], title, scores, status: cleanStatus, type });
     }
     return list;
@@ -352,7 +362,7 @@
     if (stM) out.status = stM[1].trim();
     else if (matchListItem && matchListItem.status && !/time soon/i.test(matchListItem.status)) out.status = matchListItem.status;
 
-    out.isDrawnOrDone = Boolean((matchListItem && matchListItem.type === "completed") || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status));
+    out.isDrawnOrDone = Boolean((matchListItem && matchListItem.type === "completed") || completedCache[String(matchId)] || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status));
 
     const scList = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
     if (scList.length) {
@@ -381,7 +391,6 @@
     const needM = out.status.match(/need\s*(\d+)\s*runs/i);
     if (needM && out.inningNo === 2 && out.targetRuns === 0) out.targetRuns = out.runsNum + Number(needM[1]);
 
-    // Exact Math Completion Check (2nd Inning Chase Complete / All-Out / Overs Finished)
     if (!isTest && out.inningNo === 2 && !out.isInningsBreak && out.targetRuns > 0) {
       const firstTeam = out.innList[0] ? out.innList[0].team : "";
       if (out.runsNum >= out.targetRuns) {
@@ -433,7 +442,17 @@
       const [rW, rC, rR] = await Promise.all([fetch(`${WORKER_URL}?t=${Date.now()}`), fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`), fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)]);
       overrides = (await rC.json()) || {}; cricketWinRate = Number(((await rR.json()) || {}).cricket || 35);
       const parsed = parseCricbuzzListHtml(await rW.text());
-      if (parsed.length > 0) { matches = parsed; if (!activeMatch) renderList(); }
+      if (parsed.length > 0) {
+        parsed.forEach(m => {
+          if (m.type === "completed") markMatchCompleted(m.id, m.status);
+          else if (completedCache[String(m.id)]) {
+            m.type = "completed";
+            m.status = completedCache[String(m.id)];
+          }
+        });
+        matches = parsed;
+        if (!activeMatch) renderList();
+      }
     } catch (e) { if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`; }
   }
 
@@ -449,7 +468,11 @@
       if (!parsed.status && liveScoreData.status) parsed.status = liveScoreData.status;
 
       liveScoreData = parsed; activeMatch._runsNum = parsed.runsNum; activeMatch._ovNum = parsed.ovNum;
-      if (parsed.isDrawnOrDone) { activeMatch.type = "completed"; if (parsed.status) activeMatch.status = parsed.status; }
+      if (parsed.isDrawnOrDone) {
+        activeMatch.type = "completed";
+        if (parsed.status) activeMatch.status = parsed.status;
+        markMatchCompleted(activeMatch.id, parsed.status);
+      }
 
       const newSig = `${parsed.headline}|${parsed.overs}|${parsed.balls.join(",")}`;
       if (lastScoreSignature && newSig !== lastScoreSignature) ballChangeLockUntil = Date.now() + 3000;
