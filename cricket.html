@@ -145,7 +145,7 @@
       <button class="pill-btn" onclick="filterMarket('mybets', this)">🏆 My Bets</button>
     </div>
     <div class="market-card sec-odds">
-      <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
+      <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span id="oddsLimitTag" style="font-size:10px; color:#aaa;">Min 100 | Max 50K</span></div>
       <div class="col-headers"><span>Back</span><span>Lay</span></div>
       <div id="oddsBody"></div>
     </div>
@@ -178,6 +178,7 @@
     <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
   </div>
 </div>
+
 <div class="bet-modal" id="betModal">
   <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
   <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
@@ -628,6 +629,8 @@
     document.getElementById("matchListScreen").style.display = "none";
     document.getElementById("contestScreen").style.display = "block";
     const ov = overrides[m.id] || {}, maxU = Number(ov.maxUsers || 25), maxM = Number(ov.maxMoney || 15000);
+    const adminMaxB = Number(ov.maxBet || 0);
+    document.getElementById("oddsLimitTag").innerText = `Min 100 | Max ${adminMaxB > 0 ? "₹" + adminMaxB : "50K"}`;
     const [tA, tB] = parseTeamsFromTitle(m.title);
     document.getElementById("cTitle").innerText = m.title;
 
@@ -763,18 +766,14 @@
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
 
-    const maxAllowedStake = selBet.oddMult >= 10 ? 500 : selBet.oddMult >= 5 ? 2000 : 15000;
-    if (st > maxAllowedStake) {
-      return alert(`⚠️ Is high rate (@ ${selBet.oddMult}x) par maximum ₹${maxAllowedStake} tak hi laga sakte hain!`);
+    const adminMaxBet = Number((overrides[activeMatch.id] || {}).maxBet || 0);
+    if (adminMaxBet > 0 && st > adminMaxBet) {
+      return alert(`⚠️ Admin ne is match par Maximum Bet ₹${adminMaxBet} set ki hai!`);
     }
 
     const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
-    if (fin.debit > userBal) {
-      return alert(selBet.side === "LAY" ? `Insufficient Balance! Liability ₹${fin.debit} chahiye.` : "Insufficient Balance!");
-    }
-    if (Date.now() < ballChangeLockUntil) {
-      return alert("⚡ Ball Running! 3 second baad bet lagayein.");
-    }
+    if (fin.debit > userBal) return alert(selBet.side === "LAY" ? `Insufficient Balance! Liability ₹${fin.debit} chahiye.` : "Insufficient Balance!");
+    if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 3 second baad bet lagayein.");
 
     const remBal = Number((userBal - fin.debit).toFixed(2));
     const askOk = confirm(
