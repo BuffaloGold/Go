@@ -178,7 +178,6 @@
     <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
   </div>
 </div>
-
 <div class="bet-modal" id="betModal">
   <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
   <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
@@ -214,7 +213,7 @@
 
   function notifyWalletCredit(title, bodyText) {
     const toast = document.getElementById("walletToast");
-    toast.innerText = `${title} • ${bodyText}`;
+    toast.innerText = `${title} •${bodyText}`;
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 5500);
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -227,6 +226,7 @@
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
   let matchBetsStats = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
   let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
+
   const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
   function markMatchCompleted(id, statusText) {
     if (!id) return;
@@ -281,7 +281,8 @@
     if (initials === p || initials.startsWith(p)) return true;
     return Boolean(words[0] && words[0].startsWith(p));
   }
-    function parseCommentaryIntel(cleanTxt) {
+
+  function parseCommentaryIntel(cleanTxt) {
     const balls = [], seenOv = new Set();
     let latestBowler = "", latestBatter = "", latestComm = "";
     const rx = /\b(\d+\.[1-6])\s+(W\s+|4\s+|6\s+)?([A-Za-z][A-Za-z\s.'-]{1,26}?)\s+to\s+([A-Za-z][A-Za-z\s.'-]{1,26}?),\s*([^.\n]{2,65})/gi;
@@ -294,7 +295,7 @@
       if (!latestComm) {
         latestBowler = m[3].trim();
         latestBatter = m[4].trim();
-        latestComm = `${ov} ${latestBowler} to ${latestBatter}, ${m[5].trim()}`.slice(0, 90);
+        latestComm = `${ov}${latestBowler} to ${latestBatter},${m[5].trim()}`.slice(0, 90);
       }
       let ball = "0";
       if (tag === "W" || /\b(out|bowled|caught|lbw|run out|stumped)\b/.test(desc)) ball = "W";
@@ -311,7 +312,7 @@
     return { balls: balls.reverse(), latestBowler, latestBatter, latestComm };
   }
 
-  function parseCricbuzzListHtml(html) {
+  function parseCricbuzzListHtml(html, forceCompleted = false) {
     const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
     for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
@@ -322,10 +323,10 @@
         const now = new Date(), tmrw = new Date(now.getTime() + 86400000);
         const dayTag = dt.toDateString() === now.toDateString() ? "Today" : dt.toDateString() === tmrw.toDateString() ? "Tomorrow" : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
         const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase();
-        startMap[tm[1]] = `🕒 ${dayTag}, ${timeStr} IST`;
+        startMap[tm[1]] = `🕒 ${dayTag},${timeStr} IST`;
       }
     }
-    const mainBody = html.split(/All Live Now|LIVE MATCHES|All Matches/i)[1] || html;
+    const mainBody = html.split(/All Live Now|LIVE MATCHES|Recent Matches|All Matches/i)[1] || html;
     const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
     let m;
     while ((m = linkRx.exec(mainBody)) !== null) {
@@ -343,54 +344,14 @@
       const sub = mainBody.slice(m.index, m.index + sliceLen).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
-      const isDone = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|completed|abandoned|match tied|no result)\b/i.test(sub);
+      const isDone = forceCompleted || /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|complete|completed|abandoned|match tied|no result)\b/i.test(sub);
       const rawStartMs = rawMsMap[mId] || 0;
-      const isPastMatch = rawStartMs > 0 && rawStartMs < (Date.now() - 21600000);
-      const isExplicitUp = scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
+      const isPastMatch = rawStartMs > 0 && rawStartMs < (Date.now() - 25200000);
+      const isExplicitUp = !isDone && scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub);
       const type = (isDone || isPastMatch || completedCache[mId]) ? "completed" : isExplicitUp ? "upcoming" : "live";
-      const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z\s]{1,25}won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+      const stM = sub.match(/(Match drawn|Match tied|[A-Z][a-zA-Z0-9\s]{1,28}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
-      const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (completedCache[mId] || (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress")));
-      list.push({ id: mId, title, scores, status: cleanStatus, type });
-    }
-    return list;
-  }
-
-  function parseCricbuzzMatchHtml(html, matchId, title, matchListItem) {
-    const isTest = /test|shield|ranji|trophy.*day/i.test(title || "") && !/t20|mushtaq|ilt20|bbl/i.test(title || "");
-    const isOdi = /odi|one day|vijay hazare/i.test(title || "");
-    const maxOvers = isTest ? 90 : isOdi ? 50 : 20;
-    const out = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
-
-    const cleanTxt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
-    const topHeader = cleanTxt.slice(0, 1200);
-
-    const stM = topHeader.match(/(Match drawn|Match tied|[A-Z][a-zA-Z0-9\s]{1,28}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Z][a-zA-Z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
-    if (stM) out.status = stM[1].trim();
-    else if (matchListItem && matchListItem.status && !/time soon/i.test(matchListItem.status)) out.status = matchListItem.status;
-
-    out.isDrawnOrDone = Boolean((matchListItem && matchListItem.type === "completed") || completedCache[String(matchId)] || /\b(match drawn|match tied|abandoned|no result|won by \d+\s+(?:runs?|wkts?|wickets?))\b/i.test(out.status));
-
-    const scList = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
-    if (scList.length) {
-      const uniqueInns = [];
-      scList.forEach(x => {
-        const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]);
-        const idx = uniqueInns.findIndex(u => u.team === team);
-        if (idx === -1) uniqueInns.push({ team, runs, wkts, ov, ovStr });
-        else if (toTotalBalls(ovStr) >= toTotalBalls(uniqueInns[idx].ovStr)) uniqueInns[idx] = { team, runs, wkts, ov, ovStr };
-      });
-      out.innList = uniqueInns;
-      const first = uniqueInns[0], last = uniqueInns[uniqueInns.length - 1];
-      out.firstInnRuns = first.runs;
-      const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team;
-      const isFirstInnCompleted = !isSecondInnStarted && (/\binnings break\b/i.test(out.status) || last.wkts >= 10 || (!isTest && last.ov >= maxOvers));
-      if (isSecondInnStarted) { out.inningNo = 2; out.isInningsBreak = false; if (!isTest) out.targetRuns = first.runs + 1; }
-      else if (isFirstInnCompleted) { out.inningNo = 2; out.isInningsBreak = true; if (!isTest) out.targetRuns = first.runs + 1; }
-      else { out.inningNo = 1; out.isInningsBreak = false; }
-
-      out.batTeam = last.team; out.headline = `${last.team} ${last.runs}/${last.wkts}`;
+      const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : ""); const cleanStatus = type === "upcoming" ? (exactStartTime \vert{}\vert{} "🕒 Upcoming Match") : (completedCache[mId] \vert{}\vert{} (stM ? stM[1].trim() : (type === "completed" ? "Match Completed" : "Live In Progress"))); list.push({ id: mId, title, scores, status: cleanStatus, type }); } return list; }  function parseCricbuzzMatchHtml(html, matchId, title, matchListItem) { const isTest = /test\vert{}shield\vert{}ranji\vert{}trophy.*day/i.test(title \vert{}\vert{} "") && !/t20\vert{}mushtaq\vert{}ilt20\vert{}bbl/i.test(title \vert{}\vert{} ""); const isOdi = /odi\vert{}one day\vert{}vijay hazare/i.test(title \vert{}\vert{} ""); const maxOvers = isTest ? 90 : isOdi ? 50 : 20; const out = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };  const cleanTxt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim(); const topHeader = cleanTxt.slice(0, 2500);  const stM = topHeader.match(/(Match drawn\vert{}Match tied\vert{}[A-Z][a-zA-Z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?\vert{}wkts?\vert{}wickets?)\vert{}[A-Z][a-zA-Z\s]{1,20}(?:need\vert{}trail by\vert{}lead by)\s+\d+\s+runs?\vert{}Day\s*\d+:\s*(?:Stumps\vert{}Lunch\vert{}Tea\vert{}Innings Break)\vert{}Innings Break)/i); if (stM) out.status = stM[1].trim(); else if (matchListItem && matchListItem.status && !/time soon/i.test(matchListItem.status)) out.status = matchListItem.status;  out.isDrawnOrDone = Boolean((matchListItem && matchListItem.type === "completed") \vert{}\vert{} completedCache[String(matchId)] \vert{}\vert{} /\b(match drawn\vert{}match tied\vert{}abandoned\vert{}no result\vert{}won by \d+\s+(?:runs?\vert{}wkts?\vert{}wickets?))\b/i.test(out.status));  const scList = [...cleanTxt.matchAll(/\b([A-Z]{2,6})\s*(?:1st\vert{}2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)]; if (scList.length) { const uniqueInns = []; scList.forEach(x => { const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]); const idx = uniqueInns.findIndex(u => u.team === team); if (idx === -1) uniqueInns.push({ team, runs, wkts, ov, ovStr }); else if (toTotalBalls(ovStr) >= toTotalBalls(uniqueInns[idx].ovStr)) uniqueInns[idx] = { team, runs, wkts, ov, ovStr }; }); out.innList = uniqueInns; const first = uniqueInns[0], last = uniqueInns[uniqueInns.length - 1]; out.firstInnRuns = first.runs; const isSecondInnStarted = uniqueInns.length >= 2 && last.team !== first.team; const isFirstInnCompleted = !isSecondInnStarted && (/\binnings break\b/i.test(out.status) \vert{}\vert{} last.wkts >= 10 \vert{}\vert{} (!isTest && last.ov >= maxOvers)); if (isSecondInnStarted) { out.inningNo = 2; out.isInningsBreak = false; if (!isTest) out.targetRuns = first.runs + 1; } else if (isFirstInnCompleted) { out.inningNo = 2; out.isInningsBreak = true; if (!isTest) out.targetRuns = first.runs + 1; } else { out.inningNo = 1; out.isInningsBreak = false; }  out.batTeam = last.team; out.headline = `${last.team} ${last.runs}/${last.wkts}`;
       out.runsNum = last.runs; out.wktsNum = last.wkts; out.ovNum = last.ov;
       const crrM = topHeader.match(/CRR[:\s]+([0-9.]+)/i);
       out.overs = `(${last.ovStr} Ov${crrM ? " • CRR " + crrM[1] : ""})`;
@@ -404,11 +365,11 @@
       if (out.runsNum >= out.targetRuns) {
         out.isDrawnOrDone = true;
         out.mathWinnerCode = out.batTeam;
-        if (!/won by/i.test(out.status)) out.status = `${out.batTeam} won by ${Math.max(1, 10 - out.wktsNum)} wkts`;
+        if (!/won by/i.test(out.status)) out.status = `${out.batTeam} won by${Math.max(1, 10 - out.wktsNum)} wkts`;
       } else if (out.wktsNum >= 10 || out.ovNum >= maxOvers) {
         out.isDrawnOrDone = true;
         out.mathWinnerCode = firstTeam;
-        if (!/won by|tied/i.test(out.status)) out.status = `${firstTeam} won by ${(out.targetRuns - 1) - out.runsNum} runs`;
+        if (!/won by|tied/i.test(out.status)) out.status = `${firstTeam} won by${(out.targetRuns - 1) - out.runsNum} runs`;
       }
     }
 
@@ -416,14 +377,11 @@
     const pshipM = cleanTxt.match(/P'SHIP\s*(\d+\s*\(\s*\d+\s*\))/i);
     out.balls = commIntel.balls;
     out.batters = commIntel.latestBatter
-      ? `🏏 <b>${commIntel.latestBatter}*</b>` + (out.targetRuns > 0 ? `<br>🎯 Target: ${out.targetRuns}` : out.firstInnRuns > 0 && out.inningNo === 2 ? `<br>📊 1st Inn: ${out.firstInnRuns}` : "")
-      : (out.targetRuns > 0 ? `🎯 Target: <b>${out.targetRuns}</b>` : out.firstInnRuns > 0 ? `📊 1st Inn: <b>${out.firstInnRuns} runs</b>` : `🏏 ${out.batTeam || "Live"} Batting`);
-    out.bowler = (commIntel.latestBowler ? `⚾ <b>${commIntel.latestBowler}</b>` : `⚡ Live Exchange`) + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
+      ? `🏏 <b>${commIntel.latestBatter}*</b>` + (out.targetRuns > 0 ? `<br>🎯 Target: ${out.targetRuns}` : out.firstInnRuns > 0 && out.inningNo === 2 ? `<br>📊 1st Inn: ${out.firstInnRuns}` : "") : (out.targetRuns > 0 ? `🎯 Target: <b>${out.targetRuns}</b>` : out.firstInnRuns > 0 ? `📊 1st Inn: <b>${out.firstInnRuns} runs</b>` : `🏏 ${out.batTeam \vert{}\vert{} "Live"} Batting`); out.bowler = (commIntel.latestBowler ? `⚾ <b>${commIntel.latestBowler}</b>` : `⚡ Live Exchange`) + (pshipM ? `<br>🤝 P'ship: ${pshipM[1]}` : "");
     out.shortComm = commIntel.latestComm || out.status || "Live ball-by-ball updates active";
     return out;
   }
-
-  function computeDynamicMatchOdds(tA, tB, sd, winRate) {
+    function computeDynamicMatchOdds(tA, tB, sd, winRate) {
     let probA = 0.50;
     const runs = sd.runsNum || 0, wkts = sd.wktsNum || 0, ov = sd.ovNum || 0, maxOv = sd.maxOvers || 20;
     const isTeamABatting = !sd.batTeam || sd.batTeam === tA;
@@ -447,21 +405,46 @@
 
   async function loadMatches() {
     try {
-      const [rW, rC, rR] = await Promise.all([fetch(`${WORKER_URL}?t=${Date.now()}`), fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`), fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)]);
-      overrides = (await rC.json()) || {}; cricketWinRate = Number(((await rR.json()) || {}).cricket || 35);
-      const parsed = parseCricbuzzListHtml(await rW.text());
-      if (parsed.length > 0) {
-        parsed.forEach(m => {
-          if (m.type === "completed") markMatchCompleted(m.id, m.status);
-          else if (completedCache[String(m.id)]) {
-            m.type = "completed";
-            m.status = completedCache[String(m.id)];
-          }
-        });
-        matches = parsed;
+      const [rW, rRec, rC, rR] = await Promise.all([
+        fetch(`${WORKER_URL}?t=${Date.now()}`),
+        fetch(`${WORKER_URL}?type=recent&t=${Date.now()}`),
+        fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`)
+      ]);
+      overrides = (await rC.json()) || {};
+      cricketWinRate = Number(((await rR.json()) || {}).cricket || 35);
+
+      const recentList = parseCricbuzzListHtml(await rRec.text(), true);
+      const recentMap = {};
+      recentList.forEach(rm => {
+        recentMap[String(rm.id)] = rm;
+        markMatchCompleted(rm.id, rm.status);
+      });
+
+      const liveParsed = parseCricbuzzListHtml(await rW.text(), false);
+      const mergedMap = new Map();
+
+      liveParsed.forEach(m => {
+        if (recentMap[m.id] || m.type === "completed" || completedCache[String(m.id)]) {
+          m.type = "completed";
+          m.status = (recentMap[m.id] && recentMap[m.id].status) || completedCache[String(m.id)] || m.status;
+          markMatchCompleted(m.id, m.status);
+        }
+        mergedMap.set(String(m.id), m);
+      });
+
+      recentList.forEach(rm => {
+        if (!mergedMap.has(String(rm.id))) mergedMap.set(String(rm.id), rm);
+      });
+
+      const finalMatches = Array.from(mergedMap.values());
+      if (finalMatches.length > 0) {
+        matches = finalMatches;
         if (!activeMatch) renderList();
       }
-    } catch (e) { if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`; }
+    } catch (e) {
+      if (!matches.length) document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
+    }
   }
 
   async function refreshActiveMatchDetail() {
@@ -754,6 +737,7 @@
     }
     return { settled: false };
   }
+
   async function loadMyLockedBets(matchId) {
     try {
       const allB = (await (await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`)).json()) || {};
