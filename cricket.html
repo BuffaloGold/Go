@@ -224,7 +224,7 @@
 
   let userObj = {}, userBal = 0, userNameStr = "Player";
   let matches = [], overrides = {}, activeMatch = null, filterMode = "live", selBet = null;
-  let matchBetsStats = {}, teamExposure = {}, myActiveMatchBets = [], cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
+  let matchBetsStats = {}, teamExposure = {}, cricketWinRate = 35, lastScoreSignature = "", ballChangeLockUntil = 0;
   let liveScoreData = { headline: "", overs: "", status: "", balls: [], batters: "", bowler: "", shortComm: "", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: false, mathWinnerCode: "", innList: [] };
 
   const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
@@ -450,7 +450,6 @@
       probA = isTeamABatting ? clamped : (1 - clamped);
     }
 
-    // Sirf doosre users ke ₹1,00,000+ load par halka shift (apni bet se bhav nahi girega)
     const loadA = Number(teamExposure[tA] || 0), loadB = Number(teamExposure[tB] || 0);
     const diff = loadA - loadB;
     if (Math.abs(diff) > 2000) {
@@ -560,7 +559,7 @@
   async function fetchMatchBetLimits(matchId) {
     try {
       const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
-      const stats = {}, exp = {}, mine = [];
+      const stats = {}, exp = {};
       const [tA, tB] = activeMatch ? parseTeamsFromTitle(activeMatch.title) : ["", ""];
       Object.values(betsObj).forEach(b => {
         if (!b || !b.market) return;
@@ -568,8 +567,6 @@
         stats[b.market].users.add(String(b.mobile)); stats[b.market].totalMoney += Number(b.stake || 0);
 
         const isOpen = String(b.status || "OPEN").toUpperCase() === "OPEN";
-        if (isOpen && String(b.mobile).trim() === String(mob).trim()) mine.push(b);
-
         if (isOpen && String(b.mobile).trim() !== String(mob).trim() && /Match Odds|Bookmaker/i.test(b.market) && tA && tB) {
           const pick = b.market.split("(")[0].trim().toUpperCase();
           const side = String(b.side || "").toUpperCase();
@@ -580,7 +577,6 @@
       });
       matchBetsStats = stats;
       teamExposure = exp;
-      myActiveMatchBets = mine;
     } catch (e) {}
   }
 
@@ -606,7 +602,7 @@
   async function openMatchById(id) {
     const m = matches.find(x => String(x.id) === String(id));
     if (!m) return;
-    activeMatch = m; lastScoreSignature = ""; teamExposure = {}; myActiveMatchBets = [];
+    activeMatch = m; lastScoreSignature = ""; teamExposure = {};
     liveScoreData = { headline: "", overs: "", status: m.status || "Live Match", balls: [], batters: "🏏 Loading...", bowler: "⚾ Loading...", shortComm: "Live scorecard load ho raha hai...", runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, maxOvers: 20, inningNo: 1, isInningsBreak: false, isDrawnOrDone: m.type === "completed", mathWinnerCode: "", innList: [] };
     openMatch(m, false);
     await Promise.all([refreshActiveMatchDetail(), fetchMatchBetLimits(m.id)]);
@@ -743,9 +739,9 @@
     const st = Number(document.getElementById("stakeInput").value || 0);
     const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
     if (selBet.side === "LAY") {
-      document.getElementById("betSnapshotNote").innerText = `Liability (Debit): ₹${fin.debit.toFixed(0)} | Profit: ₹${fin.profit.toFixed(0)} → Return: ₹${fin.totalReturn.toFixed(0)}`;
+      document.getElementById("betSnapshotNote").innerText = `⚠️ Wallet Se Katega (Liability): ₹${fin.debit} | Profit: ₹${fin.profit} → Return: ₹${fin.totalReturn}`;
     } else {
-      document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${fin.totalReturn.toFixed(0)} (${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+      document.getElementById("betSnapshotNote").innerText = `⚠️ Wallet Se Katega (Stake): ₹${fin.debit} → Locked Return: ₹${fin.totalReturn}`;
     }
   }
 
@@ -766,39 +762,42 @@
     if (isPlacingBet) return;
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
-    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
-    if (fin.debit > userBal) return alert(selBet.side === "LAY" ? `Insufficient Balance! Liability ₹${fin.debit} chahiye.` : "Insufficient Balance!");
 
-    if (/Match Odds|Bookmaker/i.test(selBet.marketName)) {
-      const [tA, tB] = parseTeamsFromTitle(activeMatch.title);
-      const newPick = selBet.marketName.split("(")[0].trim().toUpperCase();
-      const newFavors = selBet.side === "BACK" ? newPick : (newPick === tA ? tB : tA);
-      const conflict = myActiveMatchBets.find(b => {
-        if (!/Match Odds|Bookmaker/i.test(b.market)) return false;
-        const oldPick = b.market.split("(")[0].trim().toUpperCase();
-        const oldFavors = String(b.side).toUpperCase() === "BACK" ? oldPick : (oldPick === tA ? tB : tA);
-        return oldFavors !== newFavors;
-      });
-      if (conflict) {
-        return alert("⚠️ Ek hi match mein dono taraf (Back + Lay opposite) bet lagana allowed nahi hai!");
-      }
+    const maxAllowedStake = selBet.oddMult >= 10 ? 500 : selBet.oddMult >= 5 ? 2000 : 15000;
+    if (st > maxAllowedStake) {
+      return alert(`⚠️ Is high rate (@ ${selBet.oddMult}x) par maximum ₹${maxAllowedStake} tak hi laga sakte hain!`);
     }
 
+    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
+    if (fin.debit > userBal) {
+      return alert(selBet.side === "LAY" ? `Insufficient Balance! Liability ₹${fin.debit} chahiye.` : "Insufficient Balance!");
+    }
+    if (Date.now() < ballChangeLockUntil) {
+      return alert("⚡ Ball Running! 3 second baad bet lagayein.");
+    }
+
+    const remBal = Number((userBal - fin.debit).toFixed(2));
+    const askOk = confirm(
+      `💰 WALLET BALANCE DEDUCTION CONFIRMATION\n\n` +
+      `🏏 Market: ${selBet.marketName}\n` +
+      `🎯 Pick: ${selBet.lockedLine} (@ ${selBet.oddMult}x)\n` +
+      `💸 Wallet Se Abhi Katega (${selBet.side === "LAY" ? "Liability" : "Stake"}): ₹${fin.debit}\n` +
+      `🏆 Jeetne Par Total Return: ₹${fin.totalReturn}\n` +
+      `💼 Bacha Hua Wallet Balance: ₹${remBal}\n\n` +
+      `Kya aap ₹${fin.debit} kaat kar bet lock karna chahte hain?`
+    );
+    if (!askOk) return;
+
     isPlacingBet = true;
-    const btn = document.querySelector("#betModal button:last-child"); btn.disabled = true; btn.innerText = "⏳ Verifying Rate (5s)...";
+    const btn = document.querySelector("#betModal button:last-child"); btn.disabled = true; btn.innerText = "⏳ Locking & Deducting...";
     try {
-      await new Promise(r => setTimeout(r, 5000)); await refreshActiveMatchDetail();
-      if (Date.now() < ballChangeLockUntil || (selBet.sigAtOpen && lastScoreSignature !== selBet.sigAtOpen)) {
-        alert("⚠️ Ball/Score Badal Gaya! Naye rate par bet lagayein.");
-        document.getElementById("betModal").classList.remove("open");
-        return;
-      }
+      await fetchMatchBetLimits(activeMatch.id);
       const ov = overrides[activeMatch.id] || {}, lim = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
       if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); openMatch(activeMatch, true); return; }
       if (!(await deductUserWallet(fin.debit))) return alert("Insufficient Wallet Balance!");
       const rec = { betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900), matchId: String(activeMatch.id), matchName: activeMatch.title, mobile: String(mob), userName: userNameStr, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine, lockedOdd: selBet.oddMult, stake: fin.debit, profitTarget: fin.profit, lockedReturn: fin.totalReturn, status: "OPEN", time: new Date().toLocaleString("en-IN") };
       await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
-      alert(`✅ Bet Locked!\n${rec.market}\n${selBet.side === "LAY" ? "Liability Debit" : "Stake"}: ₹${fin.debit} → Return: ₹${rec.lockedReturn}`);
+      alert(`✅ Bet Locked!\n${rec.market}\n${selBet.side === "LAY" ? "Liability Deducted" : "Stake Deducted"}: ₹${fin.debit} → Return: ₹${rec.lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
       await fetchMatchBetLimits(activeMatch.id);
       openMatch(activeMatch, true);
