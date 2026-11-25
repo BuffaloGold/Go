@@ -7,43 +7,39 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
     body { background: radial-gradient(circle at top, #230436 0%, #0d0114 100%); color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
-    .container { width: 100%; max-width: 430px; background: rgba(24, 3, 36, 0.96); min-height: 100vh; padding: 10px; box-shadow: 0 0 35px rgba(0,0,0,0.95); }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: linear-gradient(135deg, #2d0742, #1a0326); padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.4); box-shadow: 0 4px 15px rgba(0,0,0,0.45); }
-    .user-info h3 { font-size: 14px; color: #ffd700; letter-spacing: 0.3px; }
+    .container { width: 100%; max-width: 430px; background: rgba(24, 3, 36, 0.97); min-height: 100vh; padding: 12px; box-shadow: 0 0 35px rgba(0,0,0,0.95); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: linear-gradient(135deg, #2d0742, #1a0326); padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.4); }
+    .user-info h3 { font-size: 14px; color: #ffd700; }
     .user-info span { font-size: 11px; color: #bbb; }
-    .mini-wallet { text-align: right; cursor: pointer; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(40, 224, 77, 0.35); }
+    .mini-wallet { text-align: right; cursor: pointer; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(40, 224, 77, 0.35); }
     .mini-wallet div { font-size: 10px; color: #ccc; }
     .mini-wallet strong { font-size: 13px; color: #28e04d; }
-    .hero-box { background: linear-gradient(135deg, #560e78 0%, #2a063b 60%, #190224 100%); border: 1.5px solid #ffd700; border-radius: 16px; padding: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 20px rgba(255, 215, 0, 0.14); }
-    .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 3px; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+    .hero-box { background: linear-gradient(135deg, #560e78 0%, #2a063b 60%, #190224 100%); border: 1.5px solid #ffd700; border-radius: 16px; padding: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .hero-box h2 { font-size: 16px; color: #ffd700; margin-bottom: 3px; }
     .hero-box p { font-size: 11px; color: #e2e8f0; }
-    .refresh-btn { background: linear-gradient(180deg, #ffe44d, #e6b800); color: #000; border: none; padding: 8px 12px; border-radius: 10px; font-weight: 900; font-size: 11px; cursor: pointer; box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3); }
+    .refresh-btn { background: linear-gradient(180deg, #ffe44d, #e6b800); color: #000; border: none; padding: 8px 13px; border-radius: 10px; font-weight: 900; font-size: 11px; cursor: pointer; }
     .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-    .f-tab { flex: 1; padding: 9px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 12px; color: #ccc; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-    .f-tab.active { background: linear-gradient(180deg, #ffd700, #eab308); color: #000; border-color: #ffd700; box-shadow: 0 3px 12px rgba(255, 215, 0, 0.25); }
+    .f-tab { flex: 1; padding: 10px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 12px; color: #ccc; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .f-tab.active { background: linear-gradient(180deg, #ffd700, #eab308); color: #000; border-color: #ffd700; }
     .list-header { background: linear-gradient(90deg, #33094a, #220530); padding: 9px 12px; border-radius: 12px 12px 0 0; border: 1px solid #6b1d91; border-bottom: none; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; }
     .match-list-box { background: #1f042d; border: 1px solid #6b1d91; border-radius: 0 0 14px 14px; overflow: hidden; }
-    .match-item { padding: 13px 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; }
+    .match-item { padding: 14px 12px; border-bottom: 1px solid #3c0c54; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     .match-item:last-child { border-bottom: none; }
     .match-item:active { background: #2e0842; }
     .m-left { flex: 1; padding-right: 10px; }
-    .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; }
-    .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; }
-    .b-done { background: #4b5563; color: #ffd700; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(255,215,0,0.3); }
-    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 5px 0 3px; }
-    .m-score { font-size: 11px; color: #28e04d; font-weight: 700; }
-    .open-pill { background: linear-gradient(180deg, #ffd700, #d97706); color: #000; font-size: 11px; font-weight: 900; padding: 7px 11px; border-radius: 9px; white-space: nowrap; }
-    .empty-msg { padding: 28px 15px; text-align: center; color: #ccc; font-size: 13px; line-height: 1.5; }
-    .wallet-toast { display: none; position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; background: linear-gradient(90deg, #16a34a, #15803d); border: 2px solid #ffd700; color: #fff; padding: 11px 14px; border-radius: 14px; z-index: 3000; font-size: 12px; font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.75); text-align: center; }
-    .wallet-toast.show { display: block; animation: popScale 0.25s ease; }
-    @keyframes popScale { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .b-live { background: #28e04d; color: #000; font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 5px; display: inline-block; }
+    .b-up { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; display: inline-block; }
+    .b-done { background: #4b5563; color: #ffd700; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; display: inline-block; }
+    .m-title { font-size: 14px; font-weight: 800; color: #fff; margin: 5px 0 4px; }
+    .m-score { font-size: 12px; font-weight: 700; }
+    .open-pill { background: linear-gradient(180deg, #ffd700, #d97706); color: #000; font-size: 11px; font-weight: 900; padding: 8px 12px; border-radius: 9px; white-space: nowrap; }
+    .empty-msg { padding: 30px 15px; text-align: center; color: #ccc; font-size: 13px; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
     .nav-item { text-align: center; color: #bbb; font-size: 11px; cursor: pointer; flex: 1; }
     .nav-item.active { color: #ffd700; font-weight: bold; }
   </style>
 </head>
 <body>
-<div class="wallet-toast" id="walletToast">💰 Balance Credited!</div>
 <div class="container">
   <div class="top-bar">
     <div class="user-info">
@@ -59,7 +55,7 @@
   <div class="hero-box">
     <div>
       <h2>👑 Cricket VIP Exchange</h2>
-      <p>Live Ball-by-Ball & Instant Payout</p>
+      <p>Live Match Winner • Instant Settlement</p>
     </div>
     <button class="refresh-btn" onclick="loadMatches()">🔄 Refresh</button>
   </div>
@@ -72,10 +68,10 @@
 
   <div class="list-header">
     <span id="listHeading">🔴 Live Matches</span>
-    <span>Tap →</span>
+    <span>Select Match →</span>
   </div>
   <div class="match-list-box" id="matchListContainer">
-    <div class="empty-msg">Live matches load ho rahe hain...</div>
+    <div class="empty-msg">Matches load ho rahe hain...</div>
   </div>
 </div>
 
@@ -94,43 +90,20 @@
   if (!mob) window.location.replace("index.html");
 
   let matches = [], overrides = {}, filterMode = "live";
-  localStorage.removeItem("bg_done_matches");
 
-  function notifyWalletCredit(title, bodyText) {
-    const toast = document.getElementById("walletToast");
-    toast.innerText = `${title} • ${bodyText}`;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 5500);
-  }
-
-  function renderUserBox(u, checkCredit) {
+  function renderUserBox(u) {
     if (!u) return;
     document.getElementById("userName").innerText = u.name || "Player";
     document.getElementById("userMob").innerText = mob || "-";
-    const d = Number(u.depositBal ?? u.depositBalance ?? 0);
-    const w = Number(u.winningBal ?? u.winningBalance ?? 0);
-    document.getElementById("topDep").innerText = "₹" + d;
-    document.getElementById("topWin").innerText = "₹" + w;
-    if (checkCredit) {
-      const kDep = "bg_last_dep_" + mob, kWin = "bg_last_win_" + mob;
-      const pD = localStorage.getItem(kDep), pW = localStorage.getItem(kWin);
-      if (pD !== null && d > Number(pD)) notifyWalletCredit("💰 Deposit Credited!", `₹${(d - Number(pD)).toFixed(2).replace(/\.00$/, "")} add!`);
-      if (pW !== null && w > Number(pW)) notifyWalletCredit("🏆 Winning Credited!", `₹${(w - Number(pW)).toFixed(2).replace(/\.00$/, "")} add!`);
-      localStorage.setItem(kDep, String(d));
-      localStorage.setItem(kWin, String(w));
-    }
+    document.getElementById("topDep").innerText = "₹" + Number(u.depositBal ?? u.depositBalance ?? 0);
+    document.getElementById("topWin").innerText = "₹" + Number(u.winningBal ?? u.winningBalance ?? 0);
   }
-  try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}"), false); } catch (e) {}
+  try { renderUserBox(JSON.parse(localStorage.getItem("cachedUser") || "{}")); } catch (e) {}
 
   async function syncUserWallet() {
-    if (!mob) return;
     try {
-      const r = await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`);
-      const u = await r.json();
-      if (u) {
-        localStorage.setItem("cachedUser", JSON.stringify(u));
-        renderUserBox(u, true);
-      }
+      const u = await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json();
+      if (u) { localStorage.setItem("cachedUser", JSON.stringify(u)); renderUserBox(u); }
     } catch (e) {}
   }
 
@@ -145,83 +118,51 @@
     return `🕒 ${dayTag}, ${timeStr} IST`;
   }
 
-  function parseCricbuzzListHtml(html, defaultBucket = "auto") {
-    const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
-    if (!html || typeof html !== "string") return list;
+  function parseMatchesFromHtml(html, forcedBucket) {
+    const seen = new Set(), out = [], startMap = {}, rawMsMap = {};
+    if (!html) return out;
 
     for (const tm of html.matchAll(/"matchId"\s*:\s*"?(\d+)"?[\s\S]{0,700}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
-      let ms = Number(tm[2]);
-      if (ms < 1e12) ms *= 1000;
+      let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
       rawMsMap[tm[1]] = ms;
-      const formatted = formatIstTime(ms);
-      if (formatted) startMap[tm[1]] = formatted;
+      startMap[tm[1]] = formatIstTime(ms);
     }
 
-    const linkRx = /href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g;
+    const rx = /href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g;
     let m;
-    while ((m = linkRx.exec(html)) !== null) {
-      const mId = String(m[1]);
-      if (seenIds.has(mId)) continue;
-      seenIds.add(mId);
+    while ((m = rx.exec(html)) !== null) {
+      const id = String(m[1]);
+      if (seen.has(id)) continue;
+      seen.add(id);
 
       const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim();
-      const titleKey = title.toLowerCase().replace(/\s+/g, " ");
-      if (seenTitles.has(titleKey)) continue;
-      seenTitles.add(titleKey);
-
       const rest = html.slice(m.index + m[0].length);
-      const nextLinkPos = rest.search(/href="\/(?:live-cricket-scores|cricket-scores)\/\d+\//);
-      const sliceLen = nextLinkPos > 0 ? Math.min(950, nextLinkPos + m[0].length) : 700;
-      const sub = html.slice(m.index, m.index + sliceLen)
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&#x27;/g, "'")
-        .replace(/\s+/g, " ")
-        .trim();
+      const nextPos = rest.search(/href="\/(?:live-cricket-scores|cricket-scores)\/\d+\//);
+      const sub = html.slice(m.index, m.index + (nextPos > 0 ? Math.min(850, nextPos + m[0].length) : 650))
+        .replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
-      const isDoneText = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|abandoned|match tied|no result)\b/i.test(sub);
-      const isLiveKeyword = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|rain stops play|toss)\b/i.test(sub);
-      const isUpKeyword = /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming|time soon)\b/i.test(sub);
+      const isDone = /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(sub);
+      const isLiveTxt = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|toss)\b/i.test(sub);
+      const startMs = rawMsMap[id] || 0;
 
-      const rawStartMs = rawMsMap[mId] || 0;
-      const nowMs = Date.now();
-      const isFutureStart = rawStartMs > (nowMs + 180000);
-      const isPastStart = rawStartMs > 0 && rawStartMs <= (nowMs + 180000);
-
-      let type = "upcoming";
-      if (isDoneText) {
-        type = "completed";
-      } else if (scores.length > 0 || isLiveKeyword) {
-        type = "live";
-      } else if (isFutureStart || isUpKeyword || defaultBucket === "upcoming") {
-        type = "upcoming";
-      } else if (isPastStart) {
-        type = "live";
-      } else if (defaultBucket === "completed") {
-        type = "completed";
+      let type = forcedBucket;
+      if (!type) {
+        if (isDone) type = "completed";
+        else if (scores.length > 0 || isLiveTxt) type = "live";
+        else if (startMs > Date.now() + 180000) type = "upcoming";
+        else type = "upcoming";
       }
 
       const stM = sub.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|[A-Za-z\s]{2,24}\s+opt to\s+(?:bat|bowl))/i);
-      const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
-      const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const rawStatus = stM ? stM[1].replace(/^.*?\b(?:Full Commentary|Commentary|Scorecard|Squads|Highlights|News|Photos|Videos|Live Cricket Score)\b\s*/gi, "").trim() : "";
-
       const cleanStatus = type === "upcoming"
-        ? (exactStartTime || "🕒 Upcoming Match")
-        : (rawStatus || (type === "completed" ? "Match Completed" : "Live In Progress"));
+        ? (startMap[id] || "🕒 Upcoming Match")
+        : (stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News)\b\s*/gi, "").trim() : (type === "completed" ? "Match Completed" : "Live In Progress"));
 
-      list.push({
-        id: mId,
-        title,
-        scores,
-        status: cleanStatus,
-        startMs: rawStartMs || 9999999999999,
-        type
-      });
+      out.push({ id, title, scores, status: cleanStatus, startMs: startMs || 9e15, type });
     }
-    return list;
+    return out;
   }
 
   async function loadMatches() {
@@ -232,64 +173,28 @@
         fetch(`${WORKER_URL}?type=recent&t=${Date.now()}`).catch(() => null),
         fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`).catch(() => null)
       ]);
-
       overrides = (rC && rC.ok ? await rC.json() : {}) || {};
 
-      const liveHtml = rLive && rLive.ok ? await rLive.text() : "";
-      const upHtml = rUp && rUp.ok ? await rUp.text() : "";
-      const recHtml = rRec && rRec.ok ? await rRec.text() : "";
+      const autoList = parseMatchesFromHtml(rLive && rLive.ok ? await rLive.text() : "", null);
+      const upList = parseMatchesFromHtml(rUp && rUp.ok ? await rUp.text() : "", "upcoming");
+      const doneList = parseMatchesFromHtml(rRec && rRec.ok ? await rRec.text() : "", "completed");
 
-      const liveList = parseCricbuzzListHtml(liveHtml, "auto");
-      const upList = parseCricbuzzListHtml(upHtml, "upcoming");
-      const recList = parseCricbuzzListHtml(recHtml, "completed");
+      const map = new Map();
+      // 1. Live & Auto matches
+      autoList.forEach(m => map.set(m.id, m));
+      // 2. Upcoming matches (jo pehle se Live/Completed mein nahi hain)
+      upList.forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
+      // 3. Completed matches (jo pehle se Live/Upcoming mein nahi hain)
+      doneList.forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
 
-      const mergedMap = new Map();
-
-      // 1. Live & Auto-detected matches
-      liveList.forEach(m => mergedMap.set(String(m.id), m));
-
-      // 2. Upcoming matches (agar pehle se Live/Completed nahi hai)
-      upList.forEach(m => {
-        if (!mergedMap.has(String(m.id))) {
-          mergedMap.set(String(m.id), m);
-        }
-      });
-
-      // 3. Completed matches (sirf wahi jo Live/Upcoming mein nahi hain ya jinme clear result hai)
-      recList.forEach(m => {
-        if (!mergedMap.has(String(m.id))) {
-          mergedMap.set(String(m.id), m);
-        } else if (m.type === "completed") {
-          const ex = mergedMap.get(String(m.id));
-          if (ex.type !== "live") {
-            ex.type = "completed";
-            if (m.status) ex.status = m.status;
-          }
-        }
-      });
-
-      const finalMatches = Array.from(mergedMap.values());
-      if (finalMatches.length > 0) {
-        matches = finalMatches;
-        updateTabCounts();
-        renderList();
-      } else {
-        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Abhi koi match available nahi hai. Refresh dabayein.</div>`;
-      }
+      matches = Array.from(map.values());
+      document.getElementById("tabLive").innerText = `🔴 Live (${matches.filter(x => x.type === "live").length})`;
+      document.getElementById("tabUp").innerText = `🕒 Upcoming (${matches.filter(x => x.type === "upcoming").length})`;
+      document.getElementById("tabDone").innerText = `✅ Done (${matches.filter(x => x.type === "completed").length})`;
+      renderList();
     } catch (e) {
-      if (!matches.length) {
-        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
-      }
+      document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Network error! Refresh dabayein.</div>`;
     }
-  }
-
-  function updateTabCounts() {
-    const cLive = matches.filter(m => m.type === "live").length;
-    const cUp = matches.filter(m => m.type === "upcoming").length;
-    const cDone = matches.filter(m => m.type === "completed").length;
-    document.getElementById("tabLive").innerText = `🔴 Live (${cLive})`;
-    document.getElementById("tabUp").innerText = `🕒 Upcoming (${cUp})`;
-    document.getElementById("tabDone").innerText = `✅ Done (${cDone})`;
   }
 
   function setFilter(mode, btn) {
@@ -297,18 +202,14 @@
     document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("listHeading").innerText =
-      mode === "live" ? "🔴 Live Matches" :
-      mode === "upcoming" ? "🕒 Upcoming Schedule (IST)" :
-      "✅ Completed Matches";
+      mode === "live" ? "🔴 Live Matches" : mode === "upcoming" ? "🕒 Upcoming Matches" : "✅ Completed Matches";
     renderList();
   }
 
   function renderList() {
     const box = document.getElementById("matchListContainer");
     let list = matches.filter(m => m.type === filterMode);
-    if (filterMode === "upcoming") {
-      list.sort((a, b) => (a.startMs || 0) - (b.startMs || 0));
-    }
+    if (filterMode === "upcoming") list.sort((a, b) => a.startMs - b.startMs);
 
     if (!list.length) {
       box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai.</div>`;
@@ -319,37 +220,28 @@
       const ov = overrides[m.id] || {};
       const sc = (ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "") || (m.scores.length ? m.scores.join(" | ") : m.status);
       const badge = m.type === "live" ? `<span class="b-live">● LIVE</span>` : m.type === "upcoming" ? `<span class="b-up">UPCOMING</span>` : `<span class="b-done">COMPLETED</span>`;
-      const c = m.type === "completed" ? "#ffd700" : m.type === "upcoming" ? "#93c5fd" : "#28e04d";
-      return `<div class="match-item" onclick="openMatchPage('${m.id}')">
+      const color = m.type === "completed" ? "#ffd700" : m.type === "upcoming" ? "#93c5fd" : "#28e04d";
+      return `<div class="match-item" onclick="openMatch('${m.id}')">
         <div class="m-left">
           ${badge}
           <div class="m-title">${m.title}</div>
-          <div class="m-score" style="color:${c};">${sc}</div>
+          <div class="m-score" style="color:${color};">${sc}</div>
         </div>
         <div class="open-pill">${m.type === "completed" ? "Result →" : "Play →"}</div>
       </div>`;
     }).join("");
   }
 
-  function openMatchPage(id) {
-    const m = matches.find(x => String(x.id) === String(id));
+  function openMatch(id) {
+    const m = matches.find(x => x.id === String(id));
     if (!m) return;
     localStorage.setItem("bg_selected_match", JSON.stringify(m));
-    const q = new URLSearchParams({
-      id: String(m.id),
-      title: m.title,
-      type: m.type,
-      status: m.status || ""
-    });
-    window.location.href = `match.html?${q.toString()}`;
+    window.location.href = `match.html?id=${encodeURIComponent(m.id)}&title=${encodeURIComponent(m.title)}&type=${encodeURIComponent(m.type)}`;
   }
 
   syncUserWallet();
   loadMatches();
-  setInterval(() => {
-    syncUserWallet();
-    loadMatches();
-  }, 6000);
+  setInterval(() => { syncUserWallet(); loadMatches(); }, 8000);
 </script>
 </body>
 </html>
