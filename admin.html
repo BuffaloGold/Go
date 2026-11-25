@@ -36,7 +36,7 @@
   .row-between { display: flex; justify-content: space-between; align-items: center; }
   .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
   .PENDING, .OPEN { background: #ff9f1c; color: #000; }
-  .APPROVED, .AUTO_APPROVED, .RESOLVED { background: #2ec4b6; color: #000; }
+  .APPROVED, .AUTO_APPROVED, .RESOLVED, .SETTLED { background: #2ec4b6; color: #000; }
   .REJECTED { background: #e71d36; color: #fff; }
   .qr-popup { display: none; background: #12021a; border: 1px dashed #28e04d; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 8px; }
   .qr-popup img { width: 170px; height: 170px; background: #fff; padding: 6px; border-radius: 8px; margin: 6px auto; display: block; }
@@ -119,13 +119,13 @@
   </div>
 </div>
 
-<!-- ==================== CRICKET AUTO-LIMIT & RATE CONTROL ==================== -->
+<!-- ==================== CRICKET AUTO-LIMIT, MANUAL CONTEST & RATE CONTROL ==================== -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
-    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Auto-Limit & Rate Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Manual Rate, Bhav (Bookmaker) & Max Bet Limit set karein</p>
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Manual Rate, Bhav & Contest Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Live & Upcoming Match select karke Rates, Max Bet aur Manual Contest banayein</p>
 
-    <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Match:</label>
+    <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Live / Upcoming Match:</label>
     <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
       <option value="">Matches load ho rahe hain...</option>
     </select>
@@ -168,6 +168,26 @@
 
     <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
+
+    <!-- MANUAL CONTEST CREATOR & 1-CLICK WINNER SETTLE -->
+    <div style="margin-top:16px; padding-top:14px; border-top:1.5px dashed #ffd700;">
+      <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (Admin Custom)</h4>
+      <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Is match par apna sawal banayein aur 1 click mein result settle karein</p>
+
+      <label style="font-size:11px; color:#ffd700;">Contest Question / Market Name:</label>
+      <input type="text" id="mc_title" placeholder="e.g. Toss Winner ya 6 Over 50+ Runs?" />
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div><label style="font-size:11px; color:#72bbef;">Option 1 Name</label><input type="text" id="mc_opt1" value="YES" /></div>
+        <div><label style="font-size:11px; color:#72bbef;">Option 1 Rate (x)</label><input type="number" step="0.01" id="mc_rate1" value="1.90" /></div>
+        <div><label style="font-size:11px; color:#faa9ba;">Option 2 Name</label><input type="text" id="mc_opt2" value="NO" /></div>
+        <div><label style="font-size:11px; color:#faa9ba;">Option 2 Rate (x)</label><input type="number" step="0.01" id="mc_rate2" value="1.90" /></div>
+      </div>
+
+      <button type="button" class="btn btn-green" style="width:100%; padding:11px; font-size:13px;" onclick="createManualContest()">➕ ADD MANUAL CONTEST TO MATCH</button>
+
+      <div id="activeManualContestsList" style="margin-top:10px;"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -291,7 +311,7 @@
         <div style="font-size:11px; color:#aaa; margin-bottom:8px;">ID: ${w.reqId || k} | ${w.date || ''}</div>
         ${w.status === "PENDING" ? `
           <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount || 0}')">📷 SHOW / SCAN QR CODE</button>
-          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount \vert{}\vert{} 0} →${w.upi || ''}</div></div>
+          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div></div>
           <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
           <div style="display:flex; gap:8px;">
             <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid & Deduct Bal</button>
@@ -447,10 +467,7 @@
     if (!u) return;
     const curDep = Number(u.depositBal ?? u.depositBalance ?? 0);
     const newDep = Math.max(0, curDep + delta);
-    await dbPatch("users/" + mob, {
-      depositBal: newDep,
-      depositBalance: newDep
-    });
+    await dbPatch("users/" + mob, { depositBal: newDep, depositBalance: newDep });
     forceLoadAll();
   }
 
@@ -478,7 +495,7 @@
   forceLoadAll();
   setInterval(forceLoadAll, 8000);
 
-  // ==================== CRICKET AUTO-LIMIT & RATE MODULE ====================
+  // ==================== CRICKET AUTO-LIMIT, RATE & MANUAL CONTEST MODULE ====================
   async function initAdminCricDropdown() {
     try {
       const [rLive, rUp] = await Promise.all([
@@ -487,9 +504,11 @@
       ]);
       const parseList = (html, tag) => {
         const arr = [], seen = new Set();
-        for (const m of html.matchAll(/href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g)) {
+        for (const m of html.matchAll(/href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g)) {
           if (seen.has(m[1])) continue;
           seen.add(m[1]);
+          const sub = html.slice(m.index, m.index + 450).replace(/<[^>]+>/g, " ");
+          if (/\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(sub)) continue;
           arr.push({ id: m[1], name: `${tag} ${m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim()}` });
         }
         return arr;
@@ -534,6 +553,7 @@
       document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
       document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
       document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
+      loadManualContests(id);
     } catch (e) {}
   }
 
@@ -568,7 +588,7 @@
       sess20Yes: s20[1] ? s20[1].trim() : ""
     };
 
-    await dbPut(`cricketControls/${id}`, payload);
+    await dbPatch(`cricketControls/${id}`, payload);
     alert("✅ Manual Rate, Bhav & Max Bet Save Ho Gaye!");
   }
 
@@ -580,8 +600,69 @@
     alert("🗑️ Default settings reset ho gayi!");
   }
 
+  async function createManualContest() {
+    const mId = document.getElementById("bgCric_matchSelect").value;
+    const title = (document.getElementById("mc_title").value || "").trim();
+    const opt1 = (document.getElementById("mc_opt1").value || "YES").trim();
+    const rate1 = Number(document.getElementById("mc_rate1").value || 1.90);
+    const opt2 = (document.getElementById("mc_opt2").value || "NO").trim();
+    const rate2 = Number(document.getElementById("mc_rate2").value || 1.90);
+    if (!mId || !title) return alert("Match aur Contest Question dalein!");
+
+    const cId = "MC_" + Date.now();
+    await dbPut(`customContests/${mId}/${cId}`, { cId, title, opt1, rate1, opt2, rate2, status: "OPEN", winner: "" });
+    document.getElementById("mc_title").value = "";
+    alert(`✅ Contest "${title}" Match Mein Add Ho Gaya!`);
+    loadManualContests(mId);
+  }
+
+  async function loadManualContests(mId) {
+    const box = document.getElementById("activeManualContestsList");
+    const data = (await dbGet(`customContests/${mId}`)) || {};
+    const list = Object.values(data);
+    if (!list.length) { box.innerHTML = ""; return; }
+    box.innerHTML = list.map(c => `
+      <div style="background:#12021a; border:1px solid #6b1d91; border-radius:8px; padding:9px; margin-bottom:7px; font-size:12px;">
+        <div class="row-between"><strong style="color:#ffd700;">🎯 ${c.title}</strong><span class="badge ${c.status}">${c.status}</span></div>
+        <div style="color:#ccc; margin:4px 0;">1) ${c.opt1} (@ ${c.rate1}x) | 2) ${c.opt2} (@ ${c.rate2}x)</div>
+        ${c.status === "OPEN" ? `
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <button type="button" class="btn btn-green" style="flex:1;" onclick="settleManualContest('${mId}','${c.cId}','${c.opt1}')">🏆 ${c.opt1} Won</button>
+            <button type="button" class="btn btn-blue" style="flex:1;" onclick="settleManualContest('${mId}','${c.cId}','${c.opt2}')">🏆 ${c.opt2} Won</button>
+            <button type="button" class="btn btn-del" onclick="deleteManualContest('${mId}','${c.cId}')">🗑️</button>
+          </div>` : `<div style="color:#28e04d; font-weight:bold;">🏆 Winner: ${c.winner}</div>`}
+      </div>
+    `).join("");
+  }
+
+  async function settleManualContest(mId, cId, winOpt) {
+    if (!confirm(`Confirm: "${winOpt}" ko winner ghoshit karein aur sabko payout dein?`)) return;
+    await dbPatch(`customContests/${mId}/${cId}`, { status: "SETTLED", winner: winOpt });
+
+    const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
+    for (const b of Object.values(betsObj)) {
+      if (!b || b.customContestId !== cId || String(b.status).toUpperCase() !== "OPEN") continue;
+      const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
+      const st = isWon ? "WON" : "LOST";
+      await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: st, resultInfo: `🏆 ${winOpt} Won`, settledAt: new Date().toLocaleString("en-IN") });
+      if (isWon && b.mobile) {
+        const u = (await dbGet(`users/${b.mobile}`)) || {};
+        const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
+        const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+        await dbPatch(`users/${b.mobile}`, p);
+      }
+    }
+    alert(`✅ Contest Settled! "${winOpt}" par bet lagane walon ke wallet mein paisa credit ho gaya!`);
+    loadManualContests(mId);
+    forceLoadAll();
+  }
+
+  async function deleteManualContest(mId, cId) {
+    await fetch(`${DB_URL}/customContests/${mId}/${cId}.json`, { method: "DELETE" });
+    loadManualContests(mId);
+  }
+
   initAdminCricDropdown();
 </script>
 </body>
 </html>
- 
