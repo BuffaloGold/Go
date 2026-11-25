@@ -65,9 +65,9 @@
   </div>
 
   <div class="filter-tabs">
-    <button class="f-tab active" onclick="setFilter('live', this)">🔴 Live Now</button>
-    <button class="f-tab" onclick="setFilter('upcoming', this)">🕒 Upcoming</button>
-    <button class="f-tab" onclick="setFilter('completed', this)">✅ Completed</button>
+    <button class="f-tab active" id="tabLive" onclick="setFilter('live', this)">🔴 Live (0)</button>
+    <button class="f-tab" id="tabUp" onclick="setFilter('upcoming', this)">🕒 Upcoming (0)</button>
+    <button class="f-tab" id="tabDone" onclick="setFilter('completed', this)">✅ Completed (0)</button>
   </div>
 
   <div class="list-header">
@@ -140,25 +140,33 @@
     } catch (e) {}
   }
 
-  function parseCricbuzzListHtml(html, defaultType = "live") {
+  function formatIstTime(ms) {
+    const dt = new Date(ms);
+    if (isNaN(dt.getTime())) return "";
+    const now = new Date(), tmrw = new Date(now.getTime() + 86400000);
+    const dayTag = dt.toDateString() === now.toDateString() ? "Today" :
+                   dt.toDateString() === tmrw.toDateString() ? "Tomorrow" :
+                   dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+    const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase();
+    return `🕒 ${dayTag}, ${timeStr} IST`;
+  }
+
+  function parseCricbuzzListHtml(html, sourceHint = "live") {
     const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
-    for (const tm of html.matchAll(/"matchId"\s*:\s*(\d+)[\s\S]{0,600}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
+    if (!html || typeof html !== "string") return list;
+
+    for (const tm of html.matchAll(/"matchId"\s*:\s*"?(\d+)"?[\s\S]{0,700}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
-      let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
+      let ms = Number(tm[2]);
+      if (ms < 1e12) ms *= 1000;
       rawMsMap[tm[1]] = ms;
-      const dt = new Date(ms);
-      if (!isNaN(dt.getTime())) {
-        const now = new Date(), tmrw = new Date(now.getTime() + 86400000);
-        const dayTag = dt.toDateString() === now.toDateString() ? "Today" : dt.toDateString() === tmrw.toDateString() ? "Tomorrow" : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
-        const timeStr = dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).toUpperCase();
-        startMap[tm[1]] = `🕒 ${dayTag}, ${timeStr} IST`;
-      }
+      const formatted = formatIstTime(ms);
+      if (formatted) startMap[tm[1]] = formatted;
     }
 
-    const mainBody = html.split(/All Live Now|LIVE MATCHES|Recent Matches|Upcoming Matches|All Matches/i)[1] || html;
-    const linkRx = /href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g;
+    const linkRx = /href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g;
     let m;
-    while ((m = linkRx.exec(mainBody)) !== null) {
+    while ((m = linkRx.exec(html)) !== null) {
       const mId = String(m[1]);
       if (seenIds.has(mId)) continue;
       seenIds.add(mId);
@@ -168,27 +176,54 @@
       if (seenTitles.has(titleKey)) continue;
       seenTitles.add(titleKey);
 
-      const nextLinkPos = mainBody.slice(m.index + m[0].length).search(/href="\/live-cricket-scores\/\d+\//);
-      const sliceLen = nextLinkPos > 0 ? Math.min(900, nextLinkPos + m[0].length) : 650;
-      const sub = mainBody.slice(m.index, m.index + sliceLen).replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+      const rest = html.slice(m.index + m[0].length);
+      const nextLinkPos = rest.search(/href="\/(?:live-cricket-scores|cricket-scores)\/\d+\//);
+      const sliceLen = nextLinkPos > 0 ? Math.min(950, nextLinkPos + m[0].length) : 700;
+      const sub = html.slice(m.index, m.index + sliceLen)
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&#x27;/g, "'")
+        .replace(/\s+/g, " ")
+        .trim();
 
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
       const isDoneText = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|abandoned|match tied|no result)\b/i.test(sub);
+      const isLiveKeyword = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|rain stops play|toss)\b/i.test(sub);
       const rawStartMs = rawMsMap[mId] || 0;
-      const isFutureStart = rawStartMs > (Date.now() + 300000);
-      const isExplicitUp = defaultType === "upcoming" || isFutureStart || (scores.length === 0 && /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming|time soon)\b/i.test(sub) && !/\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea)\b/i.test(sub));
+      const nowMs = Date.now();
+      const isFutureStart = rawStartMs > (nowMs + 180000);
+      const isPastStart = rawStartMs > 0 && rawStartMs <= (nowMs + 180000);
 
-      let type = defaultType;
-      if (isDoneText) type = "completed";
-      else if (isExplicitUp) type = "upcoming";
-      else if (scores.length > 0 || defaultType === "live") type = "live";
+      let type = sourceHint;
+      if (isDoneText || sourceHint === "completed" || completedCache[mId]) {
+        type = "completed";
+      } else if (scores.length > 0 || isLiveKeyword) {
+        type = "live";
+      } else if (sourceHint === "upcoming" || isFutureStart) {
+        type = "upcoming";
+      } else if (isPastStart) {
+        type = "live";
+      } else {
+        type = "upcoming";
+      }
 
-      const stM = sub.match(/(Match drawn|Match tied|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,20}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+      const stM = sub.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|[A-Za-z\s]{2,24}\s+opt to\s+(?:bat|bowl))/i);
       const textTimeM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*,?\s*\d{1,2}:\d{2}\s*(?:AM|PM)\s*(?:IST|GMT)?)/i);
       const exactStartTime = startMap[mId] || (textTimeM ? `🕒 ${textTimeM[1].trim()}` : "");
-      const rawStatus = stM ? stM[1].replace(/^.*?\b(?:Full Commentary|Commentary|Scorecard|Squads|Highlights|News|Photos|Videos)\b\s*/gi, "").trim() : "";
-      const cleanStatus = type === "upcoming" ? (exactStartTime || "🕒 Upcoming Match") : (rawStatus || (type === "completed" ? "Match Completed" : "Live In Progress"));
-      list.push({ id: mId, title, scores, status: cleanStatus, type });
+      const rawStatus = stM ? stM[1].replace(/^.*?\b(?:Full Commentary|Commentary|Scorecard|Squads|Highlights|News|Photos|Videos|Live Cricket Score)\b\s*/gi, "").trim() : "";
+
+      const cleanStatus = type === "upcoming"
+        ? (exactStartTime || "🕒 Upcoming Match")
+        : (rawStatus || (type === "completed" ? (completedCache[mId] || "Match Completed") : "Live In Progress"));
+
+      list.push({
+        id: mId,
+        title,
+        scores,
+        status: cleanStatus,
+        startMs: rawStartMs || 9999999999999,
+        type
+      });
     }
     return list;
   }
@@ -196,66 +231,72 @@
   async function loadMatches() {
     try {
       const [rLive, rUp, rRec, rC] = await Promise.all([
-        fetch(`${WORKER_URL}?t=${Date.now()}`),
+        fetch(`${WORKER_URL}?t=${Date.now()}`).catch(() => null),
         fetch(`${WORKER_URL}?type=upcoming&t=${Date.now()}`).catch(() => null),
         fetch(`${WORKER_URL}?type=recent&t=${Date.now()}`).catch(() => null),
-        fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`)
+        fetch(`${FB_URL}/cricketControls.json?t=${Date.now()}`).catch(() => null)
       ]);
-      overrides = (await rC.json()) || {};
 
-      const liveList = parseCricbuzzListHtml(await rLive.text(), "live");
+      overrides = (rC && rC.ok ? await rC.json() : {}) || {};
+
+      const liveHtml = rLive && rLive.ok ? await rLive.text() : "";
       const upHtml = rUp && rUp.ok ? await rUp.text() : "";
-      const upList = upHtml ? parseCricbuzzListHtml(upHtml, "upcoming") : [];
       const recHtml = rRec && rRec.ok ? await rRec.text() : "";
-      const recList = recHtml ? parseCricbuzzListHtml(recHtml, "completed") : [];
+
+      const liveList = parseCricbuzzListHtml(liveHtml, "live");
+      const upList = parseCricbuzzListHtml(upHtml, "upcoming");
+      const recList = parseCricbuzzListHtml(recHtml, "completed");
 
       const mergedMap = new Map();
 
+      // 1. Live & Mixed Homepage Matches
       liveList.forEach(m => {
-        if (m.type === "completed") {
-          markMatchCompleted(m.id, m.status);
-        } else if (completedCache[String(m.id)]) {
-          m.type = "completed";
-          m.status = completedCache[String(m.id)];
-        }
+        if (m.type === "completed") markMatchCompleted(m.id, m.status);
         mergedMap.set(String(m.id), m);
       });
 
+      // 2. Upcoming Matches (Auto-promote to Live if start time passed or already in liveList)
       upList.forEach(m => {
         if (!mergedMap.has(String(m.id))) {
-          if (completedCache[String(m.id)]) {
-            m.type = "completed";
-            m.status = completedCache[String(m.id)];
-          }
           mergedMap.set(String(m.id), m);
         }
       });
 
+      // 3. Completed / Recent Matches
       recList.forEach(m => {
+        m.type = "completed";
+        markMatchCompleted(m.id, m.status);
         if (!mergedMap.has(String(m.id))) {
-          m.type = "completed";
-          markMatchCompleted(m.id, m.status);
           mergedMap.set(String(m.id), m);
         } else {
           const ex = mergedMap.get(String(m.id));
           ex.type = "completed";
           if (m.status) ex.status = m.status;
-          markMatchCompleted(m.id, m.status);
         }
       });
 
       const finalMatches = Array.from(mergedMap.values());
       if (finalMatches.length > 0) {
         matches = finalMatches;
+        updateTabCounts();
         renderList();
       } else {
-        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Abhi koi match available nahi hai.</div>`;
+        document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Abhi koi match available nahi hai. Refresh dabayein.</div>`;
       }
     } catch (e) {
       if (!matches.length) {
         document.getElementById("matchListContainer").innerHTML = `<div class="empty-msg">Worker connect ho raha hai... Refresh dabayein.</div>`;
       }
     }
+  }
+
+  function updateTabCounts() {
+    const cLive = matches.filter(m => m.type === "live").length;
+    const cUp = matches.filter(m => m.type === "upcoming").length;
+    const cDone = matches.filter(m => m.type === "completed").length;
+    document.getElementById("tabLive").innerText = `🔴 Live (${cLive})`;
+    document.getElementById("tabUp").innerText = `🕒 Upcoming (${cUp})`;
+    document.getElementById("tabDone").innerText = `✅ Done (${cDone})`;
   }
 
   function setFilter(mode, btn) {
@@ -271,11 +312,16 @@
 
   function renderList() {
     const box = document.getElementById("matchListContainer");
-    const list = matches.filter(m => m.type === filterMode);
+    let list = matches.filter(m => m.type === filterMode);
+    if (filterMode === "upcoming") {
+      list.sort((a, b) => (a.startMs || 0) - (b.startMs || 0));
+    }
+
     if (!list.length) {
       box.innerHTML = `<div class="empty-msg">Is category mein abhi koi match nahi hai.</div>`;
       return;
     }
+
     box.innerHTML = list.map(m => {
       const ov = overrides[m.id] || {};
       const sc = (ov.liveRuns ? `${ov.liveRuns} (${ov.liveOvers || "0.0"} Ov)` : "") || (m.scores.length ? m.scores.join(" | ") : m.status);
