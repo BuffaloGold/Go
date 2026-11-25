@@ -67,7 +67,7 @@
   <div class="filter-tabs">
     <button class="f-tab active" id="tabLive" onclick="setFilter('live', this)">🔴 Live (0)</button>
     <button class="f-tab" id="tabUp" onclick="setFilter('upcoming', this)">🕒 Upcoming (0)</button>
-    <button class="f-tab" id="tabDone" onclick="setFilter('completed', this)">✅ Completed (0)</button>
+    <button class="f-tab" id="tabDone" onclick="setFilter('completed', this)">✅ Done (0)</button>
   </div>
 
   <div class="list-header">
@@ -94,13 +94,7 @@
   if (!mob) window.location.replace("index.html");
 
   let matches = [], overrides = {}, filterMode = "live";
-  const completedCache = JSON.parse(localStorage.getItem("bg_done_matches") || "{}");
-
-  function markMatchCompleted(id, statusText) {
-    if (!id) return;
-    completedCache[String(id)] = statusText || "Match Completed";
-    localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
-  }
+  localStorage.removeItem("bg_done_matches");
 
   function notifyWalletCredit(title, bodyText) {
     const toast = document.getElementById("walletToast");
@@ -151,7 +145,7 @@
     return `🕒 ${dayTag}, ${timeStr} IST`;
   }
 
-  function parseCricbuzzListHtml(html, sourceHint = "live") {
+  function parseCricbuzzListHtml(html, defaultBucket = "auto") {
     const seenIds = new Set(), seenTitles = new Set(), list = [], startMap = {}, rawMsMap = {};
     if (!html || typeof html !== "string") return list;
 
@@ -189,22 +183,24 @@
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?(?:\s*\(\s*\d+(?:\.\d+)?(?:\s*Ovs?)?\s*\))?/g) || [];
       const isDoneText = /\b(match drawn|won by \d+\s+(?:runs?|wkts?|wickets?)|abandoned|match tied|no result)\b/i.test(sub);
       const isLiveKeyword = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|rain stops play|toss)\b/i.test(sub);
+      const isUpKeyword = /\b(preview|starts at|today,|tomorrow,|gmt|ist|upcoming|time soon)\b/i.test(sub);
+
       const rawStartMs = rawMsMap[mId] || 0;
       const nowMs = Date.now();
       const isFutureStart = rawStartMs > (nowMs + 180000);
       const isPastStart = rawStartMs > 0 && rawStartMs <= (nowMs + 180000);
 
-      let type = sourceHint;
-      if (isDoneText || sourceHint === "completed" || completedCache[mId]) {
+      let type = "upcoming";
+      if (isDoneText) {
         type = "completed";
       } else if (scores.length > 0 || isLiveKeyword) {
         type = "live";
-      } else if (sourceHint === "upcoming" || isFutureStart) {
+      } else if (isFutureStart || isUpKeyword || defaultBucket === "upcoming") {
         type = "upcoming";
       } else if (isPastStart) {
         type = "live";
-      } else {
-        type = "upcoming";
+      } else if (defaultBucket === "completed") {
+        type = "completed";
       }
 
       const stM = sub.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|[A-Za-z\s]{2,24}\s+opt to\s+(?:bat|bowl))/i);
@@ -214,7 +210,7 @@
 
       const cleanStatus = type === "upcoming"
         ? (exactStartTime || "🕒 Upcoming Match")
-        : (rawStatus || (type === "completed" ? (completedCache[mId] || "Match Completed") : "Live In Progress"));
+        : (rawStatus || (type === "completed" ? "Match Completed" : "Live In Progress"));
 
       list.push({
         id: mId,
@@ -243,35 +239,32 @@
       const upHtml = rUp && rUp.ok ? await rUp.text() : "";
       const recHtml = rRec && rRec.ok ? await rRec.text() : "";
 
-      const liveList = parseCricbuzzListHtml(liveHtml, "live");
+      const liveList = parseCricbuzzListHtml(liveHtml, "auto");
       const upList = parseCricbuzzListHtml(upHtml, "upcoming");
       const recList = parseCricbuzzListHtml(recHtml, "completed");
 
       const mergedMap = new Map();
 
-      // 1. Live & Mixed Homepage Matches
-      liveList.forEach(m => {
-        if (m.type === "completed") markMatchCompleted(m.id, m.status);
-        mergedMap.set(String(m.id), m);
-      });
+      // 1. Live & Auto-detected matches
+      liveList.forEach(m => mergedMap.set(String(m.id), m));
 
-      // 2. Upcoming Matches (Auto-promote to Live if start time passed or already in liveList)
+      // 2. Upcoming matches (agar pehle se Live/Completed nahi hai)
       upList.forEach(m => {
         if (!mergedMap.has(String(m.id))) {
           mergedMap.set(String(m.id), m);
         }
       });
 
-      // 3. Completed / Recent Matches
+      // 3. Completed matches (sirf wahi jo Live/Upcoming mein nahi hain ya jinme clear result hai)
       recList.forEach(m => {
-        m.type = "completed";
-        markMatchCompleted(m.id, m.status);
         if (!mergedMap.has(String(m.id))) {
           mergedMap.set(String(m.id), m);
-        } else {
+        } else if (m.type === "completed") {
           const ex = mergedMap.get(String(m.id));
-          ex.type = "completed";
-          if (m.status) ex.status = m.status;
+          if (ex.type !== "live") {
+            ex.type = "completed";
+            if (m.status) ex.status = m.status;
+          }
         }
       });
 
