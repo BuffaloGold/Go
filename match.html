@@ -95,20 +95,20 @@
 
   <div class="market-pills">
     <button class="pill-btn active" onclick="filterMarket('all', this)">All</button>
-    <button class="pill-btn" onclick="filterMarket('ball', this)">⚡ Ball Result</button>
+    <button class="pill-btn" onclick="filterMarket('overbox', this)">⚡ Over Special</button>
     <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
     <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
     <button class="pill-btn" onclick="filterMarket('fancy', this)">Over Sessions</button>
     <button class="pill-btn" onclick="filterMarket('digit', this)">Lucky Number</button>
   </div>
 
-  <!-- 1. BALL TO BALL AUTO-ROTATING CONTEST (SABSE UPAR) -->
-  <div class="market-card sec-ball" id="nextBallCard" style="border:1.5px solid #ffd700;">
+  <!-- 1. NEXT OVER AUTO-ROTATING CONTEST (RUNS, 4s, 6s, WICKETS - SABSE UPAR) -->
+  <div class="market-card sec-overbox" id="nextOverCard" style="border:1.5px solid #ffd700;">
     <div class="market-head">
-      <span id="nextBallTitle">⚡ Ball 0.1 Result (Auto-Next)</span>
-      <span id="nextBallBadge" style="font-size:10px; color:#28e04d;">● AUTO ROTATE</span>
+      <span id="nextOverTitle">⚡ Over 1 Special (Runs • 4s • 6s • Wkt)</span>
+      <span id="nextOverBadge" style="font-size:10px; color:#28e04d;">● AUTO ROTATE</span>
     </div>
-    <div id="nextBallBody"></div>
+    <div id="nextOverBody"></div>
   </div>
 
   <!-- 2. ADMIN SPECIAL MANUAL CONTESTS -->
@@ -140,9 +140,9 @@
     <div id="bm1Body"></div>
   </div>
 
-  <!-- 5. OVER BY OVER & SESSION RUNS -->
+  <!-- 5. OVER SESSIONS -->
   <div class="market-card sec-fancy">
-    <div class="market-head"><span id="fancyHeaderTitle">Over By Over & Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
+    <div class="market-head"><span id="fancyHeaderTitle">Over Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
     <div class="col-headers"><span>No</span><span>Yes</span></div>
     <div id="fancyBody"></div>
   </div>
@@ -424,47 +424,81 @@
     fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE";
     fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
-    // 1. BALL TO BALL AUTO-ROTATING CONTEST (SABSE UPAR)
+    // 1. NEXT OVER AUTO-ROTATING CONTEST (RUNS, FOURS, SIXES, WICKETS - ANTI-CHEAT)
     const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
     const curOverPart = Math.floor(curOvVal);
     const curBallPart = Math.round((curOvVal - curOverPart) * 10);
-    let nextOv = curOverPart, nextBall = curBallPart + 1;
-    if (nextBall > 6) { nextOv = curOverPart + 1; nextBall = 1; }
-    const nextBallLabel = `${nextOv}.${nextBall}`;
     const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
     const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
 
-    document.getElementById("nextBallTitle").innerText = `⚡ ${inn === 2 ? "2nd Inn" : "1st Inn"} Ball ${nextBallLabel} Result (${fTeam})`;
-    const nbBadge = document.getElementById("nextBallBadge");
-    nbBadge.innerText = gLock ? "🔒 LOCKED" : "● AUTO ROTATE";
-    nbBadge.style.color = gLock ? "#ff4d6d" : "#28e04d";
+    // Anti-cheat: Agar current over ki 2 se zyada balls ho chuki hain toh agle over ka market open hoga
+    let targetOverNo = isBreak ? 1 : (curBallPart >= 2 ? curOverPart + 2 : curOverPart + 1);
+    const maxMatchOv = liveState.maxOvers || 20;
+    const overOutOfRange = targetOverNo > maxMatchOv;
+    const ovLocked = gLock || overOutOfRange;
 
-    const ballOptions = [
-      { lbl: "Dot Ball (0)", odd: "2.60" },
-      { lbl: "Single (1)", odd: "2.40" },
-      { lbl: "Double (2)", odd: "5.50" },
-      { lbl: "Triple (3)", odd: "14.00" },
-      { lbl: "Boundary (4 / 6)", odd: "3.20" },
-      { lbl: "Wicket", odd: "6.50" },
-      { lbl: "Extra (Wd / Nb)", odd: "4.80" },
-      { lbl: "Any Other", odd: "9.00" }
-    ];
+    document.getElementById("nextOverTitle").innerText = `⚡ Over ${targetOverNo} Special (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
+    const noBadge = document.getElementById("nextOverBadge");
+    noBadge.innerText = ovLocked ? "🔒 LOCKED" : "● NEXT OVER OPEN";
+    noBadge.style.color = ovLocked ? "#ff4d6d" : "#28e04d";
 
-    document.getElementById("nextBallBody").innerHTML = ballOptions.map(bo => `
+    const fPay = winRate <= 20 ? 85 : winRate <= 35 ? 95 : winRate <= 50 ? 100 : 105;
+    const sessMult = (1 + (fPay / 100)).toFixed(2);
+    const baseOvRuns = liveState.formatType === "T20 (20 OV)" ? 8 : 5;
+
+    document.getElementById("nextOverBody").innerHTML = `
+      <!-- A. Over Total Runs (No / Yes) -->
       <div class="contest-row">
         <div>
-          <div class="runner-name">${bo.lbl}</div>
-          <div class="runner-sub">Ball ${nextBallLabel} • Auto-Next Ball</div>
+          <div class="runner-name">Over ${targetOverNo} Total Runs (${fTeam})</div>
+          <div class="runner-sub">Is Over Mein Kitne Runs Banenge</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-back" style="width:86px;" onclick="openBet('Ball ${nextBallLabel} (${fTeam})','BACK','${bo.lbl}',${bo.odd})">
-            <span class="rate-main">${bo.odd}x</span>
-            <span class="rate-sub">Back</span>
-          </div>
-          ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Runs (${fTeam})','NO','Under ${baseOvRuns} Runs',${sessMult})"><span class="rate-main">${baseOvRuns}</span><span class="rate-sub">No (${fPay})</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Runs (${fTeam})','YES','${baseOvRuns + 1}+ Runs',${sessMult})"><span class="rate-main">${baseOvRuns + 1}</span><span class="rate-sub">Yes (${fPay})</span></div>
+          ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
         </div>
       </div>
-    `).join("");
+
+      <!-- B. Over Fours (4s) -->
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">Over ${targetOverNo} Fours (4s)</div>
+          <div class="runner-sub">0 Four (No) vs 1+ Four (Yes)</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Fours (${fTeam})','NO','0 Four',1.95)"><span class="rate-main">0 Four</span><span class="rate-sub">1.95x</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Fours (${fTeam})','YES','1+ Four',1.85)"><span class="rate-main">1+ Four</span><span class="rate-sub">1.85x</span></div>
+          ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- C. Over Sixes (6s) -->
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">Over ${targetOverNo} Sixes (6s)</div>
+          <div class="runner-sub">0 Six (No) vs 1+ Six (Yes)</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Sixes (${fTeam})','NO','0 Six',1.55)"><span class="rate-main">0 Six</span><span class="rate-sub">1.55x</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Sixes (${fTeam})','YES','1+ Six',2.45)"><span class="rate-main">1+ Six</span><span class="rate-sub">2.45x</span></div>
+          ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- D. Over Wickets -->
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">Over ${targetOverNo} Wicket</div>
+          <div class="runner-sub">0 Wicket (No) vs 1+ Wicket (Yes)</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Wicket (${fTeam})','NO','0 Wicket',1.40)"><span class="rate-main">0 Wkt</span><span class="rate-sub">1.40x</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Wicket (${fTeam})','YES','1+ Wicket',2.90)"><span class="rate-main">1+ Wkt</span><span class="rate-sub">2.90x</span></div>
+          ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
+        </div>
+      </div>
+    `;
 
     // 2. Admin Special Manual Contests
     const customList = Object.values(customContestsObj || {});
@@ -526,37 +560,17 @@
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
-    // 5. Over By Over & Session Runs
+    // 5. Over Sessions (4, 6, 10, 15, 20)
     const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
     const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
-    const activeOverNo = curOverPart + 1;
 
-    document.getElementById("fancyHeaderTitle").innerText = `Over By Over & Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
+    document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const sGap = winRate <= 20 ? 4 : winRate <= 35 ? 2 : 1;
-    const fPay = winRate <= 20 ? 85 : winRate <= 35 ? 95 : winRate <= 50 ? 100 : 105;
-    const mult = (1 + (fPay / 100)).toFixed(2);
-
-    const singleOverNo = Math.min(liveState.maxOvers || 20, activeOverNo);
-    const singleOvNoRuns = Math.max(5, Math.round(liveState.formatType === "T20 (20 OV)" ? 7 : 5));
-
     const sessionOversList = liveState.formatType === "T20 (20 OV)"
       ? [4, 6, 10, 15, 20]
       : [10, 20, 30, 40, 50];
 
-    let fancyHtml = `
-      <div class="contest-row">
-        <div>
-          <div class="runner-name">Only ${singleOverNo} Over Run (${fTeam})</div>
-          <div class="runner-sub">Over By Over • Current Over</div>
-        </div>
-        <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('Only ${singleOverNo} Over Run (${fTeam})','NO','Under ${singleOvNoRuns} Runs',${mult})"><span class="rate-main">${singleOvNoRuns}</span><span class="rate-sub">${fPay}</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('Only ${singleOverNo} Over Run (${fTeam})','YES','${singleOvNoRuns + 1}+ Runs',${mult})"><span class="rate-main">${singleOvNoRuns + 1}</span><span class="rate-sub">${fPay}</span></div>
-          ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
-        </div>
-      </div>`;
-
-    fancyHtml += sessionOversList.map(ovTarget => {
+    document.getElementById("fancyBody").innerHTML = sessionOversList.map(ovTarget => {
       const mktTitle = `${ovTarget} Over Run (${fTeam})`;
       const noRuns = ctrl[`sess${ovTarget}No`] || calcSessionLine(ovTarget, effO, effR, liveState.formatType, isBreak);
       const yesRuns = ctrl[`sess${ovTarget}Yes`] || (Number(noRuns) + sGap);
@@ -570,13 +584,12 @@
           <div class="runner-sub">Users: ${maxU} | Cap: ₹${maxM}</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('${mktTitle}','NO','Under ${noRuns} Runs',${mult})"><span class="rate-main">${noRuns}</span><span class="rate-sub">${fPay}</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('${mktTitle}','YES','${yesRuns}+ Runs',${mult})"><span class="rate-main">${yesRuns}</span><span class="rate-sub">${fPay}</span></div>
+          <div class="rate-btn rate-lay" onclick="openBet('${mktTitle}','NO','Under ${noRuns} Runs',${sessMult})"><span class="rate-main">${noRuns}</span><span class="rate-sub">${fPay}</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('${mktTitle}','YES','${yesRuns}+ Runs',${sessMult})"><span class="rate-main">${yesRuns}</span><span class="rate-sub">${fPay}</span></div>
           ${lk ? `<div class="suspended-overlay">${isDone ? "Match Ended" : (passed ? ovTarget + " Ov Over" : (lim.reason || lockTxt))}</div>` : ''}
         </div>
       </div>`;
     }).join("");
-    document.getElementById("fancyBody").innerHTML = fancyHtml;
 
     // 6. Lucky Number / Last Digit (0-9 Grid @ 9.75x / 875)
     const digitOdd = winRate <= 20 ? 9.00 : winRate <= 35 ? 9.50 : 9.75;
@@ -605,7 +618,7 @@
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("customContestsBox").style.display = (type === "all") ? "block" : "none";
-    document.querySelectorAll(".sec-ball").forEach(el => el.style.display = (type === "all" || type === "ball") ? "block" : "none");
+    document.querySelectorAll(".sec-overbox").forEach(el => el.style.display = (type === "all" || type === "overbox") ? "block" : "none");
     document.querySelectorAll(".sec-odds").forEach(el => el.style.display = (type === "all" || type === "odds") ? "block" : "none");
     document.querySelectorAll(".sec-bookmaker").forEach(el => el.style.display = (type === "all" || type === "bookmaker") ? "block" : "none");
     document.querySelectorAll(".sec-fancy").forEach(el => el.style.display = (type === "all" || type === "fancy") ? "block" : "none");
@@ -660,7 +673,7 @@
     return true;
   }
 
-    let busy = false;
+  let busy = false;
   async function placeBet() {
     if (busy || !selBet) return;
     const st = Number(document.getElementById("stakeInput").value);
@@ -684,7 +697,6 @@
 
     busy = true;
     try {
-      // ANTI-CHEATING: Bet lock karne se pehle fresh live score aur limits check karein
       await Promise.all([refreshMatchData(), fetchMatchLimits()]);
       if (ctrl.locked || matchInfo.isEnded || liveState.isEnded) {
         alert("🔒 Market abhi suspend / band ho chuka hai!");
@@ -692,13 +704,13 @@
         return;
       }
 
-      // Ball-by-Ball Anti-Delay Check: Agar ye ball pehle hi padh chuki hai toh bet BLOCK karein
-      const ballCheck = String(selBet.mkt || "").match(/^Ball\s+(\d+\.\d+)/i);
-      if (ballCheck) {
-        const targetBallOv = ballCheck[1];
-        const liveOvStr = String(ctrl.liveOvers || liveState.ovNum || "0");
-        if (toTotalBalls(liveOvStr) >= toTotalBalls(targetBallOv)) {
-          alert(`⚠️ BALL RUNNING! Ball ${targetBallOv} pehle hi padh chuki hai (Live: ${liveOvStr} Ov).`);
+      // Anti-cheat check for Over Special bets: Over must not have already passed
+      const ovSpecialM = String(selBet.mkt || "").match(/^Over\s+(\d+)\s+(?:Runs|Fours|Sixes|Wicket)/i);
+      if (ovSpecialM) {
+        const targetOv = Number(ovSpecialM[1]);
+        const curOv = Number(ctrl.liveOvers || liveState.ovNum || 0);
+        if (curOv >= targetOv - 0.5) {
+          alert(`⚠️ Over ${targetOv} ka time nikal chuka hai! Agle over par bet lagayein.`);
           renderPage();
           return;
         }
@@ -726,7 +738,6 @@
       renderPage();
     } finally { busy = false; }
   }
-  
 
   async function init() {
     renderPage();
@@ -734,7 +745,7 @@
     renderPage();
   }
   init();
-  setInterval(init, 6000);
+  setInterval(init, 3000);
 </script>
 </body>
 </html>
