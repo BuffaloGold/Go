@@ -181,7 +181,7 @@
 <div class="bet-modal" id="betModal">
   <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800;"><span id="betTitle">Contest</span><span id="betOddTag" style="color:#ffd700;">@ 1.80</span></div>
   <div id="betSnapshotNote" style="font-size:11px; color:#28e04d; margin-top:4px; font-weight:700;">Return: ₹180</div>
-  <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateBetReturn()" placeholder="Enter Stake (Min ₹100)" />
+  <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateBetReturn()" placeholder="Enter Stake / Profit (Min ₹100)" />
   <div class="quick-stakes">
     <button class="stake-chip" onclick="setStake(100)">+100</button>
     <button class="stake-chip" onclick="setStake(500)">+500</button>
@@ -472,7 +472,7 @@
 
       const mergedMap = new Map();
 
-            liveList.forEach(m => {
+      liveList.forEach(m => {
         if (m.type === "completed") {
           markMatchCompleted(m.id, m.status);
         } else if (completedCache[String(m.id)]) {
@@ -481,13 +481,12 @@
         }
         mergedMap.set(String(m.id), m);
       });
-      
 
       upList.forEach(m => {
         if (!mergedMap.has(String(m.id))) {
           if (completedCache[String(m.id)]) {
-            delete completedCache[String(m.id)];
-            localStorage.setItem("bg_done_matches", JSON.stringify(completedCache));
+            m.type = "completed";
+            m.status = completedCache[String(m.id)];
           }
           mergedMap.set(String(m.id), m);
         }
@@ -654,9 +653,11 @@
 
     const bmAB = ov.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ov.bmALay || (Number(bmAB) + 3);
     const bmBB = ov.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100)), bmBL = ov.bmBLay || (Number(bmBB) + 4);
+    const bmABDec = (1 + (Number(bmAB) / 100)).toFixed(2), bmALDec = (1 + (Number(bmAL) / 100)).toFixed(2);
+    const bmBBDec = (1 + (Number(bmBB) / 100)).toFixed(2), bmBLDec = (1 + (Number(bmBL) / 100)).toFixed(2);
     document.getElementById("bmBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)','BACK','BM ${bmAB}',${aB})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)','LAY','BM ${bmAL}',${aL})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)','BACK','BM ${bmBB}',${bB})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)','LAY','BM ${bmBL}',${bL})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)','BACK','BM ${bmAB}',${bmABDec})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)','LAY','BM ${bmAL}',${bmALDec})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)','BACK','BM ${bmBB}',${bmBBDec})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)','LAY','BM ${bmBL}',${bmBLDec})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
     document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const s6 = ov.sess6No || calcSessionLine(6, effO, effR, maxOv, isBreak), s10 = ov.sess10No || calcSessionLine(10, effO, effR, maxOv, isBreak);
@@ -693,6 +694,17 @@
     if (type === "mybets" && activeMatch) loadMyLockedBets(activeMatch.id);
   }
 
+  function calcBetFinancials(side, rawInput, oddMult) {
+    const val = Number(rawInput || 0);
+    if (side === "LAY") {
+      const liability = Number((val * Math.max(0.01, oddMult - 1)).toFixed(2));
+      const totalReturn = Number((liability + val).toFixed(2));
+      return { debit: liability, profit: val, totalReturn };
+    }
+    const totalReturn = Number((val * oddMult).toFixed(2));
+    return { debit: val, profit: Number((totalReturn - val).toFixed(2)), totalReturn };
+  }
+
   function openBet(mkt, side, line, odd) {
     if (Date.now() < ballChangeLockUntil) return alert("⚡ Ball Running! 3 second baad bet lagayein.");
     selBet = { marketName: mkt, side, lockedLine: line, oddMult: Number(odd), sigAtOpen: lastScoreSignature };
@@ -704,7 +716,12 @@
   function updateBetReturn() {
     if (!selBet) return;
     const st = Number(document.getElementById("stakeInput").value || 0);
-    document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${(st * selBet.oddMult).toFixed(0)} (${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
+    if (selBet.side === "LAY") {
+      document.getElementById("betSnapshotNote").innerText = `Liability (Debit): ₹${fin.debit.toFixed(0)} | Profit: ₹${fin.profit.toFixed(0)} → Return: ₹${fin.totalReturn.toFixed(0)}`;
+    } else {
+      document.getElementById("betSnapshotNote").innerText = `Locked Return: ₹${fin.totalReturn.toFixed(0)} (${selBet.lockedLine} @ ${selBet.oddMult}x)`;
+    }
   }
 
   async function deductUserWallet(amt) {
@@ -724,7 +741,8 @@
     if (isPlacingBet) return;
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
-    if (st > userBal) return alert("Insufficient Balance!");
+    const fin = calcBetFinancials(selBet.side, st, selBet.oddMult);
+    if (fin.debit > userBal) return alert(selBet.side === "LAY" ? `Insufficient Balance! Liability ₹${fin.debit} chahiye.` : "Insufficient Balance!");
     isPlacingBet = true;
     const btn = document.querySelector("#betModal button:last-child"); btn.disabled = true; btn.innerText = "⏳ Verifying Rate (5s)...";
     try {
@@ -736,10 +754,10 @@
       }
       const ov = overrides[activeMatch.id] || {}, lim = checkLimitStatus(selBet.marketName, Number(ov.maxUsers || 25), Number(ov.maxMoney || 15000));
       if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); openMatch(activeMatch, true); return; }
-      if (!(await deductUserWallet(st))) return alert("Insufficient Wallet Balance!");
-      const rec = { betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900), matchId: String(activeMatch.id), matchName: activeMatch.title, mobile: String(mob), userName: userNameStr, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine, lockedOdd: selBet.oddMult, stake: st, lockedReturn: Number((st * selBet.oddMult).toFixed(2)), status: "OPEN", time: new Date().toLocaleString("en-IN") };
+      if (!(await deductUserWallet(fin.debit))) return alert("Insufficient Wallet Balance!");
+      const rec = { betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900), matchId: String(activeMatch.id), matchName: activeMatch.title, mobile: String(mob), userName: userNameStr, market: selBet.marketName, side: selBet.side, lockedLine: selBet.lockedLine, lockedOdd: selBet.oddMult, stake: fin.debit, profitTarget: fin.profit, lockedReturn: fin.totalReturn, status: "OPEN", time: new Date().toLocaleString("en-IN") };
       await fetch(`${FB_URL}/cricketBets/${activeMatch.id}/${rec.betId}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
-      alert(`✅ Bet Locked!\n${rec.market}\nStake: ₹${st} → Return: ₹${rec.lockedReturn}`);
+      alert(`✅ Bet Locked!\n${rec.market}\n${selBet.side === "LAY" ? "Liability Debit" : "Stake"}: ₹${fin.debit} → Return: ₹${rec.lockedReturn}`);
       document.getElementById("betModal").classList.remove("open");
       await fetchMatchBetLimits(activeMatch.id); await loadMyLockedBets(activeMatch.id);
     } catch (e) { alert("Network error!"); } finally { isPlacingBet = false; btn.disabled = false; btn.innerText = "Confirm & Lock Bet"; }
@@ -846,7 +864,7 @@
         const cCls = st === "WON" ? "bet-won" : st === "LOST" ? "bet-lost" : st === "VOID" ? "bet-void" : "";
         const pCls = st === "WON" ? "pill-won" : st === "LOST" ? "pill-lost" : st === "VOID" ? "pill-void" : "pill-open";
         const pTxt = st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : st === "LOST" ? `❌ LOST` : st === "VOID" ? `🔄 REFUND ₹${b.stake}` : `⏳ LIVE OPEN`;
-        return `<div class="bet-item-card ${cCls}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><span style="font-size:10px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mKey)}</span><span class="status-pill ${pCls}">${pTxt}</span></div><div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div><div style="color:#ddd; margin-top:3px;">Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • Stake: <b>₹${b.stake}</b></div>${b.resultInfo ? `<div style="margin-top:5px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}<div style="font-size:10px; color:#999; margin-top:4px;">Placed: ${b.time}</div></div>`;
+        return `<div class="bet-item-card ${cCls}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><span style="font-size:10px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mKey)}</span><span class="status-pill ${pCls}">${pTxt}</span></div><div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;"><span>${b.market} (${b.side})</span><span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span></div><div style="color:#ddd; margin-top:3px;">Pick: <b>${b.lockedLine}</b> @ <b>${b.lockedOdd}x</b> • ${b.side === "LAY" ? "Liability" : "Stake"}: <b>₹${b.stake}</b></div>${b.resultInfo ? `<div style="margin-top:5px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}<div style="font-size:10px; color:#999; margin-top:4px;">Placed: ${b.time}</div></div>`;
       }).join("");
     } catch (e) {}
   }
