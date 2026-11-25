@@ -19,6 +19,9 @@
   .btn-qr { background: #3d0c57; border: 1px solid #28e04d; color: #28e04d; width: 100%; padding: 9px; font-size: 12px; margin-bottom: 6px; }
   .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 6px 9px; font-size: 11px; }
   .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
+  .wallet-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: linear-gradient(135deg, #132e1d, #1f042e); border: 1.5px solid #28e04d; padding: 9px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+  .wallet-bar span { font-size: 10px; color: #cbd5e1; display: block; }
+  .wallet-bar strong { font-size: 14px; color: #28e04d; }
   .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
   .stat { background: #1e042b; border: 1px solid #5c197d; padding: 8px 4px; border-radius: 10px; text-align: center; }
@@ -55,10 +58,17 @@
       <span style="font-size:11px; color:#28e04d;">● 9794408205 (Master)</span>
     </div>
     <div style="display:flex; gap:5px;">
+      <button type="button" class="btn btn-gold" style="width:auto; padding:8px 10px; font-size:11px;" onclick="location.href='cricket.html'">🏏 Cricket</button>
       <button type="button" class="btn btn-green" onclick="location.href='game.html'">🎰 Game</button>
       <button type="button" class="btn btn-blue" onclick="forceLoadAll()">🔄 Sync</button>
       <button type="button" class="btn btn-red" onclick="logoutAdmin()">Logout</button>
     </div>
+  </div>
+
+  <div class="wallet-bar">
+    <div><span>MY DEPOSIT</span><strong id="admDepBal">₹0</strong></div>
+    <div><span>MY WINNING</span><strong id="admWinBal">₹0</strong></div>
+    <div><span>TOTAL WALLET</span><strong id="admTotBal" style="color:#ffd700;">₹0</strong></div>
   </div>
 
   <div class="status-bar" id="connStatus">⏳ Direct Fast-Sync se data aa raha hai...</div>
@@ -109,65 +119,29 @@
   </div>
 </div>
 
-<!-- ==================== ⚡ 10-MIN LIVE DEMO MATCH SIMULATOR ==================== -->
-<div class="wrap" style="margin-top: 14px;">
-  <div class="card" style="border: 2px solid #28e04d; background: linear-gradient(160deg, #12291c 0%, #1b0429 100%);">
-    <div class="row-between" style="margin-bottom:6px;">
-      <h3 style="color:#28e04d; font-size:15px;">⚡ 10-Min Live Demo Match Simulator</h3>
-      <span id="demoBadge" class="badge PENDING">OFF</span>
-    </div>
-    <p style="font-size:11px; color:#ccc; margin-bottom:10px;">10 minute mein poora T20 match (1st Inn → 2nd Inn → Auto Winner Payout) live test karein. Jab chahein delete kar dein.</p>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div>
-        <label style="font-size:11px; color:#ffd700;">Team A (1st Bat):</label>
-        <input type="text" id="demo_tA" value="IND" maxlength="5" style="text-transform:uppercase; margin-bottom:8px;">
-      </div>
-      <div>
-        <label style="font-size:11px; color:#ffd700;">Team B (Chase):</label>
-        <input type="text" id="demo_tB" value="AUS" maxlength="5" style="text-transform:uppercase; margin-bottom:8px;">
-      </div>
-    </div>
-
-    <label style="font-size:11px; color:#ffd700;">Match Result Winner (10 Min baad kaun jeetega):</label>
-    <select id="demo_winner">
-      <option value="TEAM_A">🏆 Team A Jeetegi (1st Batting Defend)</option>
-      <option value="TEAM_B" selected>🏆 Team B Jeetegi (2nd Inning Chase)</option>
-    </select>
-
-    <div id="demoLiveStatusBox" style="background:#0f0217; border:1px solid #3c0c54; border-radius:8px; padding:9px; margin-bottom:10px; font-size:12px; color:#ffd700;">
-      Status: Koi demo match active nahi hai.
-    </div>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-      <button type="button" class="btn btn-green" style="padding:11px; font-size:12px;" onclick="startDemoMatch()">▶️ Start 10-Min Demo</button>
-      <button type="button" class="btn btn-blue" style="padding:11px; font-size:12px;" onclick="fastForwardDemo(2)">⏩ +2 Min Fast-Fwd</button>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <button type="button" class="btn btn-gold" style="padding:10px; font-size:12px;" onclick="finishDemoNow()">🏆 End Match Now</button>
-      <button type="button" class="btn btn-del" style="padding:10px; font-size:12px;" onclick="stopDeleteDemo()">🗑️ Stop & Delete Demo</button>
-    </div>
-  </div>
-</div>
 <!-- ==================== CRICKET AUTO-LIMIT & RATE CONTROL ==================== -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
     <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Auto-Limit & Rate Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Over complete hone par auto-suspend hoga + Max Users/Paisa limit set karein</p>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Manual Rate, Bhav (Bookmaker) & Max Bet Limit set karein</p>
 
     <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Match:</label>
     <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
       <option value="">Matches load ho rahe hain...</option>
     </select>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#260636; padding:8px; border-radius:8px; margin-bottom:10px; border:1px solid #6b1d91;">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; background:#260636; padding:8px; border-radius:8px; margin-bottom:10px; border:1px solid #6b1d91;">
       <div>
-        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Users / Contest</label>
-        <input type="number" id="bgCric_maxUsers" placeholder="e.g. 25" style="margin-bottom:0;" />
+        <label style="font-size:10px; color:#ffd700; font-weight:bold;">Max Bet (₹)</label>
+        <input type="number" id="bgCric_maxBet" placeholder="e.g. 5000" style="margin-bottom:0; padding:8px;" />
       </div>
       <div>
-        <label style="font-size:11px; color:#28e04d; font-weight:bold;">Max Paisa (₹) / Contest</label>
-        <input type="number" id="bgCric_maxMoney" placeholder="e.g. 15000" style="margin-bottom:0;" />
+        <label style="font-size:10px; color:#28e04d; font-weight:bold;">Max Users</label>
+        <input type="number" id="bgCric_maxUsers" placeholder="e.g. 25" style="margin-bottom:0; padding:8px;" />
+      </div>
+      <div>
+        <label style="font-size:10px; color:#28e04d; font-weight:bold;">Max Cap (₹)</label>
+        <input type="number" id="bgCric_maxMoney" placeholder="e.g. 15000" style="margin-bottom:0; padding:8px;" />
       </div>
     </div>
 
@@ -176,10 +150,16 @@
     </label>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div><label style="font-size:11px; color:#72bbef;">Team A Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team A Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
-      <div><label style="font-size:11px; color:#72bbef;">Team B Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team B Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+      <div><label style="font-size:11px; color:#72bbef;">Team A Odds Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team A Odds Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
+      <div><label style="font-size:11px; color:#72bbef;">Team B Odds Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
+      <div><label style="font-size:11px; color:#faa9ba;">Team B Odds Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+
+      <div><label style="font-size:11px; color:#38bdf8;">Team A Bhav (BM Back)</label><input type="number" id="bgCric_bmABack" placeholder="84" /></div>
+      <div><label style="font-size:11px; color:#f472b6;">Team A Bhav (BM Lay)</label><input type="number" id="bgCric_bmALay" placeholder="87" /></div>
+      <div><label style="font-size:11px; color:#38bdf8;">Team B Bhav (BM Back)</label><input type="number" id="bgCric_bmBBack" placeholder="110" /></div>
+      <div><label style="font-size:11px; color:#f472b6;">Team B Bhav (BM Lay)</label><input type="number" id="bgCric_bmBLay" placeholder="114" /></div>
+
       <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
       <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
       <div><label style="font-size:11px; color:#ccc;">15 Over Run (No/Yes)</label><input type="text" id="bgCric_s15" placeholder="122/124" /></div>
@@ -190,9 +170,9 @@
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
   </div>
 </div>
-
 <script>
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
   let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
 
   function logoutAdmin() {
@@ -262,6 +242,13 @@
 
   function updateUsersUI(data) {
     allUsers = data || {};
+    const me = allUsers["9794408205"] || {};
+    const myD = Number(me.depositBal ?? me.depositBalance ?? 0);
+    const myW = Number(me.winningBal ?? me.winningBalance ?? 0);
+    document.getElementById("admDepBal").innerText = "₹" + myD.toFixed(2).replace(/\.00$/, "");
+    document.getElementById("admWinBal").innerText = "₹" + myW.toFixed(2).replace(/\.00$/, "");
+    document.getElementById("admTotBal").innerText = "₹" + (myD + myW).toFixed(2).replace(/\.00$/, "");
+
     const count = Object.keys(allUsers).length;
     document.getElementById("stUsers").innerText = count;
     document.getElementById("connStatus").innerText = "✅ Auto-Sync Active! Total " + count + " users (" + new Date().toLocaleTimeString() + ")";
@@ -304,7 +291,7 @@
         <div style="font-size:11px; color:#aaa; margin-bottom:8px;">ID: ${w.reqId || k} | ${w.date || ''}</div>
         ${w.status === "PENDING" ? `
           <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount || 0}')">📷 SHOW / SCAN QR CODE</button>
-          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div></div>
+          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount \vert{}\vert{} 0} →${w.upi || ''}</div></div>
           <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
           <div style="display:flex; gap:8px;">
             <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'APPROVED')">✅ Mark Paid & Deduct Bal</button>
@@ -491,188 +478,33 @@
   forceLoadAll();
   setInterval(forceLoadAll, 8000);
 
-  // ==================== ⚡ 10-MIN DEMO MATCH ENGINE ====================
-  const DEMO_MATCH_ID = "DEMO_999999";
-
-  function buildDemoSnapshot(cfg) {
-    const tA = (cfg.tA || "IND").toUpperCase();
-    const tB = (cfg.tB || "AUS").toUpperCase();
-    const winSide = cfg.winner || "TEAM_B";
-    const elapsedSec = Math.max(0, Math.floor((Date.now() - cfg.startTime) / 1000));
-    const totalSec = 600; // 10 Minutes
-    const ballPool = ["1", "4", "0", "2", "6", "1", "W", "1", "4", "0", "2", "1"];
-    const bIdx = Math.floor(elapsedSec / 5);
-    const recentBalls = [];
-    for (let i = 5; i >= 0; i--) {
-      const idx = bIdx - i;
-      recentBalls.push(idx < 0 ? "•" : ballPool[idx % ballPool.length]);
-    }
-
-    const firstTarget = 178; // 1st Inning Final Score = 178/6 (Target 179)
-    let innList = [], headline = "", overs = "", status = "", runsNum = 0, wktsNum = 0, ovNum = 0, batTeam = tA, targetRuns = 0, firstInnRuns = 0, inningNo = 1, isInningsBreak = false, isDrawnOrDone = false, mathWinnerCode = "", type = "live";
-
-    if (elapsedSec < 280) {
-       // 0 to 4m 40s: 1st Inning (0.0 to 20.0 Ov)
-      const ballsBowled = Math.min(120, Math.floor((elapsedSec / 280) * 120));
-      const ovWhole = Math.floor(ballsBowled / 6), ovRem = ballsBowled % 6;
-      ovNum = Number(`${ovWhole}.${ovRem}`);
-      runsNum = Math.min(firstTarget, Math.round((ballsBowled / 120) * firstTarget));
-      wktsNum = Math.min(6, Math.floor(ballsBowled / 22));
-      batTeam = tA;
-      innList = [{ team: tA, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovWhole}.${ovRem}` }];
-      headline = `${tA} ${runsNum}/${wktsNum}`;
-      overs = `(${ovWhole}.${ovRem} Ov • CRR ${(runsNum / Math.max(0.5, ovNum)).toFixed(2)})`;
-      status = `${tA} batting • 1st Inning (10-Min Demo)`;
-    } else if (elapsedSec < 310) {
-      // 4m 40s to 5m 10s: Innings Break
-      inningNo = 2; isInningsBreak = true; firstInnRuns = firstTarget; targetRuns = firstTarget + 1;
-      batTeam = tB; runsNum = 0; wktsNum = 0; ovNum = 0;
-      innList = [{ team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" }];
-      headline = `${tA} ${firstTarget}/6`;
-      overs = `(Innings Break • Target ${targetRuns})`;
-      status = `Innings Break • ${tB} need ${targetRuns} runs`;
-    } else if (elapsedSec < totalSec) {
-      // 5m 10s to 10m 00s: 2nd Inning Chase
-      inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1; batTeam = tB;
-      const chaseFrac = (elapsedSec - 310) / (totalSec - 310);
-      const ballsBowled = Math.min(119, Math.floor(chaseFrac * 120));
-      const ovWhole = Math.floor(ballsBowled / 6), ovRem = ballsBowled % 6;
-      ovNum = Number(`${ovWhole}.${ovRem}`);
-      const finalBRuns = winSide === "TEAM_B" ? 179 : 164;
-      runsNum = Math.min(finalBRuns - 1, Math.round(chaseFrac * finalBRuns));
-      wktsNum = Math.min(8, Math.floor(ballsBowled / 16));
-      innList = [
-        { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
-        { team: tB, runs: runsNum, wkts: wktsNum, ov: ovNum, ovStr: `${ovWhole}.${ovRem}` }
-      ];
-      headline = `${tB} ${runsNum}/${wktsNum}`;
-      overs = `(${ovWhole}.${ovRem} Ov • Target ${targetRuns})`;
-      status = `${tB} need ${Math.max(1, targetRuns - runsNum)} runs in ${Math.max(1, 120 - ballsBowled)} balls`;
-    } else {
-      // 10m 00s+: Match Completed!
-      type = "completed"; inningNo = 2; firstInnRuns = firstTarget; targetRuns = firstTarget + 1;
-      isDrawnOrDone = true;
-      if (winSide === "TEAM_B") {
-        batTeam = tB; runsNum = 182; wktsNum = 4; ovNum = 19.2; mathWinnerCode = tB;
-        innList = [
-          { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
-          { team: tB, runs: 182, wkts: 4, ov: 19.2, ovStr: "19.2" }
-        ];
-        headline = `${tB} 182/4`;
-        overs = `(19.2 Ov)`;
-        status = `${tB} won by 6 wkts`;
-      } else {
-        batTeam = tB; runsNum = 164; wktsNum = 9; ovNum = 20.0; mathWinnerCode = tA;
-        innList = [
-          { team: tA, runs: firstTarget, wkts: 6, ov: 20, ovStr: "20.0" },
-          { team: tB, runs: 164, wkts: 9, ov: 20.0, ovStr: "20.0" }
-        ];
-        headline = `${tB} 164/9`;
-        overs = `(20.0 Ov)`;
-        status = `${tA} won by 14 runs`;
-      }
-    }
-
-    const remSec = Math.max(0, totalSec - elapsedSec);
-    const mm = String(Math.floor(remSec / 60)).padStart(2, "0"), ss = String(remSec % 60).padStart(2, "0");
-
-    return {
-      id: DEMO_MATCH_ID,
-      title: `${tA} Vs ${tB} 10-Min Demo T20`,
-      type,
-      status,
-      scores: innList.map(x => `${x.team} ${x.runs}/${x.wkts} (${x.ovStr})`),
-      detail: {
-        headline, overs, status,
-        balls: recentBalls,
-        batters: `🏏 <b>Demo Star*</b><br>${targetRuns > 0 ? "🎯 Target: " + targetRuns : "📊 1st Inn Live"}`,
-        bowler: `⚾ <b>Demo Pacers</b><br>⏱️ Time Left: ${mm}:${ss}`,
-        shortComm: type === "completed" ? `🏆 Final Result: ${status}` : `Live Demo Ball • ${headline} ${overs}`,
-        runsNum, wktsNum, ovNum, batTeam, targetRuns, firstInnRuns,
-        maxOvers: 20, inningNo, isInningsBreak, isDrawnOrDone, mathWinnerCode, innList
-      }
-    };
-  }
-
-  async function startDemoMatch() {
-    const tA = (document.getElementById("demo_tA").value || "IND").trim().toUpperCase();
-    const tB = (document.getElementById("demo_tB").value || "AUS").trim().toUpperCase();
-    const winner = document.getElementById("demo_winner").value;
-    const cfg = { active: true, tA, tB, winner, startTime: Date.now() };
-    await dbPut("demoCricketConfig", cfg);
-    await syncDemoMatchTick();
-    alert(`✅ ${tA} vs ${tB} 10-Min Demo Match Shuru Ho Gaya!\nAb cricket.html khol kar bet lagayein.`);
-  }
-
-  async function fastForwardDemo(mins) {
-    const cfg = await dbGet("demoCricketConfig");
-    if (!cfg || !cfg.active) return alert("Pehle Start 10-Min Demo dabayein!");
-    cfg.startTime = Number(cfg.startTime) - (mins * 60 * 1000);
-    await dbPut("demoCricketConfig", cfg);
-    await syncDemoMatchTick();
-  }
-
-  async function finishDemoNow() {
-    const cfg = await dbGet("demoCricketConfig");
-    if (!cfg || !cfg.active) return alert("Pehle Start 10-Min Demo dabayein!");
-    cfg.startTime = Date.now() - (605 * 1000);
-    await dbPut("demoCricketConfig", cfg);
-    await syncDemoMatchTick();
-    alert("🏆 Demo Match End Ho Gaya! Ab cricket.html par saari bets settle ho jayengi.");
-  }
-
-  async function stopDeleteDemo() {
-    await Promise.all([
-      fetch(`${DB_URL}/demoCricketConfig.json`, { method: "DELETE" }),
-      fetch(`${DB_URL}/demoCricketMatch.json`, { method: "DELETE" }),
-      fetch(`${DB_URL}/cricketBets/${DEMO_MATCH_ID}.json`, { method: "DELETE" })
-    ]);
-    document.getElementById("demoBadge").innerText = "OFF";
-    document.getElementById("demoLiveStatusBox").innerText = "Status: Demo match delete kar diya gaya hai.";
-    alert("🗑️ Demo Match aur uski test bets delete ho gayi!");
-  }
-
-  async function syncDemoMatchTick() {
-    try {
-      const cfg = await dbGet("demoCricketConfig");
-      const badge = document.getElementById("demoBadge");
-      const box = document.getElementById("demoLiveStatusBox");
-      if (!cfg || !cfg.active) {
-        badge.innerText = "OFF";
-        return;
-      }
-      const snap = buildDemoSnapshot(cfg);
-      await dbPut("demoCricketMatch", snap);
-      badge.innerText = snap.type === "completed" ? "ENDED" : "LIVE";
-      box.innerHTML = `<strong>${snap.title}</strong><br>${snap.detail.headline} ${snap.detail.overs}<br><span style="color:#28e04d;">${snap.status}</span>`;
-    } catch (e) {}
-  }
-
-  syncDemoMatchTick();
-  setInterval(syncDemoMatchTick, 4000);
-
   // ==================== CRICKET AUTO-LIMIT & RATE MODULE ====================
-  const CRIC_KEY = "b10ae8c8-70d1-442e-b709-98e66298e902";
-
   async function initAdminCricDropdown() {
     try {
-      const [r1, r2] = await Promise.all([
-        fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${CRIC_KEY}&offset=0`),
-        fetch(`https://api.cricapi.com/v1/matches?apikey=${CRIC_KEY}&offset=0`)
+      const [rLive, rUp] = await Promise.all([
+        fetch(`${WORKER_URL}?t=${Date.now()}`),
+        fetch(`${WORKER_URL}?type=upcoming&t=${Date.now()}`).catch(() => null)
       ]);
-      const j1 = await r1.json();
-      const j2 = await r2.json();
+      const parseList = (html, tag) => {
+        const arr = [], seen = new Set();
+        for (const m of html.matchAll(/href="\/live-cricket-scores\/(\d+)\/([^"]+)"/g)) {
+          if (seen.has(m[1])) continue;
+          seen.add(m[1]);
+          arr.push({ id: m[1], name: `${tag} ${m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim()}` });
+        }
+        return arr;
+      };
+      const liveArr = parseList(await rLive.text(), "🔴");
+      const upArr = rUp && rUp.ok ? parseList(await rUp.text(), "🕒") : [];
       const map = new Map();
-      [...(j1.data || []), ...(j2.data || [])].forEach(m => {
-        if (m && m.id && !m.matchEnded && !map.has(m.id)) map.set(m.id, m);
-      });
+      [...liveArr, ...upArr].forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
 
       const sel = document.getElementById("bgCric_matchSelect");
       sel.innerHTML = "";
       Array.from(map.values()).forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.text = (m.matchStarted ? "🔴 " : "🕒 ") + m.name;
+        opt.text = m.name;
         sel.appendChild(opt);
       });
       bgCricLoadRates();
@@ -686,6 +518,7 @@
     if (!id) return;
     try {
       const ov = (await dbGet(`cricketControls/${id}`)) || {};
+      document.getElementById("bgCric_maxBet").value = ov.maxBet || "";
       document.getElementById("bgCric_maxUsers").value = ov.maxUsers || 25;
       document.getElementById("bgCric_maxMoney").value = ov.maxMoney || 15000;
       document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
@@ -693,6 +526,10 @@
       document.getElementById("bgCric_aLay").value = ov.teamALay || "";
       document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
       document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
+      document.getElementById("bgCric_bmABack").value = ov.bmABack || "";
+      document.getElementById("bgCric_bmALay").value = ov.bmALay || "";
+      document.getElementById("bgCric_bmBBack").value = ov.bmBBack || "";
+      document.getElementById("bgCric_bmBLay").value = ov.bmBLay || "";
       document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
       document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
       document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
@@ -709,6 +546,7 @@
     const s20 = document.getElementById("bgCric_s20").value.split("/");
 
     const payload = {
+      maxBet: Number(document.getElementById("bgCric_maxBet").value || 0),
       maxUsers: Number(document.getElementById("bgCric_maxUsers").value || 25),
       maxMoney: Number(document.getElementById("bgCric_maxMoney").value || 15000),
       locked: document.getElementById("bgCric_lock").checked,
@@ -716,6 +554,10 @@
       teamALay: document.getElementById("bgCric_aLay").value.trim(),
       teamBBack: document.getElementById("bgCric_bBack").value.trim(),
       teamBLay: document.getElementById("bgCric_bLay").value.trim(),
+      bmABack: document.getElementById("bgCric_bmABack").value.trim(),
+      bmALay: document.getElementById("bgCric_bmALay").value.trim(),
+      bmBBack: document.getElementById("bgCric_bmBBack").value.trim(),
+      bmBLay: document.getElementById("bgCric_bmBLay").value.trim(),
       sess6No: s6[0] ? s6[0].trim() : "",
       sess6Yes: s6[1] ? s6[1].trim() : "",
       sess10No: s10[0] ? s10[0].trim() : "",
@@ -727,7 +569,7 @@
     };
 
     await dbPut(`cricketControls/${id}`, payload);
-    alert("✅ Auto-Limits & Cricket Rates Save Ho Gaye!");
+    alert("✅ Manual Rate, Bhav & Max Bet Save Ho Gaye!");
   }
 
   async function bgCricResetRates() {
@@ -742,3 +584,4 @@
 </script>
 </body>
 </html>
+ 
