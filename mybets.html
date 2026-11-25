@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bets & Results - Buffalo Gold</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: radial-gradient(circle at top, #230436 0%, #0d0114 100%); color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
+    .container { width: 100%; max-width: 430px; background: rgba(24, 3, 36, 0.97); min-height: 100vh; padding: 12px; box-shadow: 0 0 35px rgba(0,0,0,0.95); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: linear-gradient(135deg, #2d0742, #1a0326); padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.4); }
+    .user-info h3 { font-size: 14px; color: #ffd700; }
+    .user-info span { font-size: 11px; color: #bbb; }
+    .mini-wallet { text-align: right; cursor: pointer; background: rgba(0,0,0,0.45); padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(40, 224, 77, 0.35); }
+    .mini-wallet div { font-size: 10px; color: #ccc; }
+    .mini-wallet strong { font-size: 13px; color: #28e04d; }
+    .back-bar { display: flex; justify-content: space-between; align-items: center; background: #29073b; border: 1.5px solid #ffd700; padding: 9px 12px; border-radius: 12px; margin-bottom: 12px; cursor: pointer; font-size: 13px; font-weight: 800; color: #ffd700; }
+    .hero-box { background: linear-gradient(135deg, #4b0c69 0%, #220430 100%); border: 1.5px solid #ffd700; border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .hero-box h2 { font-size: 15px; color: #ffd700; }
+    .hero-box p { font-size: 11px; color: #ddd; margin-top: 2px; }
+    .sync-btn { background: linear-gradient(180deg, #28e04d, #16a34a); color: #000; border: none; padding: 8px 12px; border-radius: 9px; font-weight: 900; font-size: 11px; cursor: pointer; }
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .f-tab { flex: 1; padding: 8px 4px; background: #260636; border: 1px solid #6b1d91; border-radius: 10px; color: #ccc; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .f-tab.active { background: linear-gradient(180deg, #ffd700, #eab308); color: #000; border-color: #ffd700; }
+    .bet-card { background: #1c0329; border: 1px solid #59167a; border-radius: 12px; padding: 12px; margin-bottom: 10px; font-size: 12px; }
+    .bet-won { border: 1.5px solid #ffd700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(22, 163, 74, 0.18)); }
+    .bet-lost { border: 1px solid rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.08); }
+    .bet-void { border: 1px solid rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.08); }
+    .pill { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+    .pill-won { background: #28e04d; color: #000; }
+    .pill-lost { background: #ef4444; color: #fff; }
+    .pill-void { background: #38bdf8; color: #000; }
+    .pill-open { background: #4b5563; color: #ffd700; }
+    .empty-msg { padding: 32px 15px; text-align: center; color: #ccc; font-size: 13px; background: #1c0329; border: 1px solid #59167a; border-radius: 12px; }
+    .win-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 16px; }
+    .win-popup-backdrop.show { display: flex; }
+    .win-popup-card { width: 100%; max-width: 370px; background: linear-gradient(160deg, #3b0954 0%, #170224 100%); border: 2.5px solid #ffd700; border-radius: 20px; padding: 22px 18px; text-align: center; box-shadow: 0 0 35px rgba(255, 215, 0, 0.45); }
+    .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
+    .nav-item { text-align: center; color: #bbb; font-size: 11px; cursor: pointer; flex: 1; }
+    .nav-item.active { color: #ffd700; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div class="user-info">
+      <h3 id="userName">Player</h3>
+      <span>📱 <span id="userMob">-</span></span>
+    </div>
+    <div class="mini-wallet" onclick="location.href='wallet.html'">
+      <div>Deposit: <strong id="topDep">₹0</strong></div>
+      <div>Winning: <strong id="topWin">₹0</strong></div>
+    </div>
+  </div>
+
+  <div class="back-bar" onclick="location.href='cricket.html'">
+    <span>← Back to Matches</span>
+    <span id="settleStatus" style="font-size:11px; color:#28e04d;">● AUTO-SETTLE ON</span>
+  </div>
+
+  <div class="hero-box">
+    <div>
+      <h2>🏆 My Placed Bets</h2>
+      <p>Match Result & Instant Wallet Payout</p>
+    </div>
+    <button class="sync-btn" onclick="loadAndSettleBets()">🔄 Check Result</button>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="f-tab active" id="fAll" onclick="setBetFilter('ALL', this)">All (0)</button>
+    <button class="f-tab" id="fOpen" onclick="setBetFilter('OPEN', this)">⏳ Open (0)</button>
+    <button class="f-tab" id="fWon" onclick="setBetFilter('WON', this)">🏆 Won (0)</button>
+    <button class="f-tab" id="fLost" onclick="setBetFilter('LOST', this)">❌ Lost (0)</button>
+  </div>
+
+  <div id="betsContainer"><div class="empty-msg">Bets load ho rahi hain...</div></div>
+</div>
+
+<div class="win-popup-backdrop" id="winPopupModal">
+  <div class="win-popup-card">
+    <div style="font-size:50px; margin-bottom:6px;">🏆</div>
+    <div style="font-size:12px; color:#28e04d; font-weight:900; letter-spacing:1.2px;">CONGRATULATIONS! YOU WON</div>
+    <h2 id="winPopupAmount" style="font-size:32px; color:#ffd700; margin:8px 0;">+₹0</h2>
+    <div id="winPopupMatch" style="font-size:13px; font-weight:800; color:#fff; margin-bottom:4px;">Match</div>
+    <div id="winPopupResult" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,215,0,0.35); border-radius:10px; padding:8px; font-size:11px; color:#e2e8f0; margin-bottom:14px;">Result</div>
+    <button onclick="document.getElementById('winPopupModal').classList.remove('show')" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(90deg, #ffd700, #28e04d); color:#000; font-size:14px; font-weight:900; cursor:pointer;">🎉 COLLECT TO WALLET</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="location.href='game.html'">🎰<br>Games</div>
+  <div class="nav-item" onclick="location.href='cricket.html'">🏏<br>Cricket</div>
+  <div class="nav-item active" onclick="loadAndSettleBets()">🏆<br>My Bets</div>
+  <div class="nav-item" onclick="location.href='wallet.html'">💰<br>Wallet</div>
+  <div class="nav-item" onclick="location.href='profile.html'">👤<br>Profile</div>
+</div>
+
+<script>
+  const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
+  const FB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const mob = String(localStorage.getItem("activeUser") || "").trim();
+  if (!mob) window.location.replace("index.html");
+
+  let myAllBets = [], activeFilter = "ALL", isSettling = false;
+
+  function renderUser(u) {
+    if (!u) return;
+    document.getElementById("userName").innerText = u.name || "Player";
+    document.getElementById("userMob").innerText = mob;
+    document.getElementById("topDep").innerText = "₹" + Number(u.depositBal ?? u.depositBalance ?? 0);
+    document.getElementById("topWin").innerText = "₹" + Number(u.winningBal ?? u.winningBalance ?? 0);
+  }
+  try { renderUser(JSON.parse(localStorage.getItem("cachedUser") || "{}")); } catch (e) {}
+
+  async function syncWallet() {
+    try {
+      const u = await (await fetch(`${FB_URL}/users/${mob}.json?t=${Date.now()}`)).json();
+      if (u) { localStorage.setItem("cachedUser", JSON.stringify(u)); renderUser(u); }
+    } catch (e) {}
+  }
+
+  function isTeamMatch(code, winnerStr) {
+    const p = String(code || "").trim().toUpperCase();
+    const w = String(winnerStr || "").trim().toUpperCase();
+    if (!p || !w) return false;
+    if (w.includes(p) || p.includes(w)) return true;
+    const words = w.split(/\s+/).filter(Boolean);
+    if (words.map(x => x[0]).join("").includes(p)) return true;
+    return words.some(x => x.startsWith(p));
+  }
+
+  function parseMatchResult(html) {
+    const txt = String(html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+    const head = txt.slice(0, 4500);
+    const wonM = head.match(/\b([A-Za-z][A-Za-z0-9\s]{1,36}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
+    const isDrawn = /\b(match drawn|match tied|abandoned|no result)\b/i.test(head);
+    return { wonM, isDrawn };
+  }
+
+  async function creditWinning(tMob, amt) {
+    if (!tMob || amt <= 0) return;
+    const u = (await (await fetch(`${FB_URL}/users/${tMob}.json?t=${Date.now()}`)).json()) || {};
+    const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + amt).toFixed(2));
+    const p = { winningBal: nw };
+    if ("winningBalance" in u) p.winningBalance = nw;
+    await fetch(`${FB_URL}/users/${tMob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+    if (String(tMob) === mob) await syncWallet();
+  }
+
+  function showWinnerPopup(b, info) {
+    document.getElementById("winPopupAmount").innerText = `+₹${b.lockedReturn}`;
+    document.getElementById("winPopupMatch").innerText = `🏏 ${b.matchName || "Cricket Match"}`;
+    document.getElementById("winPopupResult").innerText = `${b.lockedLine} • ${info}`;
+    document.getElementById("winPopupModal").classList.add("show");
+  }
+
+  async function loadAndSettleBets() {
+    try {
+      const allB = (await (await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`)).json()) || {};
+      const list = [], openMatchIds = new Set();
+
+      Object.entries(allB).forEach(([mId, obj]) => {
+        if (!obj || typeof obj !== "object") return;
+        Object.values(obj).forEach(b => {
+          if (!b) return;
+          if (String(b.status || "OPEN").toUpperCase() === "OPEN") openMatchIds.add(String(mId));
+          if (String(b.mobile || "").trim() === mob) list.push({ ...b, _mId: mId });
+        });
+      });
+
+      if (!isSettling && openMatchIds.size > 0) {
+        isSettling = true;
+        document.getElementById("settleStatus").innerText = "⏳ CHECKING RESULTS...";
+        try {
+          for (const mId of openMatchIds) {
+            const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`).then(r => r.text()).catch(() => ""));
+            const { wonM, isDrawn } = parseMatchResult(html);
+            if (wonM || isDrawn) {
+              const openBets = Object.values(allB[mId] || {}).filter(b => b && String(b.status || "OPEN").toUpperCase() === "OPEN");
+              for (const b of openBets) {
+                const pick = String(b.market || "").split("(")[0].trim().split(/\s+/)[0].toUpperCase();
+                const side = String(b.side || "").toUpperCase();
+                let status = "LOST", info = "Match Ended";
+                if (isDrawn) {
+                  status = "VOID";
+                  info = "Match Drawn/Tied (Refunded)";
+                } else if (wonM) {
+                  const hit = isTeamMatch(pick, wonM[1]);
+                  if ((side === "BACK" && hit) || (side === "LAY" && !hit)) status = "WON";
+                  info = `🏆 ${wonM[1].trim()} Won`;
+                }
+                await fetch(`${FB_URL}/cricketBets/${mId}/${b.betId}.json`, {
+                  method: "PATCH", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status, resultInfo: info, settledAt: new Date().toLocaleString("en-IN") })
+                });
+                b.status = status;
+                b.resultInfo = info;
+                if (status === "WON") {
+                  await creditWinning(b.mobile, Number(b.lockedReturn || 0));
+                  if (String(b.mobile).trim() === mob) showWinnerPopup(b, info);
+                } else if (status === "VOID") {
+                  await creditWinning(b.mobile, Number(b.stake || 0));
+                }
+              }
+            }
+          }
+        } finally {
+          isSettling = false;
+          document.getElementById("settleStatus").innerText = "● AUTO-SETTLE ON";
+        }
+      }
+
+      list.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
+      myAllBets = list;
+      updateCounts();
+      renderBets();
+    } catch (e) {}
+  }
+
+  function updateCounts() {
+    document.getElementById("fAll").innerText = `All (${myAllBets.length})`;
+    document.getElementById("fOpen").innerText = `⏳ Open (${myAllBets.filter(x => String(x.status).toUpperCase() === "OPEN").length})`;
+    document.getElementById("fWon").innerText = `🏆 Won (${myAllBets.filter(x => String(x.status).toUpperCase() === "WON").length})`;
+    document.getElementById("fLost").innerText = `❌ Lost (${myAllBets.filter(x => String(x.status).toUpperCase() === "LOST").length})`;
+  }
+
+  function setBetFilter(type, btn) {
+    activeFilter = type;
+    document.querySelectorAll(".f-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderBets();
+  }
+
+  function renderBets() {
+    const box = document.getElementById("betsContainer");
+    const filtered = activeFilter === "ALL"
+      ? myAllBets
+      : myAllBets.filter(x => String(x.status || "OPEN").toUpperCase() === activeFilter);
+
+    if (!filtered.length) {
+      box.innerHTML = `<div class="empty-msg">Is category mein abhi koi bet nahi hai.</div>`;
+      return;
+    }
+
+    box.innerHTML = filtered.map(b => {
+      const st = String(b.status || "OPEN").toUpperCase();
+      const cls = st === "WON" ? "bet-won" : st === "LOST" ? "bet-lost" : st === "VOID" ? "bet-void" : "";
+      const pCls = st === "WON" ? "pill-won" : st === "LOST" ? "pill-lost" : st === "VOID" ? "pill-void" : "pill-open";
+      const pTxt = st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : st === "LOST" ? `❌ LOST` : st === "VOID" ? `🔄 REFUND ₹${b.stake}` : `⏳ LIVE OPEN`;
+      return `<div class="bet-card ${cls}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <span style="font-size:11px; color:#38bdf8; font-weight:800;">🏏 ${b.matchName || ("Match #" + b._mId)}</span>
+          <span class="pill ${pCls}">${pTxt}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-weight:800; color:#ffd700; font-size:13px;">
+          <span>${b.lockedLine} (${b.side}) @ ${b.lockedOdd}x</span>
+          <span style="color:#28e04d;">Return: ₹${b.lockedReturn}</span>
+        </div>
+        <div style="color:#ccc; margin-top:4px;">${b.side === "LAY" ? "Liability" : "Stake"}: <b>₹${b.stake}</b> • ${b.time}</div>
+        ${b.resultInfo ? `<div style="margin-top:6px; padding:5px 8px; border-radius:6px; background:rgba(0,0,0,0.4); color:#ffd700; font-size:11px; font-weight:700;">📢 Result: ${b.resultInfo}</div>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  syncWallet();
+  loadAndSettleBets();
+  setInterval(() => { syncWallet(); loadAndSettleBets(); }, 8000);
+</script>
+</body>
+</html>
