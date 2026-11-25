@@ -118,11 +118,10 @@
     return `🕒 ${dayTag}, ${timeStr} IST`;
   }
 
-    function parseMatchesFromHtml(html, forcedBucket) {
+  function parseMatchesFromHtml(html, forcedBucket) {
     const seen = new Set(), out = [], startMap = {}, rawMsMap = {};
     if (!html) return out;
 
-    // 1. Poore HTML se saare matchId aur startDate (timestamp) nikalna
     for (const tm of html.matchAll(/"matchId"\s*:\s*"?(\d+)"?[\s\S]{0,1800}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
       if (startMap[tm[1]]) continue;
       let ms = Number(tm[2]);
@@ -144,7 +143,6 @@
       const sub = html.slice(m.index, m.index + (nextPos > 0 ? Math.min(650, nextPos + m[0].length) : 650))
         .replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
-      // Score (with or without wickets, e.g., BAN 240 or SLW 99/4 (12.4 Ov))
       const scores = sub.match(/\b[A-Z]{2,6}\s*\d+(?:\s*[-\/]\s*\d+)?\s*\(\s*\d+(?:\.\d+)?\s*(?:Ovs?)?\s*\)/g) || [];
       const isDone = /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(sub);
       const isLiveTxt = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+|stumps|lunch|tea|rain stops play|toss)\b/i.test(sub);
@@ -155,50 +153,6 @@
       if (!type) {
         if (isDone) type = "completed";
         else if (scores.length > 0 || isLiveTxt || isStartedByClock) type = "live";
-        else type = "upcoming";
-      }
-
-      const stM = sub.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,32}?won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break|[A-Za-z\s]{2,24}\s+opt to\s+(?:bat|bowl))/i);
-      const timeTxtM = sub.match(/((?:Today|Tomorrow|[A-Z][a-z]{2}\s+\d{1,2})\s*[•,]?\s*\d{1,2}:\d{2}\s*(?:AM|PM))/i);
-      const cleanStatus = type === "upcoming"
-        ? (startMap[id] || (timeTxtM ? `🕒 ${timeTxtM[1]}` : "🕒 Upcoming Match"))
-        : (stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News)\b\s*/gi, "").trim() : (type === "completed" ? "Match Completed" : "Live In Progress"));
-
-      out.push({ id, title, scores, status: cleanStatus, startMs: startMs || 9e15, type });
-    }
-    return out;
-    }
-  
-
-    for (const tm of html.matchAll(/"matchId"\s*:\s*"?(\d+)"?[\s\S]{0,700}?"startDate"\s*:\s*"?(\d{10,13})"?/g)) {
-      if (startMap[tm[1]]) continue;
-      let ms = Number(tm[2]); if (ms < 1e12) ms *= 1000;
-      rawMsMap[tm[1]] = ms;
-      startMap[tm[1]] = formatIstTime(ms);
-    }
-
-    const rx = /href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g;
-    let m;
-    while ((m = rx.exec(html)) !== null) {
-      const id = String(m[1]);
-      if (seen.has(id)) continue;
-      seen.add(id);
-
-      const title = m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim();
-      const rest = html.slice(m.index + m[0].length);
-      const nextPos = rest.search(/href="\/(?:live-cricket-scores|cricket-scores)\/\d+\//);
-      const sub = html.slice(m.index, m.index + (nextPos > 0 ? Math.min(450, nextPos + m[0].length) : 450))
-        .replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-
-      const scores = sub.match(/\b[A-Z]{2,6}\s*\d+\s*[-\/]\s*\d+\s*\(\s*\d+(?:\.\d+)?\s*(?:Ovs?)?\s*\)/g) || [];
-      const isDone = /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(sub);
-      const isLiveTxt = /\b(innings break|need \d+ runs|trail by|lead by|opt to|elected to|day \d+:\s*(?:stumps|lunch|tea)|rain stops play)\b/i.test(sub);
-      const startMs = rawMsMap[id] || 0;
-
-      let type = forcedBucket;
-      if (!type) {
-        if (isDone) type = "completed";
-        else if (scores.length > 0 || isLiveTxt) type = "live";
         else type = "upcoming";
       }
 
