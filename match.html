@@ -25,7 +25,7 @@
     .score-pill span { font-size: 11px; color: #ccc; }
     .market-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
     .market-pills::-webkit-scrollbar { display: none; }
-    .pill-btn { white-space: nowrap; padding: 7px 13px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .pill-btn { white-space: nowrap; padding: 7px 12px; border-radius: 20px; background: #260636; border: 1px solid #6b1d91; color: #ddd; font-size: 11px; font-weight: 800; cursor: pointer; }
     .pill-btn.active { background: linear-gradient(180deg, #28e04d, #16a34a); color: #000; border-color: #28e04d; }
     .market-card { background: #20042e; border: 1px solid #6b1d91; border-radius: 13px; margin-bottom: 11px; overflow: hidden; }
     .market-head { background: linear-gradient(90deg, #33094a, #240533); padding: 9px 12px; font-size: 12px; font-weight: 800; color: #ffd700; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4c1169; }
@@ -42,7 +42,14 @@
     .rate-lay { background: linear-gradient(180deg, #fcb9c8, #f58fa6); }
     .rate-main { font-size: 14px; font-weight: 900; }
     .rate-sub { font-size: 9px; font-weight: 700; opacity: 0.85; }
-    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.93); border: 1px solid #ef4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; }
+    .digit-section { padding: 10px; border-bottom: 1px solid #3c0c54; position: relative; }
+    .digit-section:last-child { border-bottom: none; }
+    .digit-title { font-size: 12px; font-weight: 800; color: #ffd700; margin-bottom: 7px; display: flex; justify-content: space-between; }
+    .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: relative; }
+    .digit-btn { background: linear-gradient(180deg, #8ecbf5, #5aaee8); color: #000; border-radius: 7px; padding: 7px 2px; text-align: center; cursor: pointer; }
+    .digit-btn strong { display: block; font-size: 14px; font-weight: 900; }
+    .digit-btn span { display: block; font-size: 9px; font-weight: 800; opacity: 0.85; }
+    .suspended-overlay { position: absolute; inset: 0; background: rgba(18, 8, 25, 0.93); border: 1px solid #ef4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px; font-weight: 800; text-align: center; padding: 2px; z-index: 5; }
     .bet-modal { display: none; position: fixed; bottom: 58px; width: 100%; max-width: 430px; background: #260636; border-top: 2px solid #ffd700; padding: 14px; z-index: 1000; box-shadow: 0 -6px 25px rgba(0,0,0,0.9); }
     .bet-modal.open { display: block; }
     .bet-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #75229e; background: #12021a; color: #fff; font-size: 15px; font-weight: 700; margin: 8px 0; }
@@ -87,41 +94,63 @@
   </div>
 
   <div class="market-pills">
-    <button class="pill-btn active" onclick="filterMarket('all', this)">All Markets</button>
+    <button class="pill-btn active" onclick="filterMarket('all', this)">All</button>
     <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
     <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
+    <button class="pill-btn" onclick="filterMarket('ball', this)">Ball Result</button>
     <button class="pill-btn" onclick="filterMarket('fancy', this)">Over Sessions</button>
-    <button class="pill-btn" onclick="location.href='mybets.html'">🏆 My Bets →</button>
+    <button class="pill-btn" onclick="filterMarket('digit', this)">Lucky Number</button>
   </div>
 
-  <!-- ADMIN SPECIAL MANUAL CONTESTS -->
+  <!-- 1. ADMIN SPECIAL MANUAL CONTESTS -->
   <div id="customContestsBox"></div>
 
-  <!-- NEXT BALL AUTO-ROTATING CONTEST (ALL 8 OPTIONS) -->
-  <div class="market-card sec-fancy" id="nextBallCard" style="border:1.5px solid #ffd700;">
-    <div class="market-head">
-      <span id="nextBallTitle">⚡ Next Ball Result (Ball 0.1)</span>
-      <span id="nextBallBadge" style="font-size:10px; color:#28e04d;">● AUTO ROTATE</span>
-    </div>
-    <div id="nextBallBody"></div>
-  </div>
-
+  <!-- 2. MATCH ODDS & TIED MATCH -->
   <div class="market-card sec-odds">
     <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span id="limitTag" style="font-size:10px; color:#ccc;">Min ₹100 | Max ₹50K</span></div>
     <div class="col-headers"><span>Back</span><span>Lay</span></div>
     <div id="oddsBody"></div>
   </div>
 
+  <div class="market-card sec-odds">
+    <div class="market-head"><span>Tied Match</span><span style="font-size:10px; color:#ccc;">Match Result</span></div>
+    <div class="col-headers"><span>Back</span><span>Lay</span></div>
+    <div id="tiedBody"></div>
+  </div>
+
+  <!-- 3. BOOKMAKER 0% & BOOKMAKER 1.0% -->
   <div class="market-card sec-bookmaker">
     <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#ccc;">0% Comm</span></div>
     <div class="col-headers"><span>Back</span><span>Lay</span></div>
     <div id="bmBody"></div>
   </div>
 
+  <div class="market-card sec-bookmaker">
+    <div class="market-head"><span>Bookmaker 1.0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#ccc;">1.0% Comm</span></div>
+    <div class="col-headers"><span>Back</span><span>Lay</span></div>
+    <div id="bm1Body"></div>
+  </div>
+
+  <!-- 4. NEXT BALL AUTO-ROTATING CONTEST (ALL 8 OPTIONS) -->
+  <div class="market-card sec-ball" id="nextBallCard" style="border:1.5px solid #ffd700;">
+    <div class="market-head">
+      <span id="nextBallTitle">⚡ Ball 0.1 Result (Auto-Next)</span>
+      <span id="nextBallBadge" style="font-size:10px; color:#28e04d;">● AUTO ROTATE</span>
+    </div>
+    <div id="nextBallBody"></div>
+  </div>
+
+  <!-- 5. OVER BY OVER & SESSION RUNS -->
   <div class="market-card sec-fancy">
-    <div class="market-head"><span id="fancyHeaderTitle">Over Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
+    <div class="market-head"><span id="fancyHeaderTitle">Over By Over & Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
     <div class="col-headers"><span>No</span><span>Yes</span></div>
     <div id="fancyBody"></div>
+  </div>
+
+  <!-- 6. LUCKY NUMBER (0-9 LAST DIGIT @ 9.75x / 875) -->
+  <div class="market-card sec-digit">
+    <div class="market-head"><span id="digitHeaderTitle">🎲 Lucky Number (Last Digit)</span><span style="font-size:10px; color:#ffd700;">9.75x (875)</span></div>
+    <div id="digitBody"></div>
   </div>
 </div>
 
@@ -395,7 +424,7 @@
     fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE";
     fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
-    // 0. Admin Special Manual Contests
+    // 1. Admin Special Manual Contests
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const cLock = gLock || c.status !== "OPEN";
@@ -422,15 +451,50 @@
       </div>`;
     }).join("");
 
-    // 0.5 Next Ball Auto-Rotating Contest (0.1 -> 0.2 -> ... -> 0.6 -> 1.1) — All 8 Options
+    const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
+    const aB = ctrl.teamABack || dyn.aBack, aL = ctrl.teamALay || (ctrl.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
+    const bB = ctrl.teamBBack || dyn.bBack, bL = ctrl.teamBLay || (ctrl.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
+    const lA = checkLimit(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimit(`${tB} (Match Odds)`, maxU, maxM);
+
+    const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
+    const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
+
+    // 2. Match Odds & Tied Match
+    document.getElementById("oddsBody").innerHTML = `
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${ovA}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${ovB}</div>` : ''}</div></div>`;
+
+    document.getElementById("tiedBody").innerHTML = `
+      <div class="contest-row"><div class="runner-name">YES (Match Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Tied YES',12.0)"><span class="rate-main">12.0</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied NO',14.0)"><span class="rate-main">14.0</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">NO (Not Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Not Tied',1.05)"><span class="rate-main">1.05</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied Lay',1.08)"><span class="rate-main">1.08</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
+
+    // 3. Bookmaker 0% & Bookmaker 1.0%
+    const bmAB = ctrl.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ctrl.bmALay || (Number(bmAB) + 3);
+    const bmBB = ctrl.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100)), bmBL = ctrl.bmBLay || (Number(bmBB) + 4);
+    const bmABDec = (1 + (Number(bmAB) / 100)).toFixed(2), bmALDec = (1 + (Number(bmAL) / 100)).toFixed(2);
+    const bmBBDec = (1 + (Number(bmBB) / 100)).toFixed(2), bmBLDec = (1 + (Number(bmBL) / 100)).toFixed(2);
+
+    document.getElementById("bmBody").innerHTML = `
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 0%)','BACK','BM0 ${bmAB}',${bmABDec})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 0%)','LAY','BM0 ${bmAL}',${bmALDec})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 0%)','BACK','BM0 ${bmBB}',${bmBBDec})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 0%)','LAY','BM0 ${bmBL}',${bmBLDec})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
+
+    const bm1AB = Math.max(4, Number(bmAB) - 1), bm1AL = Number(bmAL) + 1;
+    const bm1BB = Math.max(4, Number(bmBB) - 1), bm1BL = Number(bmBL) + 1;
+    document.getElementById("bm1Body").innerHTML = `
+      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
+      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
+
+    // 4. Next Ball Auto-Rotating Contest (0.1 -> 0.2 -> ... -> 0.6 -> 1.1) — All 8 Options
     const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
     const curOverPart = Math.floor(curOvVal);
     const curBallPart = Math.round((curOvVal - curOverPart) * 10);
     let nextOv = curOverPart, nextBall = curBallPart + 1;
     if (nextBall > 6) { nextOv = curOverPart + 1; nextBall = 1; }
     const nextBallLabel = `${nextOv}.${nextBall}`;
+    const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
+    const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
 
-    document.getElementById("nextBallTitle").innerText = `⚡ Ball ${nextBallLabel} Result (Auto-Next)`;
+    document.getElementById("nextBallTitle").innerText = `⚡ ${inn === 2 ? "2nd Inn" : "1st Inn"} Ball ${nextBallLabel} Result (${fTeam})`;
     const nbBadge = document.getElementById("nextBallBadge");
     nbBadge.innerText = gLock ? "🔒 LOCKED" : "● AUTO ROTATE";
     nbBadge.style.color = gLock ? "#ff4d6d" : "#28e04d";
@@ -450,7 +514,7 @@
       <div class="contest-row">
         <div>
           <div class="runner-name">${bo.lbl}</div>
-          <div class="runner-sub">Ball ${nextBallLabel} • Auto-Reset Next Ball</div>
+          <div class="runner-sub">Ball ${nextBallLabel} • Auto-Next Ball</div>
         </div>
         <div class="rate-boxes">
           <div class="rate-btn rate-back" style="width:86px;" onclick="openBet('Ball ${nextBallLabel} (${bo.lbl})','BACK','${bo.lbl}',${bo.odd})">
@@ -462,45 +526,37 @@
       </div>
     `).join("");
 
-    const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
-    const aB = ctrl.teamABack || dyn.aBack, aL = ctrl.teamALay || (ctrl.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
-    const bB = ctrl.teamBBack || dyn.bBack, bL = ctrl.teamBLay || (ctrl.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
-    const lA = checkLimit(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimit(`${tB} (Match Odds)`, maxU, maxM);
-
-    const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
-    const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
-
-    // 1. Match Odds
-    document.getElementById("oddsBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Match Odds)','BACK','${tA} Win',${aB})"><span class="rate-main">${aB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Match Odds)','LAY','${tA} Lose',${aL})"><span class="rate-main">${aL}</span><span class="rate-sub">Lay</span></div>${(gLock || lA.blocked) ? `<div class="suspended-overlay">${ovA}</div>` : ''}</div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Match Odds)','BACK','${tB} Win',${bB})"><span class="rate-main">${bB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Match Odds)','LAY','${tB} Lose',${bL})"><span class="rate-main">${bL}</span><span class="rate-sub">Lay</span></div>${(gLock || lB.blocked) ? `<div class="suspended-overlay">${ovB}</div>` : ''}</div></div>`;
-
-    // 2. Bookmaker 0%
-    const bmAB = ctrl.bmABack || Math.max(5, Math.round((parseFloat(aB) - 1) * 100)), bmAL = ctrl.bmALay || (Number(bmAB) + 3);
-    const bmBB = ctrl.bmBBack || Math.max(5, Math.round((parseFloat(bB) - 1) * 100)), bmBL = ctrl.bmBLay || (Number(bmBB) + 4);
-    const bmABDec = (1 + (Number(bmAB) / 100)).toFixed(2), bmALDec = (1 + (Number(bmAL) / 100)).toFixed(2);
-    const bmBBDec = (1 + (Number(bmBB) / 100)).toFixed(2), bmBLDec = (1 + (Number(bmBL) / 100)).toFixed(2);
-
-    document.getElementById("bmBody").innerHTML = `
-      <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker)','BACK','BM ${bmAB}',${bmABDec})"><span class="rate-main">${bmAB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker)','LAY','BM ${bmAL}',${bmALDec})"><span class="rate-main">${bmAL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
-      <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker)','BACK','BM ${bmBB}',${bmBBDec})"><span class="rate-main">${bmBB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker)','LAY','BM ${bmBL}',${bmBLDec})"><span class="rate-main">${bmBL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
-
-    // 3. Over Sessions (T20: 6, 10, 15, 20 | ODI & Test: 10, 20, 30, 40, 50)
-    const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
-    const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
+    // 5. Over By Over & Session Runs
     const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
     const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
+    const activeOverNo = curOverPart + 1;
 
-    document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
+    document.getElementById("fancyHeaderTitle").innerText = `Over By Over & Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const sGap = winRate <= 20 ? 4 : winRate <= 35 ? 2 : 1;
     const fPay = winRate <= 20 ? 85 : winRate <= 35 ? 95 : winRate <= 50 ? 100 : 105;
     const mult = (1 + (fPay / 100)).toFixed(2);
 
+    const singleOverNo = Math.min(liveState.maxOvers || 20, activeOverNo);
+    const singleOvNoRuns = Math.max(5, Math.round(liveState.formatType === "T20 (20 OV)" ? 7 : 5));
+
     const sessionOversList = liveState.formatType === "T20 (20 OV)"
-      ? [6, 10, 15, 20]
+      ? [4, 6, 10, 15, 20]
       : [10, 20, 30, 40, 50];
 
-    document.getElementById("fancyBody").innerHTML = sessionOversList.map(ovTarget => {
+    let fancyHtml = `
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">Only ${singleOverNo} Over Run (${fTeam})</div>
+          <div class="runner-sub">Over By Over • Current Over</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openBet('Only ${singleOverNo} Over Run (${fTeam})','NO','Under ${singleOvNoRuns} Runs',${mult})"><span class="rate-main">${singleOvNoRuns}</span><span class="rate-sub">${fPay}</span></div>
+          <div class="rate-btn rate-back" onclick="openBet('Only ${singleOverNo} Over Run (${fTeam})','YES','${singleOvNoRuns + 1}+ Runs',${mult})"><span class="rate-main">${singleOvNoRuns + 1}</span><span class="rate-sub">${fPay}</span></div>
+          ${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+        </div>
+      </div>`;
+
+    fancyHtml += sessionOversList.map(ovTarget => {
       const mktTitle = `${ovTarget} Over Run (${fTeam})`;
       const noRuns = ctrl[`sess${ovTarget}No`] || calcSessionLine(ovTarget, effO, effR, liveState.formatType, isBreak);
       const yesRuns = ctrl[`sess${ovTarget}Yes`] || (Number(noRuns) + sGap);
@@ -520,16 +576,40 @@
         </div>
       </div>`;
     }).join("");
+    document.getElementById("fancyBody").innerHTML = fancyHtml;
+
+    // 6. Lucky Number / Last Digit (0-9 Grid @ 9.75x / 875)
+    const digitOdd = winRate <= 20 ? 9.00 : winRate <= 35 ? 9.50 : 9.75;
+    const digitBhav = Math.round((digitOdd - 1) * 100);
+    const digitOvers = liveState.formatType === "T20 (20 OV)" ? [6, 10, 15, 20] : [10, 20, 30, 40, 50];
+
+    document.getElementById("digitHeaderTitle").innerText = `🎲 Lucky Number (${inn === 2 ? "2nd" : "1st"} Inn • ${fTeam})`;
+    document.getElementById("digitBody").innerHTML = digitOvers.map(ovTarget => {
+      const mktTitle = `${inn === 2 ? "2nd" : "1st"} Inning ${ovTarget} Over Last Digit (${fTeam})`;
+      const passed = !isBreak && effO >= ovTarget;
+      const lk = gLock || passed;
+      const btns = [0,1,2,3,4,5,6,7,8,9].map(d =>
+        `<div class="digit-btn" onclick="openBet('${mktTitle}','BACK','Digit ${d}',${digitOdd})"><strong>${d}</strong><span>${digitBhav}</span></div>`
+      ).join("");
+      return `<div class="digit-section">
+        <div class="digit-title"><span>${mktTitle}</span><span style="color:#28e04d;">@${digitOdd}x</span></div>
+        <div class="digit-grid">
+          ${btns}
+          ${lk ? `<div class="suspended-overlay">${isDone ? "Match Ended" : (passed ? ovTarget + " Ov Over" : lockTxt)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join("");
   }
 
   function filterMarket(type, btn) {
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("customContestsBox").style.display = (type === "all") ? "block" : "none";
-    document.getElementById("nextBallCard").style.display = (type === "all" || type === "fancy") ? "block" : "none";
-    document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
-    document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
-    document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
+    document.querySelectorAll(".sec-odds").forEach(el => el.style.display = (type === "all" || type === "odds") ? "block" : "none");
+    document.querySelectorAll(".sec-bookmaker").forEach(el => el.style.display = (type === "all" || type === "bookmaker") ? "block" : "none");
+    document.querySelectorAll(".sec-ball").forEach(el => el.style.display = (type === "all" || type === "ball") ? "block" : "none");
+    document.querySelectorAll(".sec-fancy").forEach(el => el.style.display = (type === "all" || type === "fancy") ? "block" : "none");
+    document.querySelectorAll(".sec-digit").forEach(el => el.style.display = (type === "all" || type === "digit") ? "block" : "none");
   }
 
   function calcFin(side, stake, odd) {
