@@ -660,7 +660,7 @@
     return true;
   }
 
-  let busy = false;
+    let busy = false;
   async function placeBet() {
     if (busy || !selBet) return;
     const st = Number(document.getElementById("stakeInput").value);
@@ -684,7 +684,26 @@
 
     busy = true;
     try {
-      await fetchMatchLimits();
+      // ANTI-CHEATING: Bet lock karne se pehle fresh live score aur limits check karein
+      await Promise.all([refreshMatchData(), fetchMatchLimits()]);
+      if (ctrl.locked || matchInfo.isEnded || liveState.isEnded) {
+        alert("🔒 Market abhi suspend / band ho chuka hai!");
+        renderPage();
+        return;
+      }
+
+      // Ball-by-Ball Anti-Delay Check: Agar ye ball pehle hi padh chuki hai toh bet BLOCK karein
+      const ballCheck = String(selBet.mkt || "").match(/^Ball\s+(\d+\.\d+)/i);
+      if (ballCheck) {
+        const targetBallOv = ballCheck[1];
+        const liveOvStr = String(ctrl.liveOvers || liveState.ovNum || "0");
+        if (toTotalBalls(liveOvStr) >= toTotalBalls(targetBallOv)) {
+          alert(`⚠️ BALL RUNNING! Ball ${targetBallOv} pehle hi padh chuki hai (Live: ${liveOvStr} Ov).`);
+          renderPage();
+          return;
+        }
+      }
+
       const lim = checkLimit(selBet.mkt, Number(ctrl.maxUsers || 25), Number(ctrl.maxMoney || 15000));
       if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); renderPage(); return; }
       if (!(await deductWallet(f.debit))) return alert("Insufficient Wallet Balance!");
@@ -707,6 +726,7 @@
       renderPage();
     } finally { busy = false; }
   }
+  
 
   async function init() {
     renderPage();
