@@ -19,9 +19,8 @@
   .btn-qr { background: #3d0c57; border: 1px solid #28e04d; color: #28e04d; width: 100%; padding: 9px; font-size: 12px; margin-bottom: 6px; }
   .btn-copy { background: #3d0c57; border: 1px dashed #ffd700; color: #ffd700; padding: 6px 9px; font-size: 11px; }
   .top { display: flex; justify-content: space-between; align-items: center; background: #260636; padding: 12px; border-radius: 12px; border: 1px solid #ffd700; margin-bottom: 10px; }
-  .wallet-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: linear-gradient(135deg, #132e1d, #1f042e); border: 1.5px solid #28e04d; padding: 9px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-  .wallet-bar span { font-size: 10px; color: #cbd5e1; display: block; }
-  .wallet-bar strong { font-size: 14px; color: #28e04d; }
+  .admin-own-wallet { background: linear-gradient(135deg, #102a1c, #1f042e); border: 1.5px solid #28e04d; padding: 11px 12px; border-radius: 12px; margin-bottom: 10px; }
+  .check-box { background: #12021a; border: 1px solid #38bdf8; border-radius: 9px; padding: 9px 11px; margin-bottom: 10px; font-size: 11px; line-height: 1.5; color: #e2e8f0; }
   .status-bar { background: #1a0326; border: 1px solid #5c197d; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; color: #ffd700; }
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
   .stat { background: #1e042b; border: 1px solid #5c197d; padding: 8px 4px; border-radius: 10px; text-align: center; }
@@ -65,10 +64,19 @@
     </div>
   </div>
 
-  <div class="wallet-bar">
-    <div><span>MY DEPOSIT</span><strong id="admDepBal">₹0</strong></div>
-    <div><span>MY WINNING</span><strong id="admWinBal">₹0</strong></div>
-    <div><span>TOTAL WALLET</span><strong id="admTotBal" style="color:#ffd700;">₹0</strong></div>
+  <!-- AAPKA ALAG ADMIN WALLET (GAME WALLET SE ALAG) -->
+  <div class="admin-own-wallet">
+    <div class="row-between">
+      <div>
+        <div style="font-size:10px; color:#86efac; font-weight:bold;">💼 ADMIN MASTER WALLET (SEPARATE)</div>
+        <div style="font-size:20px; font-weight:900; color:#ffd700; margin-top:2px;" id="ownAdminBal">₹0</div>
+      </div>
+      <div style="display:flex; gap:5px;">
+        <button type="button" class="btn btn-green" onclick="updateOwnAdminWallet('add')">+ Add Fund</button>
+        <button type="button" class="btn btn-red" onclick="updateOwnAdminWallet('sub')">- Withdraw</button>
+      </div>
+    </div>
+    <div style="font-size:10px; color:#aaa; margin-top:4px;" id="ownAdminStats">Cricket Pool Net: ₹0</div>
   </div>
 
   <div class="status-bar" id="connStatus">⏳ Direct Fast-Sync se data aa raha hai...</div>
@@ -119,16 +127,21 @@
   </div>
 </div>
 
-<!-- ==================== CRICKET AUTO-LIMIT, MANUAL CONTEST & RATE CONTROL ==================== -->
+<!-- ==================== CRICKET AUTO-LIMIT, RATE & SMART MANUAL CONTEST ==================== -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
     <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Manual Rate, Bhav & Contest Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Live & Upcoming Match select karke Rates, Max Bet aur Manual Contest banayein</p>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Live & Upcoming Match select karein — system pehle live condition check karega</p>
 
     <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Live / Upcoming Match:</label>
     <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
       <option value="">Matches load ho rahe hain...</option>
     </select>
+
+    <!-- LIVE MATCH PRE-CHECK INTELLIGENCE BOX -->
+    <div class="check-box" id="matchIntelBox">
+      ⏳ Match ki live स्थिति (Inning, Overs, Batting Team) check ho rahi hai...
+    </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; background:#260636; padding:8px; border-radius:8px; margin-bottom:10px; border:1px solid #6b1d91;">
       <div>
@@ -169,13 +182,39 @@
     <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
 
-    <!-- MANUAL CONTEST CREATOR & 1-CLICK WINNER SETTLE -->
+    <!-- SMART MANUAL CONTEST CREATOR -->
     <div style="margin-top:16px; padding-top:14px; border-top:1.5px dashed #ffd700;">
-      <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (Admin Custom)</h4>
-      <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Is match par apna sawal banayein aur 1 click mein result settle karein</p>
+      <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (With Live Pre-Check)</h4>
+      <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Inning, Overs, Batting Team aur Rate check karke hi contest banega</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label style="font-size:11px; color:#ffd700;">Kis Inning Ka Contest?</label>
+          <select id="mc_inning">
+            <option value="AUTO">Current Active Inning</option>
+            <option value="1">1st Inning</option>
+            <option value="2">2nd Inning (Chase)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px; color:#ffd700;">Target Over (Optional):</label>
+          <input type="number" id="mc_targetOv" placeholder="e.g. 6, 10, 20" />
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label style="font-size:11px; color:#ffd700;">Target Runs (Optional):</label>
+          <input type="number" id="mc_targetRuns" placeholder="e.g. 50 ya 160" />
+        </div>
+        <div>
+          <label style="font-size:11px; color:#ffd700;">Kis Team Ke Liye?</label>
+          <select id="mc_teamSelect"><option value="CURRENT">Current Batting Team</option></select>
+        </div>
+      </div>
 
       <label style="font-size:11px; color:#ffd700;">Contest Question / Market Name:</label>
-      <input type="text" id="mc_title" placeholder="e.g. Toss Winner ya 6 Over 50+ Runs?" />
+      <input type="text" id="mc_title" placeholder="e.g. 10 Over Mein 85+ Runs Banenge?" />
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
         <div><label style="font-size:11px; color:#72bbef;">Option 1 Name</label><input type="text" id="mc_opt1" value="YES" /></div>
@@ -184,7 +223,7 @@
         <div><label style="font-size:11px; color:#faa9ba;">Option 2 Rate (x)</label><input type="number" step="0.01" id="mc_rate2" value="1.90" /></div>
       </div>
 
-      <button type="button" class="btn btn-green" style="width:100%; padding:11px; font-size:13px;" onclick="createManualContest()">➕ ADD MANUAL CONTEST TO MATCH</button>
+      <button type="button" class="btn btn-green" style="width:100%; padding:11px; font-size:13px;" onclick="createManualContest()">🔍 CHECK & ADD MANUAL CONTEST</button>
 
       <div id="activeManualContestsList" style="margin-top:10px;"></div>
     </div>
@@ -194,6 +233,7 @@
   const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
   const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
   let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
+  let selectedMatchLiveState = null;
 
   function logoutAdmin() {
     localStorage.removeItem("activeUser");
@@ -245,6 +285,40 @@
     return await res.json();
   }
 
+  // ==================== AAPKA ALAG ADMIN MASTER WALLET ====================
+  async function loadOwnAdminWallet() {
+    try {
+      const [admData, allBets] = await Promise.all([
+        dbGet("adminWallet/9794408205"),
+        dbGet("cricketBets")
+      ]);
+      const baseBal = Number((admData && admData.balance) || 0);
+      let totalIn = 0, totalOut = 0;
+      Object.values(allBets || {}).forEach(mObj => {
+        Object.values(mObj || {}).forEach(b => {
+          if (!b) return;
+          totalIn += Number(b.stake || 0);
+          if (String(b.status || "").toUpperCase() === "WON") totalOut += Number(b.lockedReturn || 0);
+          else if (String(b.status || "").toUpperCase() === "VOID") totalOut += Number(b.stake || 0);
+        });
+      });
+      const netProfit = Number((totalIn - totalOut).toFixed(2));
+      document.getElementById("ownAdminBal").innerText = "₹" + baseBal.toFixed(2).replace(/\.00$/, "");
+      document.getElementById("ownAdminStats").innerText = `Cricket Bets Collected: ₹${totalIn} | Paid Out: ₹${totalOut} | Net Profit: ${netProfit >= 0 ? "+₹" + netProfit : "-₹" + Math.abs(netProfit)}`;
+    } catch (e) {}
+  }
+
+  async function updateOwnAdminWallet(mode) {
+    const amtStr = prompt(mode === "add" ? "Apne Admin Master Wallet mein kitna add karna hai (₹)?" : "Admin Master Wallet se kitna nikalna hai (₹)?");
+    const amt = Number(amtStr || 0);
+    if (!amt || amt <= 0) return;
+    const cur = await dbGet("adminWallet/9794408205");
+    const oldBal = Number((cur && cur.balance) || 0);
+    const newBal = mode === "add" ? oldBal + amt : Math.max(0, oldBal - amt);
+    await dbPut("adminWallet/9794408205", { balance: newBal, updatedAt: new Date().toLocaleString("en-IN") });
+    loadOwnAdminWallet();
+  }
+
   function getUserTotalDep(u) {
     if (!u) return 0;
     if (typeof u.totalDeposited === "number" && u.totalDeposited > 0) return u.totalDeposited;
@@ -262,13 +336,6 @@
 
   function updateUsersUI(data) {
     allUsers = data || {};
-    const me = allUsers["9794408205"] || {};
-    const myD = Number(me.depositBal ?? me.depositBalance ?? 0);
-    const myW = Number(me.winningBal ?? me.winningBalance ?? 0);
-    document.getElementById("admDepBal").innerText = "₹" + myD.toFixed(2).replace(/\.00$/, "");
-    document.getElementById("admWinBal").innerText = "₹" + myW.toFixed(2).replace(/\.00$/, "");
-    document.getElementById("admTotBal").innerText = "₹" + (myD + myW).toFixed(2).replace(/\.00$/, "");
-
     const count = Object.keys(allUsers).length;
     document.getElementById("stUsers").innerText = count;
     document.getElementById("connStatus").innerText = "✅ Auto-Sync Active! Total " + count + " users (" + new Date().toLocaleTimeString() + ")";
@@ -362,6 +429,7 @@
 
   async function forceLoadAll() {
     try {
+      loadOwnAdminWallet();
       const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
       const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
       const isChangingRate = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("rate_");
@@ -495,7 +563,74 @@
   forceLoadAll();
   setInterval(forceLoadAll, 8000);
 
-  // ==================== CRICKET AUTO-LIMIT, RATE & MANUAL CONTEST MODULE ====================
+  // ==================== CRICKET SMART PRE-CHECK & MANUAL CONTEST ====================
+  function parseTeamsFromTitle(title) {
+    const clean = String(title || "").split(/\b(?:\d+(?:st|nd|rd|th)|Final|Semi|Quarter|Qualifier|Eliminator|Icc|Womens?|Mens?|Emerging|Trophy|Cup|League|Series|Elite|Group|Match|Test|Odi|T20)\b/i)[0].trim();
+    const parts = clean.split(/\s+vs\s+/i);
+    if (parts.length >= 2) return [parts[0].trim().toUpperCase(), parts[1].trim().split(/\s+/)[0].trim().toUpperCase()];
+    return ["TEAM A", "TEAM B"];
+  }
+
+  async function inspectMatchLiveCondition(mId, title) {
+    const box = document.getElementById("matchIntelBox");
+    box.innerHTML = "⏳ Live match condition (Inning, Overs, Batting Team) check ho rahi hai...";
+    try {
+      const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+      const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+      const head = txt.slice(0, 4500);
+      const [tA, tB] = parseTeamsFromTitle(title);
+
+      const isTest = /\b(test|shield|ranji|county|4-day)\b/i.test(title) && !/t20|odi/i.test(title);
+      const isOdi = /\b(odi|one day|list a|50 over)\b/i.test(title) && !/t20/i.test(title);
+      const maxOv = isTest ? 90 : isOdi ? 50 : 20;
+
+      const stM = head.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,36}?\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+      const status = stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News|Live Cricket Score)\b\s*/gi, "").trim() : "Upcoming / Live";
+      const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(status);
+
+      const scMatches = [...txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
+      const inns = [];
+      scMatches.forEach(x => {
+        const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]);
+        if (tA !== "TEAM A" && team !== tA && team !== tB && !tA.startsWith(team) && !tB.startsWith(team)) return;
+        const idx = inns.findIndex(u => u.team === team);
+        if (idx === -1) inns.push({ team, runs, wkts, ov, ovStr });
+        else if (ov >= inns[idx].ov) inns[idx] = { team, runs, wkts, ov, ovStr };
+      });
+
+      const inningNo = inns.length >= 2 ? 2 : 1;
+      const curInn = inns[inns.length - 1] || null;
+      const firstInn = inns[0] || null;
+      const target = (inningNo === 2 && firstInn && !isTest) ? (firstInn.runs + 1) : 0;
+      const playedTeam = (inningNo === 2 && firstInn) ? firstInn.team : "";
+      const activeBatTeam = curInn ? curInn.team : tA;
+
+      selectedMatchLiveState = {
+        mId, title, tA, tB, maxOv, isEnded, status, inningNo,
+        curRuns: curInn ? curInn.runs : 0,
+        curWkts: curInn ? curInn.wkts : 0,
+        curOv: curInn ? curInn.ov : 0,
+        activeBatTeam, playedTeam, target
+      };
+
+      const tSel = document.getElementById("mc_teamSelect");
+      tSel.innerHTML = `<option value="${activeBatTeam}">Current Batting: ${activeBatTeam}</option><option value="${tA}">${tA}</option><option value="${tB}">${tB}</option>`;
+
+      if (isEnded) {
+        box.style.borderColor = "#ef4444";
+        box.innerHTML = `<strong style="color:#ef4444;">🚫 MATCH KHATAM HO CHUKA HAI!</strong><br>Result: <b>${status}</b><br>Is match par naya contest nahi ban sakta.`;
+      } else {
+        box.style.borderColor = "#28e04d";
+        box.innerHTML = `<strong style="color:#28e04d;">✅ LIVE CONDITION VERIFIED (${isTest ? "TEST" : isOdi ? "ODI 50 Ov" : "T20 20 Ov"})</strong><br>` +
+          `• <b>Inning:</b> ${inningNo === 2 ? "2nd Inning (Chase)" : "1st Inning"} | <b>Batting:</b> ${activeBatTeam} (${selectedMatchLiveState.curRuns}/${selectedMatchLiveState.curWkts} in ${selectedMatchLiveState.curOv} Ov)<br>` +
+          (playedTeam ? `• <b>1st Inning Khel Chuki Team:</b> ${playedTeam} (${firstInn.runs}/${firstInn.wkts}) • Target: ${target}<br>` : "") +
+          `• <b>Status:</b> ${status}`;
+      }
+    } catch (e) {
+      box.innerHTML = "⚠️ Match status check nahi ho paya, manual check karke banayein.";
+    }
+  }
+
   async function initAdminCricDropdown() {
     try {
       const [rLive, rUp] = await Promise.all([
@@ -533,8 +668,12 @@
   }
 
   async function bgCricLoadRates() {
-    const id = document.getElementById("bgCric_matchSelect").value;
+    const sel = document.getElementById("bgCric_matchSelect");
+    const id = sel.value;
     if (!id) return;
+    const title = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text.replace(/^[🔴🕒]\s*/, "") : "";
+    inspectMatchLiveCondition(id, title);
+
     try {
       const ov = (await dbGet(`cricketControls/${id}`)) || {};
       document.getElementById("bgCric_maxBet").value = ov.maxBet || "";
@@ -603,16 +742,64 @@
   async function createManualContest() {
     const mId = document.getElementById("bgCric_matchSelect").value;
     const title = (document.getElementById("mc_title").value || "").trim();
+    const innChoice = document.getElementById("mc_inning").value;
+    const targetOv = Number(document.getElementById("mc_targetOv").value || 0);
+    const targetRuns = Number(document.getElementById("mc_targetRuns").value || 0);
+    const chosenTeam = document.getElementById("mc_teamSelect").value;
     const opt1 = (document.getElementById("mc_opt1").value || "YES").trim();
     const rate1 = Number(document.getElementById("mc_rate1").value || 1.90);
     const opt2 = (document.getElementById("mc_opt2").value || "NO").trim();
     const rate2 = Number(document.getElementById("mc_rate2").value || 1.90);
+
     if (!mId || !title) return alert("Match aur Contest Question dalein!");
 
+    // ==================== SMART PRE-CHECK VALIDATION ====================
+    const st = selectedMatchLiveState;
+    if (st) {
+      if (st.isEnded) {
+        return alert("🚫 BLOCKED: Ye match pehle hi khatam ho chuka hai (" + st.status + ")! Naya contest nahi ban sakta.");
+      }
+      if (innChoice === "1" && st.inningNo === 2) {
+        return alert(`🚫 BLOCKED: 1st Inning (${st.playedTeam}) pehle hi khel chuki hai! Abhi 2nd Inning chal rahi hai.`);
+      }
+      if (chosenTeam && st.playedTeam && chosenTeam === st.playedTeam && st.inningNo === 2) {
+        return alert(`🚫 BLOCKED: ${st.playedTeam} apni batting poori kar chuki hai! Abhi ${st.activeBatTeam} batting kar rahi hai.`);
+      }
+      if (targetOv > 0) {
+        if (targetOv > st.maxOv) {
+          return alert(`🚫 BLOCKED: Ye match sirf ${st.maxOv} overs ka hai, ${targetOv} over ka contest nahi ban sakta!`);
+        }
+        if (st.curOv >= targetOv && (innChoice === "AUTO" || Number(innChoice) === st.inningNo)) {
+          return alert(`🚫 BLOCKED: Match mein pehle hi ${st.curOv} overs ho chuke hain! ${targetOv} over ka contest nikal chuka hai.`);
+        }
+      }
+      if (targetRuns > 0 && targetOv > 0) {
+        const remOv = Math.max(0.1, targetOv - st.curOv);
+        const needRuns = targetRuns - st.curRuns;
+        const reqRr = needRuns / remOv;
+        if (needRuns <= 0) {
+          return alert(`🚫 BLOCKED: Team pehle hi ${st.curRuns} runs bana chuki hai (${targetRuns} se zyada)!`);
+        }
+        if (reqRr > 24) {
+          if (!confirm(`⚠️ WARNING: Bache ${remOv.toFixed(1)} overs mein ${needRuns} runs (${reqRr.toFixed(1)} RPO) banana lagbhag namumkin hai! Phir bhi contest banayein?`)) return;
+        }
+      }
+      if (st.target > 0 && st.inningNo === 2) {
+        const runsToWin = st.target - st.curRuns;
+        if (runsToWin <= 12 && st.curWkts <= 6 && (rate1 > 1.40 || rate2 > 1.40)) {
+          if (!confirm(`⚠️ HIGH RISK ALERT: ${st.activeBatTeam} ko jeetne ke liye sirf ${runsToWin} runs chahiye (almost jeet rahi hai). Kya aap sach mein ye rate (${rate1}x / ${rate2}x) dena chahte hain?`)) return;
+        }
+      }
+    }
+
     const cId = "MC_" + Date.now();
-    await dbPut(`customContests/${mId}/${cId}`, { cId, title, opt1, rate1, opt2, rate2, status: "OPEN", winner: "" });
+    const innLabel = innChoice === "1" ? "1st Inn" : innChoice === "2" ? "2nd Inn" : (st ? `${st.inningNo === 2 ? "2nd" : "1st"} Inn` : "Live");
+    await dbPut(`customContests/${mId}/${cId}`, {
+      cId, title, inning: innLabel, team: chosenTeam, targetOv, targetRuns,
+      opt1, rate1, opt2, rate2, status: "OPEN", winner: ""
+    });
     document.getElementById("mc_title").value = "";
-    alert(`✅ Contest "${title}" Match Mein Add Ho Gaya!`);
+    alert(`✅ Pre-Check Pass! Contest "${title}" (${innLabel}) Match Mein Add Ho Gaya!`);
     loadManualContests(mId);
   }
 
@@ -623,7 +810,7 @@
     if (!list.length) { box.innerHTML = ""; return; }
     box.innerHTML = list.map(c => `
       <div style="background:#12021a; border:1px solid #6b1d91; border-radius:8px; padding:9px; margin-bottom:7px; font-size:12px;">
-        <div class="row-between"><strong style="color:#ffd700;">🎯 ${c.title}</strong><span class="badge ${c.status}">${c.status}</span></div>
+        <div class="row-between"><strong style="color:#ffd700;">🎯 ${c.title} (${c.inning || "Live"})</strong><span class="badge ${c.status}">${c.status}</span></div>
         <div style="color:#ccc; margin:4px 0;">1) ${c.opt1} (@ ${c.rate1}x) | 2) ${c.opt2} (@ ${c.rate2}x)</div>
         ${c.status === "OPEN" ? `
           <div style="display:flex; gap:6px; margin-top:6px;">
