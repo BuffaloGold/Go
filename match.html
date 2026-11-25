@@ -34,7 +34,7 @@
     .col-headers span { width: 64px; text-align: center; }
     .contest-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid #3c0c54; position: relative; }
     .contest-row:last-child { border-bottom: none; }
-    .runner-name { font-size: 13px; font-weight: 800; color: #fff; }
+    .runner-name { font-size: 13px; font-weight: 800; color: #fff; flex: 1; padding-right: 8px; }
     .runner-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
     .rate-boxes { display: flex; gap: 7px; position: relative; }
     .rate-btn { width: 64px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; }
@@ -93,6 +93,9 @@
     <button class="pill-btn" onclick="filterMarket('fancy', this)">Over Sessions</button>
     <button class="pill-btn" onclick="location.href='mybets.html'">🏆 My Bets →</button>
   </div>
+
+  <!-- ADMIN SPECIAL MANUAL CONTESTS -->
+  <div id="customContestsBox"></div>
 
   <div class="market-card sec-odds">
     <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span id="limitTag" style="font-size:10px; color:#ccc;">Min ₹100 | Max ₹50K</span></div>
@@ -161,7 +164,7 @@
     isEnded: (q.get("type") || (saved && saved.type)) === "completed"
   };
 
-  let userBal = 0, userNameStr = "Player", ctrl = {}, winRate = 35, selBet = null;
+  let userBal = 0, userNameStr = "Player", ctrl = {}, customContestsObj = {}, winRate = 35, selBet = null;
   let matchBetsStats = {}, teamExposure = {};
   let liveState = { runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, formatType: "T20", maxOvers: 20, inningNo: 1, isInningsBreak: false, isEnded: matchInfo.isEnded };
 
@@ -336,12 +339,14 @@
 
   async function refreshMatchData() {
     try {
-      const [rC, rR, html] = await Promise.all([
+      const [rC, rCust, rR, html] = await Promise.all([
         fetch(`${FB_URL}/cricketControls/${matchId}.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/customContests/${matchId}.json?t=${Date.now()}`),
         fetch(`${FB_URL}/settings/rates.json?t=${Date.now()}`),
         fetch(`${WORKER_URL}?id=${matchId}&t=${Date.now()}`).then(r => r.text())
       ]);
       ctrl = (await rC.json()) || {};
+      customContestsObj = (await rCust.json()) || {};
       winRate = Number(((await rR.json()) || {}).cricket || 35);
 
       const parsed = parseCricbuzzMatchHtml(html, matchInfo.title);
@@ -380,6 +385,33 @@
     const fTag = document.getElementById("fancyLiveTag");
     fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE";
     fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
+
+    // 0. Admin Special Manual Contests
+    const customList = Object.values(customContestsObj || {});
+    document.getElementById("customContestsBox").innerHTML = customList.map(c => {
+      const cLock = gLock || c.status !== "OPEN";
+      const cTxt = c.status !== "OPEN" ? `Winner: ${c.winner}` : lockTxt;
+      const safeTitle = String(c.title || "").replace(/'/g, "");
+      const safeO1 = String(c.opt1 || "YES").replace(/'/g, "");
+      const safeO2 = String(c.opt2 || "NO").replace(/'/g, "");
+      return `<div class="market-card" style="border:1.5px solid #28e04d;">
+        <div class="market-head"><span>🎯 ${c.title} (${c.inning || "Live"})</span><span style="font-size:10px; color:#28e04d;">ADMIN SPECIAL</span></div>
+        <div class="contest-row">
+          <div class="runner-name">${c.opt1}</div>
+          <div class="rate-boxes">
+            <div class="rate-btn rate-back" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO1}',${c.rate1})"><span class="rate-main">${c.rate1}x</span><span class="rate-sub">${c.opt1}</span></div>
+            ${cLock ? `<div class="suspended-overlay">${cTxt}</div>` : ''}
+          </div>
+        </div>
+        <div class="contest-row">
+          <div class="runner-name">${c.opt2}</div>
+          <div class="rate-boxes">
+            <div class="rate-btn rate-lay" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO2}',${c.rate2})"><span class="rate-main">${c.rate2}x</span><span class="rate-sub">${c.opt2}</span></div>
+            ${cLock ? `<div class="suspended-overlay">${cTxt}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
 
     const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
     const aB = ctrl.teamABack || dyn.aBack, aL = ctrl.teamALay || (ctrl.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
@@ -444,6 +476,7 @@
   function filterMarket(type, btn) {
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    document.getElementById("customContestsBox").style.display = (type === "all") ? "block" : "none";
     document.querySelector(".sec-odds").style.display = (type === "all" || type === "odds") ? "block" : "none";
     document.querySelector(".sec-bookmaker").style.display = (type === "all" || type === "bookmaker") ? "block" : "none";
     document.querySelector(".sec-fancy").style.display = (type === "all" || type === "fancy") ? "block" : "none";
@@ -460,12 +493,21 @@
   }
 
   function openBet(mkt, side, line, odd) {
-    selBet = { mkt, side, line, odd: Number(odd) };
+    selBet = { mkt, side, line, odd: Number(odd), customContestId: "" };
     document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line})`;
     document.getElementById("betOddTag").innerText = `@ ${odd}x`;
     document.getElementById("betModal").classList.add("open");
     updateCalc();
   }
+
+  function openCustomBet(cId, mkt, opt, odd) {
+    selBet = { mkt, side: "BACK", line: opt, odd: Number(odd), customContestId: cId };
+    document.getElementById("betTitle").innerText = `${mkt} (${opt})`;
+    document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    document.getElementById("betModal").classList.add("open");
+    updateCalc();
+  }
+
   function setStake(v) { document.getElementById("stakeInput").value = v; updateCalc(); }
   function updateCalc() {
     if (!selBet) return;
@@ -521,6 +563,7 @@
         betId: "BET" + Date.now() + "_" + Math.floor(100 + Math.random() * 900),
         matchId, matchName: matchInfo.title, mobile: mob, userName: userNameStr,
         market: selBet.mkt, side: selBet.side, lockedLine: selBet.line, lockedOdd: selBet.odd,
+        customContestId: selBet.customContestId || "",
         stake: f.debit, profitTarget: f.profit, lockedReturn: f.ret,
         status: "OPEN", time: new Date().toLocaleString("en-IN")
       };
