@@ -279,7 +279,7 @@
     await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
   }
 
-  let settling = false;
+    let settling = false;
   async function checkAndSettleAll() {
     if (settling) return;
     settling = true;
@@ -288,7 +288,13 @@
     stEl.style.color = "#ffd700";
 
     try {
-      const root = (await (await fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`)).json()) || {};
+      const [rootRes, customRes] = await Promise.all([
+        fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/customContests.json?t=${Date.now()}`)
+      ]);
+      const root = (await rootRes.json()) || {};
+      const customRoot = (await customRes.json()) || {};
+
       const myBets = [];
       const openMatchIds = new Set();
 
@@ -296,7 +302,9 @@
         Object.values(mObj || {}).forEach(b => {
           if (!b || String(b.mobile).trim() !== mob) return;
           myBets.push(b);
-          if (String(b.status).toUpperCase() === "OPEN") openMatchIds.add(mId);
+          if (String(b.status).toUpperCase() === "OPEN") {
+            if (!b.customContestId) openMatchIds.add(mId);
+          }
         });
       });
 
@@ -311,9 +319,29 @@
       let newlyWonTotal = 0;
       for (const b of myBets) {
         if (String(b.status).toUpperCase() !== "OPEN") continue;
-        const info = matchLiveMap[b.matchId];
-        if (!info) continue;
-        const verdict = evaluateSingleBet(b, info);
+
+        let verdict = null;
+
+        // 1. Check Admin Special Custom Contest Settlement
+        if (b.customContestId) {
+          const mCustom = customRoot[b.matchId] || {};
+          const contest = mCustom[b.customContestId] || Object.values(mCustom).find(x => x && x.title === b.market);
+          if (contest && String(contest.status || "").toUpperCase() !== "OPEN" && contest.winner) {
+            const winOpt = String(contest.winner).trim().toUpperCase();
+            const pickOpt = String(b.lockedLine || "").trim().toUpperCase();
+            if (winOpt === "VOID" || winOpt === "CANCEL" || winOpt === "CANCELLED") {
+              verdict = { status: "WON", resultInfo: `Admin Refund / Void (${contest.title})`, refundOnly: true };
+            } else {
+              const isWon = pickOpt === winOpt;
+              verdict = { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Admin Result: ${contest.winner}` };
+            }
+          }
+        } else {
+          // 2. Auto Cricbuzz Markets Settlement
+          const info = matchLiveMap[b.matchId];
+          if (info) verdict = evaluateSingleBet(b, info);
+        }
+
         if (!verdict) continue;
 
         b.status = verdict.status;
@@ -323,7 +351,9 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: verdict.status, resultInfo: verdict.resultInfo, settledAt: new Date().toLocaleString("en-IN") })
         });
-        if (verdict.status === "WON") newlyWonTotal += Number(b.lockedReturn || 0);
+        if (verdict.status === "WON") {
+          newlyWonTotal += verdict.refundOnly ? Number(b.stake || 0) : Number(b.lockedReturn || 0);
+        }
       }
 
       if (newlyWonTotal > 0) await creditUserWinning(newlyWonTotal);
@@ -348,6 +378,7 @@
       settling = false;
     }
   }
+  
 
   function setTab(st, btn) {
     curTab = st;
