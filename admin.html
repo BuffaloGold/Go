@@ -148,7 +148,7 @@
   </div>
 </div>
 
-<!-- ==================== CRICKET AUTO-LIMIT, RATE & SMART MANUAL CONTEST ==================== -->
+<!-- CRICKET AUTO-LIMIT, RATE & SMART MANUAL CONTEST -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
     <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Manual Rate, Bhav & Contest Control</h3>
@@ -203,8 +203,8 @@
     <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
 
     <div style="margin-top:16px; padding-top:14px; border-top:1.5px dashed #ffd700;">
-      <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (With Live Pre-Check)</h4>
-      <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Inning, Overs, Batting Team aur Rate check karke hi contest banega</p>
+      <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (Auto-Lock & Auto-Settle)</h4>
+      <p style="font-size:11px; color:#ccc; margin-bottom:8px;">Target Over aur Target Runs dalne par contest apne aap lock & settle hoga</p>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
         <div>
@@ -216,14 +216,14 @@
           </select>
         </div>
         <div>
-          <label style="font-size:11px; color:#ffd700;">Target Over (Optional):</label>
+          <label style="font-size:11px; color:#ffd700;">Target Over (Auto-Lock/Settle):</label>
           <input type="number" id="mc_targetOv" placeholder="e.g. 6, 10, 20" />
         </div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
         <div>
-          <label style="font-size:11px; color:#ffd700;">Target Runs (Optional):</label>
+          <label style="font-size:11px; color:#ffd700;">Target Runs (Auto-Settle):</label>
           <input type="number" id="mc_targetRuns" placeholder="e.g. 50 ya 160" />
         </div>
         <div>
@@ -236,9 +236,9 @@
       <input type="text" id="mc_title" placeholder="e.g. 10 Over Mein 85+ Runs Banenge?" />
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <div><label style="font-size:11px; color:#72bbef;">Option 1 Name</label><input type="text" id="mc_opt1" value="YES" /></div>
+        <div><label style="font-size:11px; color:#72bbef;">Option 1 Name (YES)</label><input type="text" id="mc_opt1" value="YES" /></div>
         <div><label style="font-size:11px; color:#72bbef;">Option 1 Rate (x)</label><input type="number" step="0.01" id="mc_rate1" value="1.90" /></div>
-        <div><label style="font-size:11px; color:#faa9ba;">Option 2 Name</label><input type="text" id="mc_opt2" value="NO" /></div>
+        <div><label style="font-size:11px; color:#faa9ba;">Option 2 Name (NO)</label><input type="text" id="mc_opt2" value="NO" /></div>
         <div><label style="font-size:11px; color:#faa9ba;">Option 2 Rate (x)</label><input type="number" step="0.01" id="mc_rate2" value="1.90" /></div>
       </div>
 
@@ -319,7 +319,6 @@
     return sum;
   }
 
-  // ==================== SIMPLE 3-BOX ADMIN PROFIT LEDGER ====================
   function updateAdminBusinessLedger(uData, wData, dData, allBets) {
     const users = uData || {}, wds = wData || {}, deps = dData || {}, bets = allBets || {};
 
@@ -488,8 +487,7 @@
     }).join("");
     document.getElementById("stTkt").innerText = openCount;
   }
-
-  async function forceLoadAll() {
+   async function forceLoadAll() {
     try {
       const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
       const isTypingReply = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith("repInput_");
@@ -517,6 +515,64 @@
     } catch (e) {
       document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
     }
+  }
+
+  async function autoSettleOpenManualContests() {
+    try {
+      const customRoot = (await dbGet("customContests")) || {};
+      for (const [mId, cMap] of Object.entries(customRoot)) {
+        const openContests = Object.values(cMap || {}).filter(c => c && c.status === "OPEN" && (Number(c.targetOv || 0) > 0 || Number(c.targetRuns || 0) > 0));
+        if (!openContests.length) continue;
+
+        const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+        const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(txt.slice(0, 4500));
+
+        const inns = {};
+        let lastInn = null;
+        for (const x of txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)) {
+          const t = x[1].toUpperCase(), r = Number(x[2]), w = Number(x[3]), ov = Number(x[4]);
+          if (!inns[t] || ov >= inns[t].ov) {
+            inns[t] = { team: t, runs: r, wkts: w, ov };
+            lastInn = inns[t];
+          }
+        }
+        if (!lastInn) continue;
+
+        for (const c of openContests) {
+          const tOv = Number(c.targetOv || 0), tRuns = Number(c.targetRuns || 0);
+          const tKey = String(c.team || "").toUpperCase();
+          const inn = (tKey && tKey !== "CURRENT" && inns[tKey]) ? inns[tKey] : lastInn;
+          let winOpt = "";
+
+          if (tOv > 0 && tRuns > 0) {
+            if (inn.runs >= tRuns && inn.ov <= tOv) winOpt = c.opt1;
+            else if (inn.ov >= tOv || isEnded || inn.wkts >= 10) winOpt = (inn.runs >= tRuns) ? c.opt1 : c.opt2;
+          } else if (tRuns > 0 && tOv === 0) {
+            if (inn.runs >= tRuns) winOpt = c.opt1;
+            else if (isEnded || inn.wkts >= 10) winOpt = c.opt2;
+          }
+
+          if (winOpt) {
+            await dbPatch(`customContests/${mId}/${c.cId}`, { status: "SETTLED", winner: winOpt });
+            const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
+            for (const b of Object.values(betsObj)) {
+              if (!b || b.customContestId !== c.cId || String(b.status).toUpperCase() !== "OPEN") continue;
+              const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
+              await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Auto-Settled: ${winOpt} (${inn.runs}/${inn.wkts})`, settledAt: new Date().toLocaleString("en-IN") });
+              if (isWon && b.mobile) {
+                const u = (await dbGet(`users/${b.mobile}`)) || {};
+                const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
+                const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+                await dbPatch(`users/${b.mobile}`, p);
+              }
+            }
+          }
+        }
+      }
+      const curSelId = document.getElementById("bgCric_matchSelect").value;
+      if (curSelId) loadManualContests(curSelId);
+    } catch (e) {}
   }
 
   async function replyTicket(tktId) {
@@ -624,66 +680,9 @@
   }
 
   forceLoadAll();
-   async function autoSettleOpenManualContests() {
-    try {
-      const customRoot = (await dbGet("customContests")) || {};
-      for (const [mId, cMap] of Object.entries(customRoot)) {
-        const openContests = Object.values(cMap || {}).filter(c => c && c.status === "OPEN" && (Number(c.targetOv || 0) > 0 || Number(c.targetRuns || 0) > 0));
-        if (!openContests.length) continue;
-
-        const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
-        const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-        const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(txt.slice(0, 4500));
-
-        const inns = {};
-        let lastInn = null;
-        for (const x of txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)) {
-          const t = x[1].toUpperCase(), r = Number(x[2]), w = Number(x[3]), ov = Number(x[4]);
-          if (!inns[t] || ov >= inns[t].ov) {
-            inns[t] = { team: t, runs: r, wkts: w, ov };
-            lastInn = inns[t];
-          }
-        }
-        if (!lastInn) continue;
-
-        for (const c of openContests) {
-          const tOv = Number(c.targetOv || 0), tRuns = Number(c.targetRuns || 0);
-          const tKey = String(c.team || "").toUpperCase();
-          const inn = (tKey && tKey !== "CURRENT" && inns[tKey]) ? inns[tKey] : lastInn;
-          let winOpt = "";
-
-          if (tOv > 0 && tRuns > 0) {
-            if (inn.runs >= tRuns && inn.ov <= tOv) winOpt = c.opt1;
-            else if (inn.ov >= tOv || isEnded || inn.wkts >= 10) winOpt = (inn.runs >= tRuns) ? c.opt1 : c.opt2;
-          } else if (tRuns > 0 && tOv === 0) {
-            if (inn.runs >= tRuns) winOpt = c.opt1;
-            else if (isEnded || inn.wkts >= 10) winOpt = c.opt2;
-          }
-
-          if (winOpt) {
-            await dbPatch(`customContests/${mId}/${c.cId}`, { status: "SETTLED", winner: winOpt });
-            const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
-            for (const b of Object.values(betsObj)) {
-              if (!b || b.customContestId !== c.cId || String(b.status).toUpperCase() !== "OPEN") continue;
-              const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
-              await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Auto-Settled: ${winOpt} (${inn.runs}/${inn.wkts})`, settledAt: new Date().toLocaleString("en-IN") });
-              if (isWon && b.mobile) {
-                const u = (await dbGet(`users/${b.mobile}`)) || {};
-                const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
-                const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
-                await dbPatch(`users/${b.mobile}`, p);
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {}
-  }
-  setInterval(autoSettleOpenManualContests, 8000);
- 
   setInterval(forceLoadAll, 8000);
+  setInterval(autoSettleOpenManualContests, 8000);
 
-  // ==================== CRICKET SMART PRE-CHECK & MANUAL CONTEST ====================
   function parseTeamsFromTitle(title) {
     const clean = String(title || "").split(/\b(?:\d+(?:st|nd|rd|th)|Final|Semi|Quarter|Qualifier|Eliminator|Icc|Womens?|Mens?|Emerging|Trophy|Cup|League|Series|Elite|Group|Match|Test|Odi|T20)\b/i)[0].trim();
     const parts = clean.split(/\s+vs\s+/i);
@@ -912,7 +911,7 @@
     box.innerHTML = list.map(c => `
       <div style="background:#12021a; border:1px solid #6b1d91; border-radius:8px; padding:9px; margin-bottom:7px; font-size:12px;">
         <div class="row-between"><strong style="color:#ffd700;">🎯 ${c.title} (${c.inning || "Live"})</strong><span class="badge ${c.status}">${c.status}</span></div>
-        <div style="color:#ccc; margin:4px 0;">1) ${c.opt1} (@ ${c.rate1}x) | 2) ${c.opt2} (@ ${c.rate2}x)</div>
+        <div style="color:#ccc; margin:4px 0;">1) ${c.opt1} (@ ${c.rate1}x) | 2) ${c.opt2} (@ ${c.rate2}x)${(c.targetOv || c.targetRuns) ? ` • Auto: ${c.targetOv ? c.targetOv + " Ov" : ""} ${c.targetRuns ? c.targetRuns + " Runs" : ""}` : ""}</div>
         ${c.status === "OPEN" ? `
           <div style="display:flex; gap:6px; margin-top:6px;">
             <button type="button" class="btn btn-green" style="flex:1;" onclick="settleManualContest('${mId}','${c.cId}','${c.opt1}')">🏆 ${c.opt1} Won</button>
