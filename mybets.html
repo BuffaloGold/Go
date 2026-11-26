@@ -128,8 +128,6 @@
     });
     Object.values(inns).forEach(v => list.push(v));
 
-    // Exact per-over tracking from Cricbuzz commentary & over summaries
-    // Ball 4.1 to 4.6 belongs to Over 5 (ovNo = Math.floor(ball) + 1)
     const overStats = {};
     const seenBalls = new Set();
     for (const bm of txt.matchAll(/\b(\d+)\.([1-6])\s+[A-Za-z0-9\s,'-]{3,110}?\b(no run|1 run|2 runs|3 runs|FOUR|SIX|out|wide|no ball)\b/gi)) {
@@ -149,7 +147,6 @@
       else if (ev === "OUT") overStats[ovNo].wkts += 1;
     }
 
-    // Also capture "End of over X (Y runs)" summary if commentary truncated
     for (const em of txt.matchAll(/End of over\s+(\d+)\s*\(\s*(\d+)\s*runs?\s*\)/gi)) {
       const ovNo = Number(em[1]);
       if (!overStats[ovNo]) overStats[ovNo] = { runs: 0, fours: 0, sixes: 0, wkts: 0, ballsSeen: 6 };
@@ -169,7 +166,6 @@
     const side = String(b.side || "").toUpperCase();
     const line = String(b.lockedLine || "");
 
-    // 1. Over Special: Total Runs ("Over 5 Runs (DCP)")
     const ovRunM = mkt.match(/^Over\s+(\d+)\s+Runs\s*\(([A-Z0-9]+)\)/i);
     if (ovRunM) {
       const targetOv = Number(ovRunM[1]);
@@ -189,7 +185,6 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Exact Runs: ${ovRuns}` };
     }
 
-    // 2. Over Special: Fours ("Over 5 Fours (DCP)")
     const ov4M = mkt.match(/^Over\s+(\d+)\s+Fours\s*\(([A-Z0-9]+)\)/i);
     if (ov4M) {
       const targetOv = Number(ov4M[1]);
@@ -200,7 +195,6 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Fours: ${fours}` };
     }
 
-    // 3. Over Special: Sixes ("Over 5 Sixes (DCP)")
     const ov6M = mkt.match(/^Over\s+(\d+)\s+Sixes\s*\(([A-Z0-9]+)\)/i);
     if (ov6M) {
       const targetOv = Number(ov6M[1]);
@@ -211,7 +205,6 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Sixes: ${sixes}` };
     }
 
-    // 4. Over Special: Wickets ("Over 5 Wicket (DCP)")
     const ovWktM = mkt.match(/^Over\s+(\d+)\s+Wicket\s*\(([A-Z0-9]+)\)/i);
     if (ovWktM) {
       const targetOv = Number(ovWktM[1]);
@@ -229,7 +222,6 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Wickets: ${ovWkts}` };
     }
 
-    // 5. Lucky Number Last Digit
     const digM = mkt.match(/(\d+)\s*Over Last Digit\s*\(([A-Z0-9]+)\)/i);
     if (digM) {
       const targetOv = Number(digM[1]);
@@ -241,7 +233,6 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `${inn.team} Score ${inn.runs} → Last Digit: ${lastDigit}` };
     }
 
-    // 6. Over Sessions (4, 6, 10, 15, 20 Over Run)
     const sessM = mkt.match(/^(\d+)\s*Over Run\s*\(([A-Z0-9]+)\)/i);
     if (sessM) {
       const targetOv = Number(sessM[1]);
@@ -252,14 +243,12 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `${inn.team} ${targetOv} Ov: ${inn.runs}/${inn.wkts}` };
     }
 
-    // 7. Tied Match
     if (/Tied Match/i.test(mkt)) {
       if (!info.isEnded) return null;
       const isWon = /YES/i.test(line) ? info.isTied : !info.isTied;
       return { status: isWon ? "WON" : "LOST", resultInfo: info.isTied ? "Match Tied" : "Not Tied" };
     }
 
-    // 8. Match Odds & Bookmaker
     if (/Match Odds|Bookmaker/i.test(mkt)) {
       if (!info.isEnded || !info.winnerName) return null;
       const pickTeam = mkt.split("(")[0].trim().toUpperCase();
@@ -279,149 +268,14 @@
     await fetch(`${FB_URL}/users/${mob}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
   }
 
-    let settling = false;
-  async function checkAndSettleAll() {
-    if (settling) return;
-    settling = true;
-    const stEl = document.getElementById("autoStatus");
-    stEl.innerText = "⏳ CHECKING...";
-    stEl.style.color = "#ffd700";
-
-    try {
-      const [rootRes, customRes] = await Promise.all([
-        fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`),
-        fetch(`${FB_URL}/customContests.json?t=${Date.now()}`)
-      ]);
-      const root = (await rootRes.json()) || {};
-      const customRoot = (await customRes.json()) || {};
-
-      const myBets = [];
-      const openMatchIds = new Set();
-
-      Object.entries(root).forEach(([mId, mObj]) => {
-        Object.values(mObj || {}).forEach(b => {
-          if (!b || String(b.mobile).trim() !== mob) return;
-          myBets.push(b);
-          if (String(b.status).toUpperCase() === "OPEN") {
-            if (!b.customContestId) openMatchIds.add(mId);
-          }
-        });
-      });
-
-      const matchLiveMap = {};
-      await Promise.all(Array.from(openMatchIds).map(async mId => {
-        try {
-          const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
-          matchLiveMap[mId] = parseLiveSummary(html);
-        } catch (e) {}
-      }));
-
-      let newlyWonTotal = 0;
-      for (const b of myBets) {
-        if (String(b.status).toUpperCase() !== "OPEN") continue;
-
-        let verdict = null;
-
-        // 1. Check Admin Special Custom Contest Settlement
-        if (b.customContestId) {
-          const mCustom = customRoot[b.matchId] || {};
-          const contest = mCustom[b.customContestId] || Object.values(mCustom).find(x => x && x.title === b.market);
-          if (contest && String(contest.status || "").toUpperCase() !== "OPEN" && contest.winner) {
-            const winOpt = String(contest.winner).trim().toUpperCase();
-            const pickOpt = String(b.lockedLine || "").trim().toUpperCase();
-            if (winOpt === "VOID" || winOpt === "CANCEL" || winOpt === "CANCELLED") {
-              verdict = { status: "WON", resultInfo: `Admin Refund / Void (${contest.title})`, refundOnly: true };
-            } else {
-              const isWon = pickOpt === winOpt;
-              verdict = { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Admin Result: ${contest.winner}` };
-            }
-          }
-        } else {
-          // 2. Auto Cricbuzz Markets Settlement
-          const info = matchLiveMap[b.matchId];
-          if (info) verdict = evaluateSingleBet(b, info);
-        }
-
-        if (!verdict) continue;
-
-        b.status = verdict.status;
-        b.resultInfo = verdict.resultInfo;
-        await fetch(`${FB_URL}/cricketBets/${b.matchId}/${b.betId}.json`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: verdict.status, resultInfo: verdict.resultInfo, settledAt: new Date().toLocaleString("en-IN") })
-        });
-        if (verdict.status === "WON") {
-          newlyWonTotal += verdict.refundOnly ? Number(b.stake || 0) : Number(b.lockedReturn || 0);
-        }
-      }
-
-      if (newlyWonTotal > 0) await creditUserWinning(newlyWonTotal);
-      await syncWallet();
-
-      allUserBets = myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
-      const openCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "OPEN").length;
-      const wonCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "WON").length;
-      const lostCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "LOST").length;
-
-      document.getElementById("tAll").innerText = `All (${openCnt + wonCnt + lostCnt})`;
-      document.getElementById("tOpen").innerText = `⏳ Open (${openCnt})`;
-      document.getElementById("tWon").innerText = `🏆 Won (${wonCnt})`;
-      document.getElementById("tLost").innerText = `❌ Lost (${lostCnt})`;
-
-      stEl.innerText = "● AUTO-SETTLE ON";
-      stEl.style.color = "#28e04d";
-      renderBets();
-    } catch (e) {
-      stEl.innerText = "⚠️ RETRYING...";
-    } finally {
-      settling = false;
-    }
-  }
-  
-
-  function setTab(st, btn) {
-    curTab = st;
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    btn.classList.add("active");
-    renderBets();
-  }
-
-  function renderBets() {
-    const box = document.getElementById("betsContainer");
-    const validList = allUserBets.filter(b => ["OPEN", "WON", "LOST"].includes(String(b.status).toUpperCase()));
-    const list = curTab === "ALL" ? validList : validList.filter(b => String(b.status).toUpperCase() === curTab);
-    if (!list.length) {
-      box.innerHTML = `<div style="text-align:center; padding:35px 15px; color:#aaa; font-size:13px;">Is section mein koi bet nahi hai.</div>`;
-      return;
-    }
-    box.innerHTML = list.map(b => {
-      const st = String(b.status || "OPEN").toUpperCase();
-      const badgeTxt = st === "OPEN" ? "⏳ LIVE OPEN" : st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : "❌ LOST";
-      return `<div class="bet-card">
-        <div class="bet-head">
-          <div class="m-name">🏏 ${b.matchName || "Match"}</div>
-          <span class="st-badge st-${st}">${badgeTxt}</span>
-        </div>
-        <div class="pick-line">${b.lockedLine} (${b.side}) @ ${b.lockedOdd}x</div>
-        <div style="font-size:11px; color:#94a3b8;">${b.market}</div>
-        <div class="bet-foot">
-          <span>Stake: <b>₹${b.stake}</b> • ${b.time || ""}</span>
-          <span style="color:#28e04d; font-weight:800;">Return: ₹${b.lockedReturn}</span>
-        </div>
-        ${b.resultInfo ? `<div class="res-note">${b.resultInfo}</div>` : ""}
-      </div>`;
-    }).join("");
-  }
-
-    function evaluateCustomContestAuto(contest, info) {
+  function evaluateCustomContestAuto(contest, info) {
     if (!contest) return null;
     if (String(contest.status || "").toUpperCase() !== "OPEN" && contest.winner) {
       return { winner: String(contest.winner).trim() };
     }
     const tOv = Number(contest.targetOv || 0);
     const tRuns = Number(contest.targetRuns || 0);
-    if (tOv <= 0 && tRuns <= 0) return null; // Pure manual question (admin button se settle hoga)
+    if (tOv <= 0 && tRuns <= 0) return null;
 
     const teamKey = String(contest.team || "").toUpperCase();
     const inn = (teamKey && teamKey !== "CURRENT" && info.inns[teamKey]) ? info.inns[teamKey] : info.activeInn;
@@ -552,7 +406,42 @@
       settling = false;
     }
   }
-  
+
+  function setTab(st, btn) {
+    curTab = st;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    renderBets();
+  }
+
+  function renderBets() {
+    const box = document.getElementById("betsContainer");
+    const validList = allUserBets.filter(b => ["OPEN", "WON", "LOST"].includes(String(b.status).toUpperCase()));
+    const list = curTab === "ALL" ? validList : validList.filter(b => String(b.status).toUpperCase() === curTab);
+    if (!list.length) {
+      box.innerHTML = `<div style="text-align:center; padding:35px 15px; color:#aaa; font-size:13px;">Is section mein koi bet nahi hai.</div>`;
+      return;
+    }
+    box.innerHTML = list.map(b => {
+      const st = String(b.status || "OPEN").toUpperCase();
+      const badgeTxt = st === "OPEN" ? "⏳ LIVE OPEN" : st === "WON" ? `🏆 WON +₹${b.lockedReturn}` : "❌ LOST";
+      return `<div class="bet-card">
+        <div class="bet-head">
+          <div class="m-name">🏏 ${b.matchName || "Match"}</div>
+          <span class="st-badge st-${st}">${badgeTxt}</span>
+        </div>
+        <div class="pick-line">${b.lockedLine} (${b.side}) @ ${b.lockedOdd}x</div>
+        <div style="font-size:11px; color:#94a3b8;">${b.market}</div>
+        <div class="bet-foot">
+          <span>Stake: <b>₹${b.stake}</b> • ${b.time || ""}</span>
+          <span style="color:#28e04d; font-weight:800;">Return: ₹${b.lockedReturn}</span>
+        </div>
+        ${b.resultInfo ? `<div class="res-note">${b.resultInfo}</div>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  checkAndSettleAll();
   setInterval(checkAndSettleAll, 8000);
 </script>
 </body>
