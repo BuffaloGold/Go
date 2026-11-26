@@ -414,7 +414,145 @@
     }).join("");
   }
 
-  checkAndSettleAll();
+    function evaluateCustomContestAuto(contest, info) {
+    if (!contest) return null;
+    if (String(contest.status || "").toUpperCase() !== "OPEN" && contest.winner) {
+      return { winner: String(contest.winner).trim() };
+    }
+    const tOv = Number(contest.targetOv || 0);
+    const tRuns = Number(contest.targetRuns || 0);
+    if (tOv <= 0 && tRuns <= 0) return null; // Pure manual question (admin button se settle hoga)
+
+    const teamKey = String(contest.team || "").toUpperCase();
+    const inn = (teamKey && teamKey !== "CURRENT" && info.inns[teamKey]) ? info.inns[teamKey] : info.activeInn;
+    if (!inn) return null;
+
+    const opt1 = String(contest.opt1 || "YES").trim();
+    const opt2 = String(contest.opt2 || "NO").trim();
+
+    if (tOv > 0 && tRuns > 0) {
+      if (inn.runs >= tRuns && inn.ov <= tOv) return { winner: opt1, note: `${inn.team} ${inn.runs}/${inn.wkts} (${inn.ovStr} Ov)` };
+      if (inn.ov >= tOv || info.isEnded || inn.wkts >= 10) {
+        const won1 = inn.runs >= tRuns;
+        return { winner: won1 ? opt1 : opt2, note: `${inn.team} ${tOv} Ov Score: ${inn.runs}/${inn.wkts}` };
+      }
+      return null;
+    }
+
+    if (tRuns > 0 && tOv === 0) {
+      if (inn.runs >= tRuns) return { winner: opt1, note: `${inn.team} Reached ${inn.runs} Runs` };
+      if (info.isEnded || inn.wkts >= 10) return { winner: opt2, note: `${inn.team} Final: ${inn.runs}/${inn.wkts}` };
+      return null;
+    }
+
+    return null;
+  }
+
+  let settling = false;
+  async function checkAndSettleAll() {
+    if (settling) return;
+    settling = true;
+    const stEl = document.getElementById("autoStatus");
+    stEl.innerText = "⏳ CHECKING...";
+    stEl.style.color = "#ffd700";
+
+    try {
+      const [rootRes, customRes] = await Promise.all([
+        fetch(`${FB_URL}/cricketBets.json?t=${Date.now()}`),
+        fetch(`${FB_URL}/customContests.json?t=${Date.now()}`)
+      ]);
+      const root = (await rootRes.json()) || {};
+      const customRoot = (await customRes.json()) || {};
+
+      const myBets = [];
+      const openMatchIds = new Set();
+
+      Object.entries(root).forEach(([mId, mObj]) => {
+        Object.values(mObj || {}).forEach(b => {
+          if (!b || String(b.mobile).trim() !== mob) return;
+          myBets.push(b);
+          if (String(b.status).toUpperCase() === "OPEN") openMatchIds.add(mId);
+        });
+      });
+
+      const matchLiveMap = {};
+      await Promise.all(Array.from(openMatchIds).map(async mId => {
+        try {
+          const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+          matchLiveMap[mId] = parseLiveSummary(html);
+        } catch (e) {}
+      }));
+
+      let newlyWonTotal = 0;
+      for (const b of myBets) {
+        if (String(b.status).toUpperCase() !== "OPEN") continue;
+        const info = matchLiveMap[b.matchId];
+        let verdict = null;
+
+        if (b.customContestId) {
+          const mCustom = customRoot[b.matchId] || {};
+          const contest = mCustom[b.customContestId] || Object.values(mCustom).find(x => x && x.title === b.market);
+          const autoRes = contest ? evaluateCustomContestAuto(contest, info || { inns: {}, activeInn: null, isEnded: false }) : null;
+          if (autoRes && autoRes.winner) {
+            if (String(contest.status || "").toUpperCase() === "OPEN" && contest.cId) {
+              contest.status = "SETTLED";
+              contest.winner = autoRes.winner;
+              await fetch(`${FB_URL}/customContests/${b.matchId}/${contest.cId}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "SETTLED", winner: autoRes.winner })
+              });
+            }
+            const winOpt = String(autoRes.winner).trim().toUpperCase();
+            const pickOpt = String(b.lockedLine || "").trim().toUpperCase();
+            if (winOpt === "VOID" || winOpt === "CANCEL" || winOpt === "CANCELLED") {
+              verdict = { status: "WON", resultInfo: `Admin Refund / Void (${contest.title})`, refundOnly: true };
+            } else {
+              const isWon = pickOpt === winOpt;
+              verdict = { status: isWon ? "WON" : "LOST", resultInfo: `🎯 ${autoRes.note || ("Result: " + autoRes.winner)}` };
+            }
+          }
+        } else if (info) {
+          verdict = evaluateSingleBet(b, info);
+        }
+
+        if (!verdict) continue;
+
+        b.status = verdict.status;
+        b.resultInfo = verdict.resultInfo;
+        await fetch(`${FB_URL}/cricketBets/${b.matchId}/${b.betId}.json`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: verdict.status, resultInfo: verdict.resultInfo, settledAt: new Date().toLocaleString("en-IN") })
+        });
+        if (verdict.status === "WON") {
+          newlyWonTotal += verdict.refundOnly ? Number(b.stake || 0) : Number(b.lockedReturn || 0);
+        }
+      }
+
+      if (newlyWonTotal > 0) await creditUserWinning(newlyWonTotal);
+      await syncWallet();
+
+      allUserBets = myBets.sort((a, b) => String(b.betId || "").localeCompare(String(a.betId || "")));
+      const openCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "OPEN").length;
+      const wonCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "WON").length;
+      const lostCnt = allUserBets.filter(x => String(x.status).toUpperCase() === "LOST").length;
+
+      document.getElementById("tAll").innerText = `All (${openCnt + wonCnt + lostCnt})`;
+      document.getElementById("tOpen").innerText = `⏳ Open (${openCnt})`;
+      document.getElementById("tWon").innerText = `🏆 Won (${wonCnt})`;
+      document.getElementById("tLost").innerText = `❌ Lost (${lostCnt})`;
+
+      stEl.innerText = "● AUTO-SETTLE ON";
+      stEl.style.color = "#28e04d";
+      renderBets();
+    } catch (e) {
+      stEl.innerText = "⚠️ RETRYING...";
+    } finally {
+      settling = false;
+    }
+  }
+  
   setInterval(checkAndSettleAll, 8000);
 </script>
 </body>
