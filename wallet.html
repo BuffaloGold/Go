@@ -24,17 +24,10 @@
   .btn-wd:disabled { background: #4a3b52; color: #999; cursor: not-allowed; }
   .btn-copy { background: #3d0c57; color: #ffd700; border: 1px dashed #ffd700; padding: 8px; font-size: 13px; margin-bottom: 8px; }
   .lock-notice { background: #3d0c24; border: 1px solid #ff4d6d; color: #ffb3c1; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 8px; }
-  .upi-row { display: flex; gap: 7px; align-items: center; margin: 8px 0; }
-  .upi-row input { margin: 0; flex: 1; }
-  .btn-verify { padding: 12px 14px; border: none; border-radius: 10px; background: linear-gradient(180deg, #3b82f6, #1d4ed8); color: #fff; font-weight: bold; font-size: 13px; cursor: pointer; white-space: nowrap; }
-  .btn-verify:disabled { background: #4a3b52; color: #999; cursor: not-allowed; }
-  .upi-verified-box { background: #0c2e16; border: 1.5px solid #28e04d; color: #86efac; padding: 10px 12px; border-radius: 10px; font-size: 12px; margin-bottom: 8px; display: none; }
-  .upi-verified-box strong { color: #ffd700; font-size: 14px; display: block; margin-top: 2px; }
   .qr-section { background: #14021f; border: 2px solid #28e04d; border-radius: 12px; padding: 14px; text-align: center; margin-top: 12px; display: none; }
   .qr-img { width: 190px; height: 190px; background: #fff; padding: 8px; border-radius: 10px; margin: 10px auto; display: block; }
   .status-pill { background: #2b1d02; border: 1px solid #ffae00; color: #ffae00; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-top: 10px; }
 
-  /* 3 Separate History Tabs CSS */
   .hist-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #14021f; padding: 4px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #5c197d; }
   .h-tab { padding: 8px 4px; border: none; border-radius: 8px; background: transparent; color: #ccc; font-size: 11px; font-weight: bold; cursor: pointer; text-align: center; }
   .h-tab.active { background: #3d0c57; color: #ffd700; border: 1px solid #ffd700; }
@@ -47,7 +40,6 @@
   .nav-item.active { color: #ffd700; font-weight: bold; }
   .nav-icon { font-size: 20px; display: block; }
 
-  /* Success Receipt Modal CSS */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
   .modal-box { background: #1f042e; border: 2px solid #28e04d; border-radius: 18px; padding: 22px 18px; text-align: center; width: 100%; max-width: 350px; box-shadow: 0 0 25px rgba(40, 224, 77, 0.4); animation: popIn 0.25s ease-out; }
   @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -100,17 +92,7 @@
     </div>
 
     <input type="number" id="wdInput" placeholder="Withdraw Amount (Min ₹100)" disabled>
-    
-    <div class="upi-row">
-      <input type="text" id="upiId" placeholder="Enter Your UPI ID (e.g. name@ybl)" disabled oninput="resetUpiVerify()">
-      <button type="button" class="btn-verify" id="verifyUpiBtn" disabled>🔍 Verify</button>
-    </div>
-
-    <div id="upiVerifiedBox" class="upi-verified-box">
-      ✅ <span>UPI Verified (<span id="upiBankTag">UPI</span>)</span>
-      <strong id="upiHolderName">-</strong>
-    </div>
-
+    <input type="text" id="upiId" placeholder="Enter Your UPI ID (e.g. name@okicici)" disabled>
     <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT ₹300 TO UNLOCK</button>
   </div>
 
@@ -173,10 +155,6 @@
   let currentAmtKey = null;
   let isCrediting = false;
   let activeHistTab = "deposit";
-  let isUpiVerified = false;
-  let verifiedUpiId = "";
-  let verifiedUpiName = "";
-  let verifiedUpiBank = "";
   const userRef = ref(db, "users/" + mobile);
 
   function calcTotalDeposited(u) {
@@ -224,14 +202,79 @@
       <div class="txn-item">
         <div>
           <strong>${t.type}</strong>
-          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} | Order: ${t.orderId || '-'}</div>` : ''}
+          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} \vert{} Order:${t.orderId || '-'}</div>` : ''}
           <div class="txn-date">${t.date}</div>
         </div>
         <div style="font-weight:bold; font-size:15px; color:${String(t.amt).startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
       </div>
     `).join("") || `<div style="color:#aaa; font-size:12px; padding:10px 0;">${emptyLabel}</div>`;
   }
-   onValue(userRef, (snapshot) => {
+   // Lifetime Deposit Commission Credit to Referrer (5% Starter | 8% VIP Agent | 10% Diamond Agent)
+  async function creditReferrerCommission(depositorData, depositAmt, depOrderId, nowStr) {
+    try {
+      const refId = String(depositorData?.referredBy || depositorData?.refBy || "").trim();
+      if (!refId || refId === mobile) return;
+
+      const allSnap = await get(ref(db, "users"));
+      if (!allSnap.exists()) return;
+      const allUsers = allSnap.val();
+
+      let referrerMob = "";
+      if (allUsers[refId]) {
+        referrerMob = refId;
+      } else {
+        for (const k in allUsers) {
+          if (String(allUsers[k]?.refCode || "").toUpperCase() === refId.toUpperCase()) {
+            referrerMob = k;
+            break;
+          }
+        }
+      }
+      if (!referrerMob || referrerMob === mobile || !allUsers[referrerMob]) return;
+
+      const rUser = allUsers[referrerMob];
+      const rCode = rUser.refCode || referrerMob;
+
+      // Count active referrals (deposited >= 300) to determine VIP Agent Commission Tier
+      let activeCount = 0;
+      Object.keys(allUsers).forEach(k => {
+        if (k === referrerMob) return;
+        const u = allUsers[k] || {};
+        if (u.referredBy === referrerMob || u.referredBy === rCode || u.refBy === referrerMob || u.refBy === rCode) {
+          if ((Number(u.totalDeposited || 0) >= 300) || u.hasDeposited || k === mobile) activeCount++;
+        }
+      });
+
+      const ratePct = activeCount >= 25 ? 10 : activeCount >= 10 ? 8 : 5;
+      const commAmt = Number(((depositAmt * ratePct) / 100).toFixed(2));
+      if (commAmt <= 0) return;
+
+      const curWin = Number(rUser.winningBal ?? rUser.winningBalance ?? 0);
+      const curCommTotal = Number(rUser.agentCommission || 0);
+      const curRefEarn = Number(rUser.referEarn || 0);
+      const rTxns = Array.isArray(rUser.txns) ? [...rUser.txns] : [];
+
+      rTxns.unshift({
+        type: `Agent Commission (${ratePct}% from ${depositorData.name || mobile})`,
+        orderId: depOrderId,
+        refId: `COMM_${ratePct}%`,
+        amt: "+₹" + commAmt,
+        date: nowStr
+      });
+
+      const patchObj = {
+        winningBal: Number((curWin + commAmt).toFixed(2)),
+        agentCommission: Number((curCommTotal + commAmt).toFixed(2)),
+        referEarn: Number((curRefEarn + commAmt).toFixed(2)),
+        txns: rTxns.slice(0, 30)
+      };
+      if ("winningBalance" in rUser) patchObj.winningBalance = patchObj.winningBal;
+
+      await update(ref(db, "users/" + referrerMob), patchObj);
+    } catch (e) {}
+  }
+
+  onValue(userRef, (snapshot) => {
     if (!snapshot.exists() || !snapshot.val().name) {
       localStorage.removeItem("activeUser");
       localStorage.removeItem("cachedUser");
@@ -249,18 +292,10 @@
     document.getElementById("wdLockMsg").style.display = isUnlocked ? "none" : "block";
     document.getElementById("wdInput").disabled = !isUnlocked;
     document.getElementById("upiId").disabled = !isUnlocked;
-    document.getElementById("verifyUpiBtn").disabled = !isUnlocked;
-
-    if (!isUnlocked) {
-      document.getElementById("wdBtn").disabled = true;
-      document.getElementById("wdBtn").innerText = `🔒 DEPOSIT ₹${Math.max(0, 300 - totalDep)} MORE TO UNLOCK`;
-    } else if (!isUpiVerified) {
-      document.getElementById("wdBtn").disabled = true;
-      document.getElementById("wdBtn").innerText = "🔍 PEHLE UPI VERIFY KAREIN";
-    } else {
-      document.getElementById("wdBtn").disabled = false;
-      document.getElementById("wdBtn").innerText = "💸 REQUEST WITHDRAWAL";
-    }
+    document.getElementById("wdBtn").disabled = !isUnlocked;
+    document.getElementById("wdBtn").innerText = isUnlocked
+      ? "REQUEST WITHDRAWAL"
+      : `🔒 DEPOSIT ₹${Math.max(0, 300 - totalDep)} MORE TO UNLOCK`;
 
     renderFilteredTxns();
   }, (error) => {
@@ -340,6 +375,9 @@
               txns: txns.slice(0, 30)
             });
 
+            // Auto-credit Lifetime Agent Commission to Referrer's Winning Wallet
+            await creditReferrerCommission(userData, baseAmt, depId, nowStr);
+
             document.getElementById("qrBox").style.display = "none";
             document.getElementById("qrImage").src = "";
             document.getElementById("depInput").value = "";
@@ -366,93 +404,6 @@
     alert("✅ UPI ID (" + MERCHANT_UPI + ") copy ho gayi!");
   });
 
-  function detectUpiProvider(handle) {
-    const h = handle.toLowerCase();
-    if (/^(ybl|ibl|axl)$/.test(h)) return "PhonePe UPI";
-    if (/^(paytm|ptyes|ptaxis|pthdfc|ptsbi)$/.test(h)) return "Paytm UPI";
-    if (/^(okicici|okaxis|oksbi|okhdfcbank)$/.test(h)) return "Google Pay UPI";
-    if (/^(apl|rapl|yapl)$/.test(h)) return "Amazon Pay UPI";
-    if (/^(upi|icici|sbi|hdfcbank|axisbank|kotak|barodampay)$/.test(h)) return "BHIM / Bank UPI";
-    return "Verified Bank UPI";
-  }
-
-  window.resetUpiVerify = function() {
-    if (!isUpiVerified && document.getElementById("upiVerifiedBox").style.display === "none") return;
-    isUpiVerified = false;
-    verifiedUpiId = "";
-    verifiedUpiName = "";
-    verifiedUpiBank = "";
-    document.getElementById("upiVerifiedBox").style.display = "none";
-    document.getElementById("verifyUpiBtn").innerText = "🔍 Verify";
-    const totalDep = calcTotalDeposited(userData);
-    if (totalDep >= 300) {
-      document.getElementById("wdBtn").disabled = true;
-      document.getElementById("wdBtn").innerText = "🔍 PEHLE UPI VERIFY KAREIN";
-    }
-  };
-
-  document.getElementById("verifyUpiBtn").addEventListener("click", async () => {
-    if (!userData || !userData.name) return;
-    const rawUpi = document.getElementById("upiId").value.trim().toLowerCase();
-    const upiRegex = /^[a-z0-9._-]{2,64}@[a-z0-9]{2,20}$/;
-    if (!upiRegex.test(rawUpi)) {
-      return alert("❌ Sahi UPI ID dalein (jaise: 9876543210@ybl ya naam@okicici)");
-    }
-
-    const vBtn = document.getElementById("verifyUpiBtn");
-    vBtn.disabled = true;
-    vBtn.innerText = "⏳ Checking...";
-
-    try {
-      const handle = rawUpi.split("@")[1];
-      const bankApp = detectUpiProvider(handle);
-      const safeUpiKey = rawUpi.replace(/[.#$\[\]\/]/g, "_");
-
-      const savedSnap = await get(ref(db, "verifiedUpis/" + safeUpiKey));
-      let holderName = "";
-      if (savedSnap.exists() && savedSnap.val().holderName) {
-        holderName = savedSnap.val().holderName;
-      } else {
-        const defaultName = String(userData.name || "").trim();
-        const entered = prompt(
-          `🔍 UPI Handle Verified: ${rawUpi} (${bankApp})\n\nBank Account Holder ka poora naam confirm karein:`,
-          defaultName
-        );
-        if (!entered || entered.trim().length < 2) {
-          vBtn.disabled = false;
-          vBtn.innerText = "🔍 Verify";
-          return;
-        }
-        holderName = entered.trim().toUpperCase();
-        await set(ref(db, "verifiedUpis/" + safeUpiKey), {
-          upi: rawUpi,
-          holderName,
-          bankApp,
-          mobile,
-          verifiedAt: Date.now()
-        });
-      }
-
-      isUpiVerified = true;
-      verifiedUpiId = rawUpi;
-      verifiedUpiName = holderName;
-      verifiedUpiBank = bankApp;
-
-      document.getElementById("upiBankTag").innerText = bankApp;
-      document.getElementById("upiHolderName").innerText = `👤 ${holderName}`;
-      document.getElementById("upiVerifiedBox").style.display = "block";
-
-      document.getElementById("wdBtn").disabled = false;
-      document.getElementById("wdBtn").innerText = "💸 REQUEST WITHDRAWAL";
-      vBtn.innerText = "✅ Verified";
-    } catch (e) {
-      alert("Verification Error: " + e.message);
-      vBtn.innerText = "🔍 Verify";
-    } finally {
-      vBtn.disabled = false;
-    }
-  });
-
   document.getElementById("wdBtn").addEventListener("click", async () => {
     if (!userData || !userData.name) return;
     const totalDep = calcTotalDeposited(userData);
@@ -461,12 +412,10 @@
     }
 
     let amt = parseInt(document.getElementById("wdInput").value);
-    let upi = document.getElementById("upiId").value.trim().toLowerCase();
+    let upi = document.getElementById("upiId").value.trim();
 
-    if (!isUpiVerified || upi !== verifiedUpiId) {
-      return alert("⚠️ Pehle 'Verify' button dabakar apni UPI ID verify karein!");
-    }
     if (!amt || amt < 100) return alert("Minimum withdrawal ₹100 hai!");
+    if (!upi.includes("@")) return alert("Sahi UPI ID dalein!");
     if (amt > Number(userData.winningBal || 0)) return alert("Aapke Winning Wallet mein itna balance nahi hai!");
 
     const wdId = "WD" + Date.now().toString().slice(-8);
@@ -474,7 +423,7 @@
 
     let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
     txns.unshift({
-      type: `Withdraw (${upi} • ${verifiedUpiName})`,
+      type: "Withdraw (" + upi + ")",
       orderId: wdId,
       refId: "PENDING",
       amt: "-₹" + amt,
@@ -487,19 +436,11 @@
     });
 
     await set(ref(db, "withdrawals/" + wdId), {
-      reqId: wdId,
-      mobile,
-      name: userData.name,
-      verifiedName: verifiedUpiName,
-      upiBank: verifiedUpiBank,
-      amount: amt,
-      upi,
-      status: "PENDING",
-      date: nowStr
+      reqId: wdId, mobile, name: userData.name, amount: amt, upi, status: "PENDING", date: nowStr
     });
 
     document.getElementById("wdInput").value = "";
-    alert(`✅ ₹${amt} ka withdrawal request bhej diya gaya!\n\nUPI: ${upi}\nVerified Name: ${verifiedUpiName}\nOrder ID: ${wdId}`);
+    alert("⏳ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") bhej diya gaya!");
   });
 </script>
 </body>
