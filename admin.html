@@ -47,6 +47,19 @@
   .qr-popup { display: none; background: #12021a; border: 1px dashed #28e04d; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 8px; }
   .qr-popup img { width: 170px; height: 170px; background: #fff; padding: 6px; border-radius: 8px; margin: 6px auto; display: block; }
   .hidden { display: none; }
+
+  /* Market Auto/Manual Switch Card Styles */
+  .mkt-ctrl-box { background: #13021c; border: 1px solid #5c197d; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .mkt-ctrl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .mkt-ctrl-title { font-size: 12px; font-weight: 800; color: #ffd700; }
+  .mode-switch { display: inline-flex; background: #0a0110; border: 1px solid #6b1d91; border-radius: 7px; overflow: hidden; }
+  .mode-btn { padding: 5px 10px; border: none; font-size: 10px; font-weight: 900; cursor: pointer; background: transparent; color: #aaa; }
+  .mode-btn.auto-on { background: #28e04d; color: #000; }
+  .mode-btn.man-on { background: #ff9f1c; color: #000; }
+  .mkt-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 6px; }
+  .mkt-inputs input { margin: 2px 0 4px; padding: 8px; font-size: 13px; }
+  .mkt-inputs label { font-size: 10px; color: #cbd5e1; display: block; }
+  .auto-note { font-size: 11px; color: #86efac; background: rgba(40,224,77,0.1); border: 1px dashed #28e04d; padding: 7px 9px; border-radius: 7px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -148,11 +161,11 @@
   </div>
 </div>
 
-<!-- CRICKET AUTO-LIMIT, RATE & SMART MANUAL CONTEST -->
+<!-- CRICKET ALL-MARKET AUTO / MANUAL SWITCH & CONTEST CONTROL -->
 <div class="wrap" style="margin-top: 14px;">
   <div class="card" style="border: 2px solid #ffd700; background: #1b0429;">
-    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Manual Rate, Bhav & Contest Control</h3>
-    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Live & Upcoming Match select karein — system pehle live condition check karega</p>
+    <h3 style="color:#ffd700; font-size:15px; margin-bottom:4px;">🏏 Cricket Contest Auto / Manual Rate Control</h3>
+    <p style="font-size:11px; color:#bbb; margin-bottom:10px;">Har contest ko 🔄 AUTO ya ✍️ MANUAL mode par chalayein — Manual par aapka rate dikhega aur usi par return milega</p>
 
     <label style="font-size:11px; color:#ffd700; font-weight:bold;">Select Live / Upcoming Match:</label>
     <select id="bgCric_matchSelect" onchange="bgCricLoadRates()">
@@ -182,25 +195,116 @@
       <input type="checkbox" id="bgCric_lock" style="width:auto; margin:0; transform:scale(1.2);" /> 🔒 Emergency Manual Lock (All Markets)
     </label>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <div><label style="font-size:11px; color:#72bbef;">Team A Odds Back</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team A Odds Lay</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
-      <div><label style="font-size:11px; color:#72bbef;">Team B Odds Back</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
-      <div><label style="font-size:11px; color:#faa9ba;">Team B Odds Lay</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
-
-      <div><label style="font-size:11px; color:#38bdf8;">Team A Bhav (BM Back)</label><input type="number" id="bgCric_bmABack" placeholder="84" /></div>
-      <div><label style="font-size:11px; color:#f472b6;">Team A Bhav (BM Lay)</label><input type="number" id="bgCric_bmALay" placeholder="87" /></div>
-      <div><label style="font-size:11px; color:#38bdf8;">Team B Bhav (BM Back)</label><input type="number" id="bgCric_bmBBack" placeholder="110" /></div>
-      <div><label style="font-size:11px; color:#f472b6;">Team B Bhav (BM Lay)</label><input type="number" id="bgCric_bmBLay" placeholder="114" /></div>
-
-      <div><label style="font-size:11px; color:#ccc;">6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
-      <div><label style="font-size:11px; color:#ccc;">10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
-      <div><label style="font-size:11px; color:#ccc;">15 Over Run (No/Yes)</label><input type="text" id="bgCric_s15" placeholder="122/124" /></div>
-      <div><label style="font-size:11px; color:#ccc;">20 Over Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
+    <!-- 1. MATCH ODDS SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">1️⃣ Match Odds (Back / Lay)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_odds_auto" onclick="setMarketMode('odds', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_odds_man" onclick="setMarketMode('odds', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_odds">● AUTO: Live score ke hisaab se automatic odds chal rahe hain.</div>
+      <div class="mkt-inputs hidden" id="box_odds">
+        <div><label style="color:#72bbef;">Team A Back (x)</label><input type="number" step="0.01" id="bgCric_aBack" placeholder="1.84" /></div>
+        <div><label style="color:#faa9ba;">Team A Lay (x)</label><input type="number" step="0.01" id="bgCric_aLay" placeholder="1.86" /></div>
+        <div><label style="color:#72bbef;">Team B Back (x)</label><input type="number" step="0.01" id="bgCric_bBack" placeholder="2.10" /></div>
+        <div><label style="color:#faa9ba;">Team B Lay (x)</label><input type="number" step="0.01" id="bgCric_bLay" placeholder="2.14" /></div>
+      </div>
     </div>
 
-    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO-LIMITS & RATES</button>
-    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset Default</button>
+    <!-- 2. TIED MATCH SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">2️⃣ Tied Match (Back / Lay)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_tied_auto" onclick="setMarketMode('tied', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_tied_man" onclick="setMarketMode('tied', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_tied">● AUTO: Default Tied Match rates (12.0 / 1.05) chal rahe hain.</div>
+      <div class="mkt-inputs hidden" id="box_tied">
+        <div><label style="color:#72bbef;">YES Back (x)</label><input type="number" step="0.01" id="bgCric_tiedYesBack" placeholder="12.0" /></div>
+        <div><label style="color:#faa9ba;">YES Lay (x)</label><input type="number" step="0.01" id="bgCric_tiedYesLay" placeholder="14.0" /></div>
+        <div><label style="color:#72bbef;">NO Back (x)</label><input type="number" step="0.01" id="bgCric_tiedNoBack" placeholder="1.05" /></div>
+        <div><label style="color:#faa9ba;">NO Lay (x)</label><input type="number" step="0.01" id="bgCric_tiedNoLay" placeholder="1.08" /></div>
+      </div>
+    </div>
+
+    <!-- 3. BOOKMAKER 0% & 1.0% SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">3️⃣ Bookmaker 0% & 1.0% (Bhav)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_bm_auto" onclick="setMarketMode('bm', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_bm_man" onclick="setMarketMode('bm', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_bm">● AUTO: Live Match Odds ke hisaab se automatic bhav chal raha hai.</div>
+      <div class="mkt-inputs hidden" id="box_bm">
+        <div><label style="color:#38bdf8;">Team A Bhav Back</label><input type="number" id="bgCric_bmABack" placeholder="84" /></div>
+        <div><label style="color:#f472b6;">Team A Bhav Lay</label><input type="number" id="bgCric_bmALay" placeholder="87" /></div>
+        <div><label style="color:#38bdf8;">Team B Bhav Back</label><input type="number" id="bgCric_bmBBack" placeholder="110" /></div>
+        <div><label style="color:#f472b6;">Team B Bhav Lay</label><input type="number" id="bgCric_bmBLay" placeholder="114" /></div>
+      </div>
+    </div>
+
+    <!-- 4. OVER SPECIAL SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">4️⃣ Next Over Special (Runs • 4s • 6s • Wkt)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_over_auto" onclick="setMarketMode('over', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_over_man" onclick="setMarketMode('over', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_over">● AUTO: Automatic over line aur rates chal rahe hain.</div>
+      <div class="mkt-inputs hidden" id="box_over">
+        <div><label>Over Base Runs Line</label><input type="number" id="bgCric_ovRunsLine" placeholder="8" /></div>
+        <div><label>Over Runs Rate (x)</label><input type="number" step="0.01" id="bgCric_ovRunsRate" placeholder="1.95" /></div>
+        <div><label>4s NO / YES Rate (e.g. 1.95/1.85)</label><input type="text" id="bgCric_ov4Rate" placeholder="1.95/1.85" /></div>
+        <div><label>6s NO / YES Rate (e.g. 1.55/2.45)</label><input type="text" id="bgCric_ov6Rate" placeholder="1.55/2.45" /></div>
+        <div style="grid-column:span 2;"><label>Wicket NO / YES Rate (e.g. 1.40/2.90)</label><input type="text" id="bgCric_ovWktRate" placeholder="1.40/2.90" /></div>
+      </div>
+    </div>
+
+    <!-- 5. OVER SESSIONS SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">5️⃣ Over Sessions (4, 6, 10, 15, 20 Ov)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_sess_auto" onclick="setMarketMode('sess', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_sess_man" onclick="setMarketMode('sess', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_sess">● AUTO: Run-rate ke hisaab se automatic session runs chal rahe hain.</div>
+      <div class="mkt-inputs hidden" id="box_sess">
+        <div><label>4 Over Run (No/Yes)</label><input type="text" id="bgCric_s4" placeholder="32/34" /></div>
+        <div><label>6 Over Run (No/Yes)</label><input type="text" id="bgCric_s6" placeholder="48/50" /></div>
+        <div><label>10 Over Run (No/Yes)</label><input type="text" id="bgCric_s10" placeholder="82/84" /></div>
+        <div><label>15 Over Run (No/Yes)</label><input type="text" id="bgCric_s15" placeholder="122/124" /></div>
+        <div><label>20 Over Total (No/Yes)</label><input type="text" id="bgCric_s20" placeholder="165/168" /></div>
+        <div><label>Session Payout Rate (x)</label><input type="number" step="0.01" id="bgCric_sessMult" placeholder="1.95" /></div>
+      </div>
+    </div>
+
+    <!-- 6. LUCKY NUMBER SWITCH -->
+    <div class="mkt-ctrl-box">
+      <div class="mkt-ctrl-head">
+        <span class="mkt-ctrl-title">6️⃣ Lucky Number (0–9 Last Digit)</span>
+        <div class="mode-switch">
+          <button type="button" class="mode-btn auto-on" id="btn_digit_auto" onclick="setMarketMode('digit', 'auto')">🔄 AUTO</button>
+          <button type="button" class="mode-btn" id="btn_digit_man" onclick="setMarketMode('digit', 'manual')">✍️ MANUAL</button>
+        </div>
+      </div>
+      <div class="auto-note" id="note_digit">● AUTO: Win-rate setting ke hisaab se multiplier chal raha hai.</div>
+      <div class="mkt-inputs hidden" id="box_digit">
+        <div style="grid-column:span 2;"><label>Lucky Number Multiplier Rate (x) — e.g. 9.50 ya 9.75</label><input type="number" step="0.01" id="bgCric_digitRate" placeholder="9.75" /></div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-gold" onclick="bgCricSaveRates()">✅ SAVE AUTO / MANUAL CONTEST RATES</button>
+    <button type="button" class="btn btn-red" style="width:100%; padding:10px; margin-top:8px;" onclick="bgCricResetRates()">🗑️ Reset All to Auto</button>
 
     <div style="margin-top:16px; padding-top:14px; border-top:1.5px dashed #ffd700;">
       <h4 style="color:#28e04d; font-size:14px; margin-bottom:4px;">🎯 Create Manual Contest (Auto-Lock & Auto-Settle)</h4>
@@ -253,6 +357,20 @@
   const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
   let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
   let selectedMatchLiveState = null;
+  let marketModes = { odds: "auto", tied: "auto", bm: "auto", over: "auto", sess: "auto", digit: "auto" };
+
+  function setMarketMode(key, mode) {
+    marketModes[key] = mode;
+    const isMan = mode === "manual";
+    const bAuto = document.getElementById(`btn_${key}_auto`);
+    const bMan = document.getElementById(`btn_${key}_man`);
+    const box = document.getElementById(`box_${key}`);
+    const note = document.getElementById(`note_${key}`);
+    if (bAuto) bAuto.className = isMan ? "mode-btn" : "mode-btn auto-on";
+    if (bMan) bMan.className = isMan ? "mode-btn man-on" : "mode-btn";
+    if (box) box.classList.toggle("hidden", !isMan);
+    if (note) note.classList.toggle("hidden", isMan);
+  }
 
   function logoutAdmin() {
     localStorage.removeItem("activeUser");
@@ -795,22 +913,46 @@
 
     try {
       const ov = (await dbGet(`cricketControls/${id}`)) || {};
+      const modes = ov.modes || {};
+      ["odds", "tied", "bm", "over", "sess", "digit"].forEach(k => {
+        setMarketMode(k, modes[k] === "manual" ? "manual" : "auto");
+      });
+
       document.getElementById("bgCric_maxBet").value = ov.maxBet || "";
       document.getElementById("bgCric_maxUsers").value = ov.maxUsers || 25;
       document.getElementById("bgCric_maxMoney").value = ov.maxMoney || 15000;
       document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
+
       document.getElementById("bgCric_aBack").value = ov.teamABack || "";
       document.getElementById("bgCric_aLay").value = ov.teamALay || "";
       document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
       document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
+
+      document.getElementById("bgCric_tiedYesBack").value = ov.tiedYesBack || "";
+      document.getElementById("bgCric_tiedYesLay").value = ov.tiedYesLay || "";
+      document.getElementById("bgCric_tiedNoBack").value = ov.tiedNoBack || "";
+      document.getElementById("bgCric_tiedNoLay").value = ov.tiedNoLay || "";
+
       document.getElementById("bgCric_bmABack").value = ov.bmABack || "";
       document.getElementById("bgCric_bmALay").value = ov.bmALay || "";
       document.getElementById("bgCric_bmBBack").value = ov.bmBBack || "";
       document.getElementById("bgCric_bmBLay").value = ov.bmBLay || "";
+
+      document.getElementById("bgCric_ovRunsLine").value = ov.ovRunsLine || "";
+      document.getElementById("bgCric_ovRunsRate").value = ov.ovRunsRate || "";
+      document.getElementById("bgCric_ov4Rate").value = ov.ov4Rate || "";
+      document.getElementById("bgCric_ov6Rate").value = ov.ov6Rate || "";
+      document.getElementById("bgCric_ovWktRate").value = ov.ovWktRate || "";
+
+      document.getElementById("bgCric_s4").value = ov.sess4No ? `${ov.sess4No}/${ov.sess4Yes}` : "";
       document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
       document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
       document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
       document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
+      document.getElementById("bgCric_sessMult").value = ov.sessMult || "";
+
+      document.getElementById("bgCric_digitRate").value = ov.digitRate || "";
+
       loadManualContests(id);
     } catch (e) {}
   }
@@ -818,24 +960,42 @@
   async function bgCricSaveRates() {
     const id = document.getElementById("bgCric_matchSelect").value;
     if (!id) return;
+    const s4 = document.getElementById("bgCric_s4").value.split("/");
     const s6 = document.getElementById("bgCric_s6").value.split("/");
     const s10 = document.getElementById("bgCric_s10").value.split("/");
     const s15 = document.getElementById("bgCric_s15").value.split("/");
     const s20 = document.getElementById("bgCric_s20").value.split("/");
 
     const payload = {
+      modes: { ...marketModes },
       maxBet: Number(document.getElementById("bgCric_maxBet").value || 0),
       maxUsers: Number(document.getElementById("bgCric_maxUsers").value || 25),
       maxMoney: Number(document.getElementById("bgCric_maxMoney").value || 15000),
       locked: document.getElementById("bgCric_lock").checked,
+
       teamABack: document.getElementById("bgCric_aBack").value.trim(),
       teamALay: document.getElementById("bgCric_aLay").value.trim(),
       teamBBack: document.getElementById("bgCric_bBack").value.trim(),
       teamBLay: document.getElementById("bgCric_bLay").value.trim(),
+
+      tiedYesBack: document.getElementById("bgCric_tiedYesBack").value.trim(),
+      tiedYesLay: document.getElementById("bgCric_tiedYesLay").value.trim(),
+      tiedNoBack: document.getElementById("bgCric_tiedNoBack").value.trim(),
+      tiedNoLay: document.getElementById("bgCric_tiedNoLay").value.trim(),
+
       bmABack: document.getElementById("bgCric_bmABack").value.trim(),
       bmALay: document.getElementById("bgCric_bmALay").value.trim(),
       bmBBack: document.getElementById("bgCric_bmBBack").value.trim(),
       bmBLay: document.getElementById("bgCric_bmBLay").value.trim(),
+
+      ovRunsLine: document.getElementById("bgCric_ovRunsLine").value.trim(),
+      ovRunsRate: document.getElementById("bgCric_ovRunsRate").value.trim(),
+      ov4Rate: document.getElementById("bgCric_ov4Rate").value.trim(),
+      ov6Rate: document.getElementById("bgCric_ov6Rate").value.trim(),
+      ovWktRate: document.getElementById("bgCric_ovWktRate").value.trim(),
+
+      sess4No: s4[0] ? s4[0].trim() : "",
+      sess4Yes: s4[1] ? s4[1].trim() : "",
       sess6No: s6[0] ? s6[0].trim() : "",
       sess6Yes: s6[1] ? s6[1].trim() : "",
       sess10No: s10[0] ? s10[0].trim() : "",
@@ -843,11 +1003,14 @@
       sess15No: s15[0] ? s15[0].trim() : "",
       sess15Yes: s15[1] ? s15[1].trim() : "",
       sess20No: s20[0] ? s20[0].trim() : "",
-      sess20Yes: s20[1] ? s20[1].trim() : ""
+      sess20Yes: s20[1] ? s20[1].trim() : "",
+      sessMult: document.getElementById("bgCric_sessMult").value.trim(),
+
+      digitRate: document.getElementById("bgCric_digitRate").value.trim()
     };
 
-    await dbPatch(`cricketControls/${id}`, payload);
-    alert("✅ Manual Rate, Bhav & Max Bet Save Ho Gaye!");
+    await dbPut(`cricketControls/${id}`, payload);
+    alert("✅ Auto / Manual Settings Save Ho Gayi!");
   }
 
   async function bgCricResetRates() {
@@ -855,7 +1018,7 @@
     if (!id) return;
     await fetch(`${DB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
     bgCricLoadRates();
-    alert("🗑️ Default settings reset ho gayi!");
+    alert("🗑️ Sabhi Contests Auto Mode par reset ho gaye!");
   }
 
   async function createManualContest() {
