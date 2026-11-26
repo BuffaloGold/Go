@@ -3,39 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Refer & Earn - Buffalo Gold</title>
+<title>VIP Agent & Refer - Buffalo Gold</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 80px; }
+  body { background: #12021a; color: #fff; display: flex; justify-content: center; padding-bottom: 85px; }
   .container { width: 100%; max-width: 430px; background: #1b0429; min-height: 100vh; padding: 15px; }
-  h2 { color: #ffd700; margin-bottom: 12px; }
+  h2 { color: #ffd700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .tier-badge { background: linear-gradient(90deg, #ffd700, #ff9900); color: #000; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 20px; }
 
-  .hero-box { background: linear-gradient(145deg, #3a0954, #1e032d); border: 2px solid #ffd700; border-radius: 16px; padding: 18px 15px; text-align: center; margin-bottom: 15px; box-shadow: 0 0 18px rgba(255, 215, 0, 0.2); }
-  .hero-icon { font-size: 46px; display: block; margin-bottom: 6px; }
-  .hero-title { color: #ffd700; font-size: 20px; font-weight: bold; }
-  .hero-sub { color: #ddd; font-size: 13px; margin-top: 6px; line-height: 1.4; }
+  .hero-box { background: linear-gradient(145deg, #3a0954, #1e032d); border: 2px solid #ffd700; border-radius: 16px; padding: 16px 14px; text-align: center; margin-bottom: 14px; box-shadow: 0 0 18px rgba(255, 215, 0, 0.22); }
+  .hero-title { color: #ffd700; font-size: 19px; font-weight: 900; }
+  .hero-sub { color: #e2e8f0; font-size: 12px; margin-top: 6px; line-height: 1.45; }
+  .comm-highlight { background: rgba(40, 224, 77, 0.14); border: 1px solid #28e04d; color: #86efac; border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: bold; margin-top: 10px; }
 
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-  .stat-card { background: #2d0842; padding: 14px; border-radius: 12px; border: 1px solid #75229e; text-align: center; }
-  .stat-card span { font-size: 11px; color: #ccc; display: block; }
-  .stat-card h3 { font-size: 22px; color: #28e04d; margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-card { background: #2d0842; padding: 12px 6px; border-radius: 12px; border: 1px solid #75229e; text-align: center; }
+  .stat-card span { font-size: 10px; color: #ccc; display: block; }
+  .stat-card h3 { font-size: 18px; color: #28e04d; margin-top: 4px; }
 
-  .box { background: #260636; padding: 15px; border-radius: 14px; border: 1px solid #5c197d; margin-bottom: 15px; }
-  .code-box { background: #14021f; border: 1px dashed #ffd700; border-radius: 10px; padding: 12px; text-align: center; font-size: 20px; font-weight: bold; color: #ffd700; letter-spacing: 2px; margin: 10px 0; }
-  .link-box { background: #12021a; border: 1px solid #75229e; border-radius: 8px; padding: 10px; font-size: 12px; color: #ccc; word-break: break-all; margin-bottom: 10px; }
+  .box { background: #260636; padding: 14px; border-radius: 14px; border: 1px solid #5c197d; margin-bottom: 14px; }
+  .code-box { background: #14021f; border: 1.5px dashed #ffd700; border-radius: 10px; padding: 11px; text-align: center; font-size: 20px; font-weight: 900; color: #ffd700; letter-spacing: 2px; margin: 9px 0; }
+  .link-box { background: #12021a; border: 1px solid #75229e; border-radius: 8px; padding: 9px; font-size: 11px; color: #ccc; word-break: break-all; margin-bottom: 10px; }
 
-  .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 6px; }
+  .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; margin-top: 6px; }
   .btn-copy { background: #3d0c57; color: #ffd700; border: 1px solid #ffd700; }
-  .btn-wa { background: linear-gradient(180deg, #28e04d, #118a28); color: #fff; margin-top: 8px; }
+  .btn-wa { background: linear-gradient(180deg, #28e04d, #118a28); color: #000; margin-top: 8px; font-size: 14px; }
+  .btn-cricket { background: linear-gradient(180deg, #ffd700, #f59e0b); color: #000; margin-top: 8px; }
 
-  .step-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; color: #ddd; }
-  .step-item:last-child { border-bottom: none; }
-  .step-num { background: #ffd700; color: #000; font-weight: bold; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .mile-row { display: flex; justify-content: space-between; align-items: center; background: #160322; border: 1px solid #4c1169; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .mile-row:last-child { margin-bottom: 0; }
+  .mile-info strong { display: block; font-size: 13px; color: #ffd700; }
+  .mile-info span { font-size: 11px; color: #cbd5e1; }
+  .claim-btn { padding: 7px 12px; border: none; border-radius: 8px; font-size: 11px; font-weight: 900; cursor: pointer; }
+  .claim-ready { background: #28e04d; color: #000; }
+  .claim-done { background: #1e293b; color: #94a3b8; cursor: default; }
+  .claim-lock { background: #3b0a52; color: #d8b4e8; cursor: default; }
 
   .ref-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
   .ref-item:last-child { border-bottom: none; }
 
-  /* Fixed Bottom Navigation Bar */
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
   .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 11px; cursor: pointer; flex: 1; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
@@ -45,56 +51,50 @@
 <body>
 
 <div class="container">
-  <h2>🎁 REFER & EARN</h2>
+  <h2><span>🤝 VIP AGENT PROGRAM</span><span class="tier-badge" id="tierBadge">5% AGENT</span></h2>
 
   <div class="hero-box">
-    <span class="hero-icon">🎉</span>
-    <div class="hero-title">Invite Friends & Earn Cash!</div>
-    <div class="hero-sub">Apne doston ko invite karein aur har successful referral par instant bonus cash payein!</div>
+    <div style="font-size:38px; margin-bottom:4px;">👑💰</div>
+    <div class="hero-title">Lifetime Deposit Commission</div>
+    <div class="hero-sub">Aapke link se judne wale har player ke <strong>har deposit par 5% se 10% Lifetime Commission</strong> seedha aapke <strong>Winning Wallet</strong> mein aayega (Turant Withdraw)!</div>
+    <div class="comm-highlight" id="tierProgressText">⚡ Abhi aapka Commission Rate: 5% (10 Active Players par 8% VIP Agent!)</div>
   </div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <span>TOTAL REFERRALS</span>
+      <span>TOTAL INVITED</span>
       <h3 id="totalRefs" style="color:#ffd700;">0</h3>
     </div>
     <div class="stat-card">
-      <span>REFERRAL EARNINGS</span>
+      <span>ACTIVE (₹300+)</span>
+      <h3 id="activeRefs" style="color:#38bdf8;">0</h3>
+    </div>
+    <div class="stat-card">
+      <span>TOTAL EARNED</span>
       <h3>₹<span id="refEarn">0</span></h3>
     </div>
   </div>
 
   <div class="box">
-    <h4 style="color:#ffd700; font-size:14px;">🔗 YOUR REFERRAL CODE & LINK</h4>
+    <h4 style="color:#ffd700; font-size:14px;">🔗 YOUR AGENT REFERRAL LINK</h4>
     <div class="code-box" id="myRefCode">LOADING...</div>
     <div class="link-box" id="myRefLink">Loading link...</div>
-    <button type="button" class="btn btn-copy" id="copyLinkBtn">📋 COPY INVITE LINK</button>
-    <button type="button" class="btn btn-wa" id="shareWaBtn">📲 SHARE ON WHATSAPP</button>
+    <button type="button" class="btn btn-copy" id="copyLinkBtn">📋 COPY AGENT LINK</button>
+    <button type="button" class="btn btn-wa" id="shareWaBtn">📲 SHARE GENERAL INVITE ON WHATSAPP</button>
+    <button type="button" class="btn btn-cricket" id="shareCricketBtn">🏏 SHARE LIVE CRICKET PROMO ON WHATSAPP</button>
   </div>
 
   <div class="box">
-    <h4 style="color:#28e04d; margin-bottom:8px; font-size:14px;">⚡ HOW IT WORKS</h4>
-    <div class="step-item">
-      <div class="step-num">1</div>
-      <div>Apna Referral Link ya Code apne doston ke saath WhatsApp par share karein.</div>
-    </div>
-    <div class="step-item">
-      <div class="step-num">2</div>
-      <div>Aapka dost link se account register karega.</div>
-    </div>
-    <div class="step-item">
-      <div class="step-num">3</div>
-      <div>Registration aur game play par aapko instant referral bonus milega!</div>
-    </div>
+    <h4 style="color:#28e04d; margin-bottom:8px; font-size:14px;">🏆 VIP AGENT MILESTONE BONUSES</h4>
+    <div id="milestonesBox"></div>
   </div>
 
   <div class="box">
-    <h4 style="color:#ffd700; margin-bottom:8px; font-size:14px;">👥 INVITED FRIENDS</h4>
+    <h4 style="color:#ffd700; margin-bottom:8px; font-size:14px;">👥 YOUR NETWORK PLAYERS</h4>
     <div id="refList" style="font-size:13px; color:#aaa;">Loading...</div>
   </div>
 </div>
 
-<!-- Fixed Bottom Navigation Bar -->
 <div class="bottom-nav">
   <div class="nav-item" onclick="location.href='game.html'"><span class="nav-icon">🎰</span>Games</div>
   <div class="nav-item" onclick="location.href='cricket.html'"><span class="nav-icon">🏏</span>Cricket</div>
@@ -110,21 +110,84 @@
   const mobile = localStorage.getItem("activeUser");
   if (!mobile) window.location.replace("index.html");
 
-  // Default Referral Code = User's Mobile Number (or saved refCode)
   document.getElementById("myRefCode").innerText = mobile;
-
   let inviteLink = `${SITE_DOMAIN}?ref=${mobile}`;
   document.getElementById("myRefLink").innerText = inviteLink;
 
+  let cachedMyData = null;
+  let activePlayersCount = 0;
+
+  const MILESTONES = [
+    { id: "M3", req: 3, reward: 300, title: "3 Active Players", desc: "₹300 Instant Winning Cash" },
+    { id: "M10", req: 10, reward: 1500, title: "10 Active Players (VIP)", desc: "₹1,500 Bonus + 8% Lifetime Comm" },
+    { id: "M25", req: 25, reward: 5000, title: "25 Active Players (Diamond)", desc: "₹5,000 Bonus + 10% Lifetime Comm" }
+  ];
+
   document.getElementById("copyLinkBtn").addEventListener("click", () => {
     navigator.clipboard.writeText(inviteLink);
-    alert("✅ Invite Link copy ho gaya!");
+    alert("✅ Agent Link copy ho gaya!");
   });
 
   document.getElementById("shareWaBtn").addEventListener("click", () => {
-    const msg = `🎰 *Buffalo Gold* khelo aur roz real cash jeeto! 💰\nInstant UPI Deposit & Withdrawal.\n\nAbhi join karein mere link se:\n👉 ${inviteLink}\n\nReferral Code: *${document.getElementById("myRefCode").innerText}*`;
+    const code = document.getElementById("myRefCode").innerText;
+    const msg = `🔥 *BUFFALO GOLD VIP EXCHANGE* 🔥\n\n🏏 Live Cricket Over-by-Over Exchange + 🎰 Aviator, Chicken Road & Casino!\n🎁 Join karte hi *₹150 Welcome Bonus*!\n⚡ Instant UPI Deposit & Withdrawal\n\n👉 *Abhi Join Karein:* ${inviteLink}\n🔑 Referral Code: *${code}*`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   });
+
+  document.getElementById("shareCricketBtn").addEventListener("click", () => {
+    const code = document.getElementById("myRefCode").innerText;
+    const msg = `🏏 *LIVE CRICKET EXCHANGE CHALU HAI!* 🔥\n\n⚡ Har Over Mein Runs, 4s, 6s & Wicket par Live Bet!\n🎲 Lucky Number (0–9) par seedha *9.75x Return*!\n🎁 Mere link se join karne par *₹150 Bonus*:\n👉 ${inviteLink}\n🔑 Code: *${code}*`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  });
+
+  function renderMilestones() {
+    const claimed = (cachedMyData && cachedMyData.claimedMilestones) || {};
+    document.getElementById("milestonesBox").innerHTML = MILESTONES.map(m => {
+      const isDone = Boolean(claimed[m.id]);
+      const isReady = !isDone && activePlayersCount >= m.req;
+      let btnHtml = `<button type="button" class="claim-btn claim-lock">${activePlayersCount}/${m.req} Active</button>`;
+      if (isDone) btnHtml = `<button type="button" class="claim-btn claim-done">✅ Claimed</button>`;
+      else if (isReady) btnHtml = `<button type="button" class="claim-btn claim-ready" onclick="claimMilestone('${m.id}', ${m.reward})">🎁 Claim ₹${m.reward}</button>`;
+      return `<div class="mile-row">
+        <div class="mile-info"><strong>${m.title}</strong><span>${m.desc}</span></div>
+        <div>${btnHtml}</div>
+      </div>`;
+    }).join("");
+  }
+
+  window.claimMilestone = async function(mId, reward) {
+    if (!cachedMyData || activePlayersCount < MILESTONES.find(x => x.id === mId).req) return;
+    const claimed = { ...(cachedMyData.claimedMilestones || {}) };
+    if (claimed[mId]) return;
+    claimed[mId] = true;
+
+    const nowStr = new Date().toLocaleString();
+    const curWin = Number(cachedMyData.winningBal ?? cachedMyData.winningBalance ?? 0) + reward;
+    const curEarn = Number(cachedMyData.referEarn || 0) + reward;
+    const txns = Array.isArray(cachedMyData.txns) ? [...cachedMyData.txns] : [];
+    txns.unshift({
+      type: `VIP Agent Milestone Bonus (${mId})`,
+      amt: "+₹" + reward,
+      date: nowStr
+    });
+
+    const patch = {
+      winningBal: curWin,
+      referEarn: curEarn,
+      claimedMilestones: claimed,
+      txns: txns.slice(0, 30)
+    };
+    if ("winningBalance" in cachedMyData) patch.winningBalance = curWin;
+
+    await fetch(`${DB_URL}/users/${mobile}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    });
+
+    alert(`🎉 Mubarak ho! ₹${reward} aapke Winning Wallet mein credit ho gaya hai!`);
+    loadReferData();
+  };
 
   async function loadReferData() {
     try {
@@ -138,41 +201,61 @@
         window.location.replace("index.html");
         return;
       }
+      cachedMyData = myData;
 
       const myCode = myData.refCode || mobile;
       document.getElementById("myRefCode").innerText = myCode;
       inviteLink = `${SITE_DOMAIN}?ref=${myCode}`;
       document.getElementById("myRefLink").innerText = inviteLink;
 
-      // Jin users ne is user ke code/mobile se join kiya hai unhe filter karein
       const invitedUsers = [];
+      let activeCnt = 0;
       Object.keys(allUsers).forEach(k => {
         if (k === mobile) return;
         const u = allUsers[k] || {};
         if (u.referredBy === mobile || u.referredBy === myCode || u.refBy === mobile || u.refBy === myCode) {
-          invitedUsers.push({ mobile: k, name: u.name || "Player", hasDeposited: u.hasDeposited, totalDeposited: u.totalDeposited || 0 });
+          const isAct = (Number(u.totalDeposited || 0) >= 300) || Boolean(u.hasDeposited);
+          if (isAct) activeCnt++;
+          invitedUsers.push({
+            mobile: k,
+            name: u.name || "Player",
+            isAct,
+            totalDeposited: Number(u.totalDeposited || 0)
+          });
         }
       });
 
-      const refCount = myData.referCount || invitedUsers.length;
-      const refBonus = myData.referEarn || myData.referralEarnings || (invitedUsers.length * 50);
+      activePlayersCount = activeCnt;
+      const ratePct = activeCnt >= 25 ? 10 : activeCnt >= 10 ? 8 : 5;
+      document.getElementById("tierBadge").innerText = activeCnt >= 25 ? "10% DIAMOND" : activeCnt >= 10 ? "8% VIP AGENT" : "5% AGENT";
+      document.getElementById("tierProgressText").innerText = activeCnt >= 25
+        ? "👑 Maximum 10% Diamond Agent Commission Active!"
+        : activeCnt >= 10
+          ? `🔥 8% VIP Agent Active! (${25 - activeCnt} more active players for 10% Diamond)`
+          : `⚡ 5% Commission Active! (${10 - activeCnt} more active players for 8% VIP Agent)`;
+
+      const refCount = Math.max(Number(myData.referCount || 0), invitedUsers.length);
+      const refBonus = Number(myData.referEarn ?? myData.referralEarnings ?? (invitedUsers.length * 50));
 
       document.getElementById("totalRefs").innerText = refCount;
+      document.getElementById("activeRefs").innerText = activeCnt;
       document.getElementById("refEarn").innerText = refBonus;
+
+      renderMilestones();
 
       const listEl = document.getElementById("refList");
       if (invitedUsers.length === 0) {
-        listEl.innerHTML = "Abhi tak koi referral nahi hai. Apna link doston ko share karein!";
+        listEl.innerHTML = "Abhi tak koi referral nahi hai. Apna Agent Link WhatsApp par share karein!";
       } else {
         listEl.innerHTML = invitedUsers.map(u => {
           const maskedMob = String(u.mobile).slice(0, 2) + "******" + String(u.mobile).slice(-2);
-          const activeStatus = (u.totalDeposited >= 300 || u.hasDeposited)
-            ? `<span style="color:#28e04d; font-weight:bold;">✔ Active</span>`
-            : `<span style="color:#ffae00;">Joined</span>`;
+          const statusTag = u.isAct
+            ? `<span style="color:#28e04d; font-weight:bold;">✔ Active (₹${u.totalDeposited})</span>`
+            : `<span style="color:#ffae00;">Joined (₹${u.totalDeposited})</span>`;
           return `
             <div class="ref-item">
               <div><strong>👤 ${u.name}</strong> <span style="font-size:11px; color:#aaa;">(${maskedMob})</span></div>
-              <div>${activeStatus}</div>
+              <div>${statusTag}</div>
             </div>
           `;
         }).join("");
