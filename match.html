@@ -102,7 +102,7 @@
     <button class="pill-btn" onclick="filterMarket('digit', this)">Lucky Number</button>
   </div>
 
-  <!-- 1. NEXT OVER AUTO-ROTATING CONTEST (RUNS, 4s, 6s, WICKETS - SABSE UPAR) -->
+  <!-- 1. NEXT OVER AUTO-ROTATING CONTEST -->
   <div class="market-card sec-overbox" id="nextOverCard" style="border:1.5px solid #ffd700;">
     <div class="market-head">
       <span id="nextOverTitle">⚡ Over 1 Special (Runs • 4s • 6s • Wkt)</span>
@@ -147,7 +147,7 @@
     <div id="fancyBody"></div>
   </div>
 
-  <!-- 6. LUCKY NUMBER (0-9 LAST DIGIT @ 9.75x / 875) -->
+  <!-- 6. LUCKY NUMBER -->
   <div class="market-card sec-digit">
     <div class="market-head"><span id="digitHeaderTitle">🎲 Lucky Number (Last Digit)</span><span style="font-size:10px; color:#ffd700;">9.75x (875)</span></div>
     <div id="digitBody"></div>
@@ -424,14 +424,15 @@
     fTag.innerText = isDone ? "✅ ENDED" : gLock ? "🔒 LOCKED" : "● LIVE";
     fTag.style.color = gLock ? "#ff4d6d" : "#28e04d";
 
-    // 1. NEXT OVER AUTO-ROTATING CONTEST (RUNS, FOURS, SIXES, WICKETS - ANTI-CHEAT)
     const curOvVal = Number(ctrl.liveOvers || liveState.ovNum || 0);
     const curOverPart = Math.floor(curOvVal);
     const curBallPart = Math.round((curOvVal - curOverPart) * 10);
     const inn = liveState.inningNo || 1, isBreak = liveState.isInningsBreak;
     const fTeam = inn === 2 ? (liveState.batTeam && !isBreak ? liveState.batTeam : (liveState.batTeam === tA ? tB : tA)) : (liveState.batTeam || tA);
 
-    // Anti-cheat: Agar current over ki 2 se zyada balls ho chuki hain toh agle over ka market open hoga
+    const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
+    const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
+
     let targetOverNo = isBreak ? 1 : (curBallPart >= 2 ? curOverPart + 2 : curOverPart + 1);
     const maxMatchOv = liveState.maxOvers || 20;
     const overOutOfRange = targetOverNo > maxMatchOv;
@@ -447,7 +448,6 @@
     const baseOvRuns = liveState.formatType === "T20 (20 OV)" ? 8 : 5;
 
     document.getElementById("nextOverBody").innerHTML = `
-      <!-- A. Over Total Runs (No / Yes) -->
       <div class="contest-row">
         <div>
           <div class="runner-name">Over ${targetOverNo} Total Runs (${fTeam})</div>
@@ -460,7 +460,6 @@
         </div>
       </div>
 
-      <!-- B. Over Fours (4s) -->
       <div class="contest-row">
         <div>
           <div class="runner-name">Over ${targetOverNo} Fours (4s)</div>
@@ -473,7 +472,6 @@
         </div>
       </div>
 
-      <!-- C. Over Sixes (6s) -->
       <div class="contest-row">
         <div>
           <div class="runner-name">Over ${targetOverNo} Sixes (6s)</div>
@@ -486,7 +484,6 @@
         </div>
       </div>
 
-      <!-- D. Over Wickets -->
       <div class="contest-row">
         <div>
           <div class="runner-name">Over ${targetOverNo} Wicket</div>
@@ -500,7 +497,7 @@
       </div>
     `;
 
-        // 2. Admin Special Manual Contests (With Auto-Lock on Target Over / Target Runs)
+    // 2. Admin Special Manual Contests (With Auto-Lock)
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const tOv = Number(c.targetOv || 0);
@@ -541,7 +538,14 @@
         </div>
       </div>`;
     }).join("");
-    
+
+    const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
+    const aB = ctrl.teamABack || dyn.aBack, aL = ctrl.teamALay || (ctrl.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
+    const bB = ctrl.teamBBack || dyn.bBack, bL = ctrl.teamBLay || (ctrl.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
+    const lA = checkLimit(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimit(`${tB} (Match Odds)`, maxU, maxM);
+
+    const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
+    const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
 
     // 3. Match Odds & Tied Match
     document.getElementById("oddsBody").innerHTML = `
@@ -568,10 +572,7 @@
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
-    // 5. Over Sessions (4, 6, 10, 15, 20)
-    const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
-    const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
-
+    // 5. Over Sessions
     document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const sGap = winRate <= 20 ? 4 : winRate <= 35 ? 2 : 1;
     const sessionOversList = liveState.formatType === "T20 (20 OV)"
@@ -599,7 +600,7 @@
       </div>`;
     }).join("");
 
-    // 6. Lucky Number / Last Digit (0-9 Grid @ 9.75x / 875)
+    // 6. Lucky Number
     const digitOdd = winRate <= 20 ? 9.00 : winRate <= 35 ? 9.50 : 9.75;
     const digitBhav = Math.round((digitOdd - 1) * 100);
     const digitOvers = liveState.formatType === "T20 (20 OV)" ? [6, 10, 15, 20] : [10, 20, 30, 40, 50];
@@ -712,7 +713,17 @@
         return;
       }
 
-            // Anti-cheat check for Admin Manual Custom Contest
+      const ovSpecialM = String(selBet.mkt || "").match(/^Over\s+(\d+)\s+(?:Runs|Fours|Sixes|Wicket)/i);
+      if (ovSpecialM) {
+        const targetOv = Number(ovSpecialM[1]);
+        const curOv = Number(ctrl.liveOvers || liveState.ovNum || 0);
+        if (curOv >= targetOv - 0.5) {
+          alert(`⚠️ Over ${targetOv} ka time nikal chuka hai! Agle over par bet lagayein.`);
+          renderPage();
+          return;
+        }
+      }
+
       if (selBet.customContestId) {
         const cObj = (customContestsObj || {})[selBet.customContestId];
         if (!cObj || cObj.status !== "OPEN") {
@@ -730,7 +741,6 @@
           return;
         }
       }
-      
 
       const lim = checkLimit(selBet.mkt, Number(ctrl.maxUsers || 25), Number(ctrl.maxMoney || 15000));
       if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); renderPage(); return; }
