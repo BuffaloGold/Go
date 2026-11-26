@@ -298,7 +298,7 @@
     if (needM && out.inningNo === 2 && out.targetRuns === 0) out.targetRuns = out.runsNum + Number(needM[1]);
     return out;
   }
-   function computeDynamicMatchOdds(tA, tB, sd, wr) {
+    function computeDynamicMatchOdds(tA, tB, sd, wr) {
     let probA = 0.50;
     const runs = sd.runsNum || 0, wkts = sd.wktsNum || 0, ov = sd.ovNum || 0, maxOv = sd.maxOvers || 20;
     const isTeamABat = !sd.batTeam || sd.batTeam === tA;
