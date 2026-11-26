@@ -624,6 +624,63 @@
   }
 
   forceLoadAll();
+   async function autoSettleOpenManualContests() {
+    try {
+      const customRoot = (await dbGet("customContests")) || {};
+      for (const [mId, cMap] of Object.entries(customRoot)) {
+        const openContests = Object.values(cMap || {}).filter(c => c && c.status === "OPEN" && (Number(c.targetOv || 0) > 0 || Number(c.targetRuns || 0) > 0));
+        if (!openContests.length) continue;
+
+        const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+        const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(txt.slice(0, 4500));
+
+        const inns = {};
+        let lastInn = null;
+        for (const x of txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)) {
+          const t = x[1].toUpperCase(), r = Number(x[2]), w = Number(x[3]), ov = Number(x[4]);
+          if (!inns[t] || ov >= inns[t].ov) {
+            inns[t] = { team: t, runs: r, wkts: w, ov };
+            lastInn = inns[t];
+          }
+        }
+        if (!lastInn) continue;
+
+        for (const c of openContests) {
+          const tOv = Number(c.targetOv || 0), tRuns = Number(c.targetRuns || 0);
+          const tKey = String(c.team || "").toUpperCase();
+          const inn = (tKey && tKey !== "CURRENT" && inns[tKey]) ? inns[tKey] : lastInn;
+          let winOpt = "";
+
+          if (tOv > 0 && tRuns > 0) {
+            if (inn.runs >= tRuns && inn.ov <= tOv) winOpt = c.opt1;
+            else if (inn.ov >= tOv || isEnded || inn.wkts >= 10) winOpt = (inn.runs >= tRuns) ? c.opt1 : c.opt2;
+          } else if (tRuns > 0 && tOv === 0) {
+            if (inn.runs >= tRuns) winOpt = c.opt1;
+            else if (isEnded || inn.wkts >= 10) winOpt = c.opt2;
+          }
+
+          if (winOpt) {
+            await dbPatch(`customContests/${mId}/${c.cId}`, { status: "SETTLED", winner: winOpt });
+            const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
+            for (const b of Object.values(betsObj)) {
+              if (!b || b.customContestId !== c.cId || String(b.status).toUpperCase() !== "OPEN") continue;
+              const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
+              await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Auto-Settled: ${winOpt} (${inn.runs}/${inn.wkts})`, settledAt: new Date().toLocaleString("en-IN") });
+              if (isWon && b.mobile) {
+                const u = (await dbGet(`users/${b.mobile}`)) || {};
+                const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
+                const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+                await dbPatch(`users/${b.mobile}`, p);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+  setInterval(autoSettleOpenManualContests, 8000);
+ 
   setInterval(forceLoadAll, 8000);
 
   // ==================== CRICKET SMART PRE-CHECK & MANUAL CONTEST ====================
