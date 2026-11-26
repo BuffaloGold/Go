@@ -513,21 +513,23 @@
       </div>
     `;
 
-    // 2. Admin Special Manual Contests (With Auto-Lock)
+    // 2. Admin Special Manual Contests (Locks 2 Overs Before Target Over + Max Bet Limit)
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const tOv = Number(c.targetOv || 0);
       const tRuns = Number(c.targetRuns || 0);
+      const cMaxBet = Number(c.maxBet || 0);
       const cTeam = String(c.team || "").toUpperCase();
       const isTeamMatch = !cTeam || cTeam === "CURRENT" || cTeam === fTeam;
+      const lockOvPoint = tOv > 0 ? Math.max(0.1, tOv - 2) : 0;
 
       let autoLockReason = "";
       if (c.status !== "OPEN") {
         autoLockReason = `Winner: ${c.winner}`;
       } else if (gLock) {
         autoLockReason = lockTxt;
-      } else if (tOv > 0 && isTeamMatch && !isBreak && effO >= (tOv - 0.5)) {
-        autoLockReason = effO >= tOv ? `Over ${tOv} Complete` : `Over ${tOv} Running`;
+      } else if (tOv > 0 && isTeamMatch && !isBreak && effO >= lockOvPoint) {
+        autoLockReason = effO >= tOv ? `Over ${tOv} Complete` : `Locked (${lockOvPoint} Ov)`;
       } else if (tRuns > 0 && isTeamMatch && !isBreak && effR >= tRuns) {
         autoLockReason = `${tRuns}+ Runs Done`;
       }
@@ -536,19 +538,21 @@
       const safeTitle = String(c.title || "").replace(/'/g, "");
       const safeO1 = String(c.opt1 || "YES").replace(/'/g, "");
       const safeO2 = String(c.opt2 || "NO").replace(/'/g, "");
+      const maxBadgeTxt = cMaxBet > 0 ? `MAX ₹${cMaxBet}` : "ADMIN SPECIAL";
+
       return `<div class="market-card" style="border:1.5px solid #28e04d;">
-        <div class="market-head"><span>🎯 ${c.title} (${c.inning || "Live"})</span><span style="font-size:10px; color:${cLock ? '#ff4d6d' : '#28e04d'};">${cLock ? '🔒 LOCKED' : '● AUTO-SETTLE'}</span></div>
+        <div class="market-head"><span>🎯 ${c.title} (${c.inning || "Live"})</span><span style="font-size:10px; color:${cLock ? '#ff4d6d' : '#28e04d'};">${cLock ? '🔒 LOCKED' : maxBadgeTxt}</span></div>
         <div class="contest-row">
           <div class="runner-name">${c.opt1}</div>
           <div class="rate-boxes">
-            <div class="rate-btn rate-back" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO1}',${c.rate1})"><span class="rate-main">${c.rate1}x</span><span class="rate-sub">${c.opt1}</span></div>
+            <div class="rate-btn rate-back" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO1}',${c.rate1},${cMaxBet})"><span class="rate-main">${c.rate1}x</span><span class="rate-sub">${c.opt1}</span></div>
             ${cLock ? `<div class="suspended-overlay">${autoLockReason}</div>` : ''}
           </div>
         </div>
         <div class="contest-row">
           <div class="runner-name">${c.opt2}</div>
           <div class="rate-boxes">
-            <div class="rate-btn rate-lay" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO2}',${c.rate2})"><span class="rate-main">${c.rate2}x</span><span class="rate-sub">${c.opt2}</span></div>
+            <div class="rate-btn rate-lay" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO2}',${c.rate2},${cMaxBet})"><span class="rate-main">${c.rate2}x</span><span class="rate-sub">${c.opt2}</span></div>
             ${cLock ? `<div class="suspended-overlay">${autoLockReason}</div>` : ''}
           </div>
         </div>
@@ -677,17 +681,21 @@
   }
 
   function openBet(mkt, side, line, odd) {
-    selBet = { mkt, side, line, odd: Number(odd), customContestId: "" };
+    selBet = { mkt, side, line, odd: Number(odd), customContestId: "", customMaxBet: 0 };
     document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line})`;
     document.getElementById("betOddTag").innerText = `@ ${odd}x`;
     document.getElementById("betModal").classList.add("open");
     updateCalc();
   }
 
-  function openCustomBet(cId, mkt, opt, odd) {
-    selBet = { mkt, side: "BACK", line: opt, odd: Number(odd), customContestId: cId };
-    document.getElementById("betTitle").innerText = `${mkt} (${opt})`;
+  function openCustomBet(cId, mkt, opt, odd, maxBetVal) {
+    const mLim = Number(maxBetVal || 0);
+    selBet = { mkt, side: "BACK", line: opt, odd: Number(odd), customContestId: cId, customMaxBet: mLim };
+    document.getElementById("betTitle").innerText = `${mkt} (${opt})${mLim > 0 ? ` • Max ₹${mLim}` : ""}`;
     document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    if (mLim > 0 && Number(document.getElementById("stakeInput").value) > mLim) {
+      document.getElementById("stakeInput").value = mLim;
+    }
     document.getElementById("betModal").classList.add("open");
     updateCalc();
   }
@@ -696,9 +704,10 @@
   function updateCalc() {
     if (!selBet) return;
     const f = calcFin(selBet.side, document.getElementById("stakeInput").value, selBet.odd);
+    const maxNote = selBet.customMaxBet > 0 ? ` (Max ₹${selBet.customMaxBet})` : "";
     document.getElementById("betCalcNote").innerText = selBet.side === "LAY"
       ? `⚠️ Wallet Se Katega (Liability): ₹${f.debit} | Profit: ₹${f.profit} → Return: ₹${f.ret}`
-      : `⚠️ Wallet Se Katega (Stake): ₹${f.debit} → Return: ₹${f.ret}`;
+      : `⚠️ Wallet Se Katega (Stake): ₹${f.debit}${maxNote} → Return: ₹${f.ret}`;
   }
 
   async function deductWallet(amt) {
@@ -719,6 +728,10 @@
     if (busy || !selBet) return;
     const st = Number(document.getElementById("stakeInput").value);
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
+
+    if (selBet.customMaxBet > 0 && st > selBet.customMaxBet) {
+      return alert(`⚠️ Is contest par maximum ₹${selBet.customMaxBet} tak hi bet laga sakte hain!`);
+    }
     const maxB = Number(ctrl.maxBet || 0);
     if (maxB > 0 && st > maxB) return alert(`⚠️ Admin Maximum Bet limit ₹${maxB} hai!`);
 
@@ -763,12 +776,18 @@
           renderPage();
           return;
         }
+        const cMax = Number(cObj.maxBet || 0);
+        if (cMax > 0 && st > cMax) {
+          alert(`⚠️ Is contest par maximum ₹${cMax} tak hi bet laga sakte hain!`);
+          return;
+        }
         const tOv = Number(cObj.targetOv || 0);
         const tRuns = Number(cObj.targetRuns || 0);
         const curOv = Number(ctrl.liveOvers || liveState.ovNum || 0);
         const curR = Number(ctrl.liveRuns ? String(ctrl.liveRuns).split("/")[0] : (liveState.runsNum || 0));
-        if ((tOv > 0 && curOv >= tOv - 0.5) || (tRuns > 0 && curR >= tRuns)) {
-          alert("⚠️ Contest ka time/target poora ho chuka hai, ab bet lock nahi hogi!");
+        const lockOvPoint = tOv > 0 ? Math.max(0.1, tOv - 2) : 0;
+        if ((tOv > 0 && curOv >= lockOvPoint) || (tRuns > 0 && curR >= tRuns)) {
+          alert(`⚠️ Contest 2 over pehle (${lockOvPoint} Ov par) lock ho chuka hai, ab bet nahi lagegi!`);
           renderPage();
           return;
         }
