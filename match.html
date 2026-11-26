@@ -500,40 +500,48 @@
       </div>
     `;
 
-    // 2. Admin Special Manual Contests
+        // 2. Admin Special Manual Contests (With Auto-Lock on Target Over / Target Runs)
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
-      const cLock = gLock || c.status !== "OPEN";
-      const cTxt = c.status !== "OPEN" ? `Winner: ${c.winner}` : lockTxt;
+      const tOv = Number(c.targetOv || 0);
+      const tRuns = Number(c.targetRuns || 0);
+      const cTeam = String(c.team || "").toUpperCase();
+      const isTeamMatch = !cTeam || cTeam === "CURRENT" || cTeam === fTeam;
+
+      let autoLockReason = "";
+      if (c.status !== "OPEN") {
+        autoLockReason = `Winner: ${c.winner}`;
+      } else if (gLock) {
+        autoLockReason = lockTxt;
+      } else if (tOv > 0 && isTeamMatch && !isBreak && effO >= (tOv - 0.5)) {
+        autoLockReason = effO >= tOv ? `Over ${tOv} Complete` : `Over ${tOv} Running`;
+      } else if (tRuns > 0 && isTeamMatch && !isBreak && effR >= tRuns) {
+        autoLockReason = `${tRuns}+ Runs Done`;
+      }
+
+      const cLock = Boolean(autoLockReason);
       const safeTitle = String(c.title || "").replace(/'/g, "");
       const safeO1 = String(c.opt1 || "YES").replace(/'/g, "");
       const safeO2 = String(c.opt2 || "NO").replace(/'/g, "");
       return `<div class="market-card" style="border:1.5px solid #28e04d;">
-        <div class="market-head"><span>🎯 ${c.title} (${c.inning || "Live"})</span><span style="font-size:10px; color:#28e04d;">ADMIN SPECIAL</span></div>
+        <div class="market-head"><span>🎯 ${c.title} (${c.inning || "Live"})</span><span style="font-size:10px; color:${cLock ? '#ff4d6d' : '#28e04d'};">${cLock ? '🔒 LOCKED' : '● AUTO-SETTLE'}</span></div>
         <div class="contest-row">
           <div class="runner-name">${c.opt1}</div>
           <div class="rate-boxes">
             <div class="rate-btn rate-back" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO1}',${c.rate1})"><span class="rate-main">${c.rate1}x</span><span class="rate-sub">${c.opt1}</span></div>
-            ${cLock ? `<div class="suspended-overlay">${cTxt}</div>` : ''}
+            ${cLock ? `<div class="suspended-overlay">${autoLockReason}</div>` : ''}
           </div>
         </div>
         <div class="contest-row">
           <div class="runner-name">${c.opt2}</div>
           <div class="rate-boxes">
             <div class="rate-btn rate-lay" style="width:94px;" onclick="openCustomBet('${c.cId}','${safeTitle}','${safeO2}',${c.rate2})"><span class="rate-main">${c.rate2}x</span><span class="rate-sub">${c.opt2}</span></div>
-            ${cLock ? `<div class="suspended-overlay">${cTxt}</div>` : ''}
+            ${cLock ? `<div class="suspended-overlay">${autoLockReason}</div>` : ''}
           </div>
         </div>
       </div>`;
     }).join("");
-
-    const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
-    const aB = ctrl.teamABack || dyn.aBack, aL = ctrl.teamALay || (ctrl.teamABack ? (parseFloat(aB) + 0.03).toFixed(2) : dyn.aLay);
-    const bB = ctrl.teamBBack || dyn.bBack, bL = ctrl.teamBLay || (ctrl.teamBBack ? (parseFloat(bB) + 0.03).toFixed(2) : dyn.bLay);
-    const lA = checkLimit(`${tA} (Match Odds)`, maxU, maxM), lB = checkLimit(`${tB} (Match Odds)`, maxU, maxM);
-
-    const ovA = isDone ? "Match Ended" : (lA.reason || lockTxt);
-    const ovB = isDone ? "Match Ended" : (lB.reason || lockTxt);
+    
 
     // 3. Match Odds & Tied Match
     document.getElementById("oddsBody").innerHTML = `
@@ -704,17 +712,25 @@
         return;
       }
 
-      // Anti-cheat check for Over Special bets: Over must not have already passed
-      const ovSpecialM = String(selBet.mkt || "").match(/^Over\s+(\d+)\s+(?:Runs|Fours|Sixes|Wicket)/i);
-      if (ovSpecialM) {
-        const targetOv = Number(ovSpecialM[1]);
+            // Anti-cheat check for Admin Manual Custom Contest
+      if (selBet.customContestId) {
+        const cObj = (customContestsObj || {})[selBet.customContestId];
+        if (!cObj || cObj.status !== "OPEN") {
+          alert("🔒 Ye contest abhi lock / settle ho chuka hai!");
+          renderPage();
+          return;
+        }
+        const tOv = Number(cObj.targetOv || 0);
+        const tRuns = Number(cObj.targetRuns || 0);
         const curOv = Number(ctrl.liveOvers || liveState.ovNum || 0);
-        if (curOv >= targetOv - 0.5) {
-          alert(`⚠️ Over ${targetOv} ka time nikal chuka hai! Agle over par bet lagayein.`);
+        const curR = Number(ctrl.liveRuns ? String(ctrl.liveRuns).split("/")[0] : (liveState.runsNum || 0));
+        if ((tOv > 0 && curOv >= tOv - 0.5) || (tRuns > 0 && curR >= tRuns)) {
+          alert("⚠️ Contest ka time/target poora ho chuka hai, ab bet lock nahi hogi!");
           renderPage();
           return;
         }
       }
+      
 
       const lim = checkLimit(selBet.mkt, Number(ctrl.maxUsers || 25), Number(ctrl.maxMoney || 15000));
       if (lim.blocked) { alert("⚠️ Limit poori ho gayi: " + lim.reason); renderPage(); return; }
