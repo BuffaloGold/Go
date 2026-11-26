@@ -102,7 +102,6 @@
     <button class="pill-btn" onclick="filterMarket('digit', this)">Lucky Number</button>
   </div>
 
-  <!-- 1. NEXT OVER AUTO-ROTATING CONTEST -->
   <div class="market-card sec-overbox" id="nextOverCard" style="border:1.5px solid #ffd700;">
     <div class="market-head">
       <span id="nextOverTitle">⚡ Over 1 Special (Runs • 4s • 6s • Wkt)</span>
@@ -111,10 +110,8 @@
     <div id="nextOverBody"></div>
   </div>
 
-  <!-- 2. ADMIN SPECIAL MANUAL CONTESTS -->
   <div id="customContestsBox"></div>
 
-  <!-- 3. MATCH ODDS & TIED MATCH -->
   <div class="market-card sec-odds">
     <div class="market-head"><span>Match Odds <span class="cashout-tag">CASHOUT</span></span><span id="limitTag" style="font-size:10px; color:#ccc;">Min ₹100 | Max ₹50K</span></div>
     <div class="col-headers"><span>Back</span><span>Lay</span></div>
@@ -127,7 +124,6 @@
     <div id="tiedBody"></div>
   </div>
 
-  <!-- 4. BOOKMAKER 0% & BOOKMAKER 1.0% -->
   <div class="market-card sec-bookmaker">
     <div class="market-head"><span>Bookmaker 0% <span class="cashout-tag">CASHOUT</span></span><span style="font-size:10px; color:#ccc;">0% Comm</span></div>
     <div class="col-headers"><span>Back</span><span>Lay</span></div>
@@ -140,14 +136,12 @@
     <div id="bm1Body"></div>
   </div>
 
-  <!-- 5. OVER SESSIONS -->
   <div class="market-card sec-fancy">
     <div class="market-head"><span id="fancyHeaderTitle">Over Sessions</span><span id="fancyLiveTag" style="font-size:10px; color:#28e04d;">● LIVE</span></div>
     <div class="col-headers"><span>No</span><span>Yes</span></div>
     <div id="fancyBody"></div>
   </div>
 
-  <!-- 6. LUCKY NUMBER -->
   <div class="market-card sec-digit">
     <div class="market-head"><span id="digitHeaderTitle">🎲 Lucky Number (Last Digit)</span><span style="font-size:10px; color:#ffd700;">9.75x (875)</span></div>
     <div id="digitBody"></div>
@@ -203,7 +197,7 @@
   };
 
   let userBal = 0, userNameStr = "Player", ctrl = {}, customContestsObj = {}, winRate = 35, selBet = null;
-  let matchBetsStats = {}, teamExposure = {};
+  let matchBetsStats = {}, teamExposure = {}, myTeamBets = {};
   let liveState = { runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, formatType: "T20", maxOvers: 20, inningNo: 1, isInningsBreak: false, isEnded: matchInfo.isEnded };
 
   function renderUser(u) {
@@ -320,15 +314,34 @@
       probA = isTeamABat ? clamped : (1 - clamped);
     }
 
-    const diff = Number(teamExposure[tA] || 0) - Number(teamExposure[tB] || 0);
-    if (Math.abs(diff) > 2000) {
-      const shift = Math.max(-0.03, Math.min(0.03, (diff / 100000) * 0.03));
-      probA = Math.min(0.94, Math.max(0.06, probA + shift));
+    const hm = wr <= 20 ? 0.91 : wr <= 35 ? 0.95 : wr <= 50 ? 0.97 : 0.99;
+    let oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm));
+    let oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
+
+    // Zero-Loss Book Balancing + Anti-Arbitrage
+    const expA = teamExposure[tA] || { stake: 0, payout: 0 };
+    const expB = teamExposure[tB] || { stake: 0, payout: 0 };
+    const totalPool = expA.stake + expB.stake;
+    const maxCap = Number(ctrl.maxMoney || 15000);
+
+    if (expB.payout > totalPool) {
+      const roomOnA = Math.max(1000, maxCap - expA.stake);
+      const safeBoostOddA = Math.min(6.0, Math.max(oA, ((totalPool + roomOnA - expA.payout) / roomOnA) * 0.94));
+      oB = Math.max(1.05, oB * 0.85);
+      if (!myTeamBets[tB]) {
+        oA = Number(safeBoostOddA.toFixed(2));
+      }
     }
 
-    const hm = wr <= 20 ? 0.91 : wr <= 35 ? 0.95 : wr <= 50 ? 0.97 : 0.99;
-    const oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm));
-    const oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
+    if (expA.payout > totalPool) {
+      const roomOnB = Math.max(1000, maxCap - expB.stake);
+      const safeBoostOddB = Math.min(6.0, Math.max(oB, ((totalPool + roomOnB - expB.payout) / roomOnB) * 0.94));
+      oA = Math.max(1.05, oA * 0.85);
+      if (!myTeamBets[tA]) {
+        oB = Number(safeBoostOddB.toFixed(2));
+      }
+    }
+
     return {
       aBack: oA.toFixed(2),
       aLay: (oA + (oA > 4 ? 0.15 : oA > 2.5 ? 0.06 : 0.03)).toFixed(2),
@@ -346,24 +359,34 @@
   async function fetchMatchLimits() {
     try {
       const betsObj = (await (await fetch(`${FB_URL}/cricketBets/${matchId}.json?t=${Date.now()}`)).json()) || {};
-      const stats = {}, exp = {};
+      const stats = {}, exp = {}, myBets = {};
       const [tA, tB] = parseTeams(matchInfo.title);
+
       Object.values(betsObj).forEach(b => {
         if (!b || !b.market) return;
         if (!stats[b.market]) stats[b.market] = { users: new Set(), totalMoney: 0 };
         stats[b.market].users.add(String(b.mobile));
         stats[b.market].totalMoney += Number(b.stake || 0);
 
-        if (String(b.status || "OPEN").toUpperCase() === "OPEN" && String(b.mobile).trim() !== mob && /Match Odds|Bookmaker/i.test(b.market)) {
+        if (String(b.status || "OPEN").toUpperCase() === "OPEN" && /Match Odds|Bookmaker/i.test(b.market)) {
           const pick = b.market.split("(")[0].trim().split(/\s+/)[0].toUpperCase();
           const side = String(b.side || "").toUpperCase();
-          const risk = Number(b.lockedReturn || b.stake || 0);
-          if (side === "BACK") exp[pick] = (exp[pick] || 0) + risk;
-          else if (side === "LAY") exp[pick === tA ? tB : tA] = (exp[pick === tA ? tB : tA] || 0) + risk;
+          const stake = Number(b.stake || 0);
+          const ret = Number(b.lockedReturn || stake);
+          const winTeam = side === "BACK" ? pick : (pick === tA ? tB : tA);
+
+          if (!exp[winTeam]) exp[winTeam] = { stake: 0, payout: 0 };
+          exp[winTeam].stake += stake;
+          exp[winTeam].payout += ret;
+
+          if (String(b.mobile).trim() === mob) {
+            myBets[winTeam] = (myBets[winTeam] || 0) + stake;
+          }
         }
       });
       matchBetsStats = stats;
       teamExposure = exp;
+      myTeamBets = myBets;
     } catch (e) {}
   }
 
@@ -435,7 +458,6 @@
     const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
     const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
 
-    // 1. NEXT OVER SPECIAL (AUTO vs MANUAL)
     let targetOverNo = isBreak ? 1 : (curBallPart >= 2 ? curOverPart + 2 : curOverPart + 1);
     const maxMatchOv = liveState.maxOvers || 20;
     const overOutOfRange = targetOverNo > maxMatchOv;
@@ -513,7 +535,6 @@
       </div>
     `;
 
-    // 2. Admin Special Manual Contests (Locks 2 Overs Before Target Over + Max Bet Limit)
     const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const tOv = Number(c.targetOv || 0);
@@ -559,7 +580,6 @@
       </div>`;
     }).join("");
 
-    // 3. MATCH ODDS & TIED MATCH (AUTO vs MANUAL)
     const dyn = computeDynamicMatchOdds(tA, tB, liveState, winRate);
     const isOddsMan = modes.odds === "manual";
     const aB = (isOddsMan && ctrl.teamABack) ? Number(ctrl.teamABack).toFixed(2) : dyn.aBack;
@@ -585,7 +605,6 @@
       <div class="contest-row"><div class="runner-name">YES (Match Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Tied YES',${tYB})"><span class="rate-main">${tYB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied NO',${tYL})"><span class="rate-main">${tYL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">NO (Not Tied)</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('Tied Match','BACK','Not Tied',${tNB})"><span class="rate-main">${tNB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('Tied Match','LAY','Tied Lay',${tNL})"><span class="rate-main">${tNL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
 
-    // 4. BOOKMAKER 0% & 1.0% (AUTO vs MANUAL)
     const isBmMan = modes.bm === "manual";
     const bmAB = (isBmMan && ctrl.bmABack) ? Number(ctrl.bmABack) : Math.max(5, Math.round((parseFloat(dyn.aBack) - 1) * 100));
     const bmAL = (isBmMan && ctrl.bmALay) ? Number(ctrl.bmALay) : (Number(bmAB) + 3);
@@ -604,8 +623,7 @@
     document.getElementById("bm1Body").innerHTML = `
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
-
-    // 5. OVER SESSIONS (AUTO vs MANUAL)
+        // 5. OVER SESSIONS (AUTO vs MANUAL)
     const isSessMan = modes.sess === "manual";
     document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const sGap = winRate <= 20 ? 4 : winRate <= 35 ? 2 : 1;
