@@ -32,9 +32,14 @@
   .h-tab { padding: 8px 4px; border: none; border-radius: 8px; background: transparent; color: #ccc; font-size: 11px; font-weight: bold; cursor: pointer; text-align: center; }
   .h-tab.active { background: #3d0c57; color: #ffd700; border: 1px solid #ffd700; }
 
-  .txn-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; }
+  .txn-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #3d0c57; font-size: 13px; gap: 8px; }
   .txn-sub { font-size: 11px; color: #ffd700; margin-top: 2px; }
   .txn-date { font-size: 10px; color: #aaa; margin-top: 2px; }
+  .wd-badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: bold; margin-top: 3px; }
+  .wd-pending { background: rgba(255, 174, 0, 0.18); color: #ffae00; border: 1px solid #ffae00; }
+  .wd-paid { background: rgba(40, 224, 77, 0.18); color: #28e04d; border: 1px solid #28e04d; }
+  .wd-rej { background: rgba(255, 82, 82, 0.18); color: #ff5252; border: 1px solid #ff5252; }
+
   .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; background: #1f042e; border-top: 1px solid #75229e; display: flex; justify-content: space-around; padding: 10px 0; }
   .nav-item { text-align: center; color: #bbb; text-decoration: none; font-size: 12px; cursor: pointer; }
   .nav-item.active { color: #ffd700; font-weight: bold; }
@@ -85,13 +90,13 @@
 
   <div class="box">
     <h4 style="color:#ffae00;">- WITHDRAW WINNINGS</h4>
-    <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw kiya ja sakta hai (Min ₹100).</p>
+    <p style="font-size:11px; color:#ccc; margin-top:3px;">Sirf Winning Cash hi withdraw hoga (Min ₹100 • Max ₹10,000 • Din me 1 baar).</p>
     
     <div id="wdLockMsg" class="lock-notice">
       🔒 <strong>Withdrawal Locked:</strong> Withdrawal unlock karne ke liye total <strong>₹300</strong> deposit zaroori hai (Abhi deposit: ₹<span id="totDepShow">0</span> / ₹300).
     </div>
 
-    <input type="number" id="wdInput" placeholder="Withdraw Amount (Min ₹100)" disabled>
+    <input type="number" id="wdInput" placeholder="Withdraw Amount (₹100 - ₹10,000)" disabled>
     <input type="text" id="upiId" placeholder="Enter Your UPI ID (e.g. name@okicici)" disabled>
     <button type="button" class="btn btn-wd" id="wdBtn" disabled>🔒 DEPOSIT ₹300 TO UNLOCK</button>
   </div>
@@ -152,10 +157,16 @@
   if (!mobile) window.location.replace("index.html");
 
   let userData = null;
+  let userWithdrawals = [];
   let currentAmtKey = null;
   let isCrediting = false;
   let activeHistTab = "deposit";
   const userRef = ref(db, "users/" + mobile);
+
+  function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 
   function calcTotalDeposited(u) {
     if (!u) return 0;
@@ -180,12 +191,64 @@
 
   function renderFilteredTxns() {
     const allTxns = userData && Array.isArray(userData.txns) ? userData.txns : [];
-    let filtered = [];
 
+    if (activeHistTab === "withdraw") {
+      // Live withdrawals node se merge karke dikhayein taaki PENDING / PAID turant update ho
+      const mergedMap = new Map();
+
+      userWithdrawals.forEach(w => {
+        const stUpper = String(w.status || "PENDING").toUpperCase();
+        const isPaid = /APPROVED|SUCCESS|PAID/i.test(stUpper);
+        const isRej = /REJECT/i.test(stUpper);
+        mergedMap.set(w.reqId, {
+          reqId: w.reqId,
+          upi: w.upi || "-",
+          amt: Number(w.amount || 0),
+          date: w.date || "-",
+          status: isPaid ? "PAID" : (isRej ? "REJECTED" : "PENDING"),
+          ts: Number(w.createdAt || 0)
+        });
+      });
+
+      allTxns.forEach(t => {
+        const isWd = /withdraw|payout/i.test(t.type || "") || (t.orderId && String(t.orderId).startsWith("WD"));
+        if (isWd && t.orderId && !mergedMap.has(t.orderId)) {
+          const stUpper = String(t.refId || t.status || "PENDING").toUpperCase();
+          const isPaid = /APPROVED|SUCCESS|PAID/i.test(stUpper);
+          const isRej = /REJECT/i.test(stUpper);
+          mergedMap.set(t.orderId, {
+            reqId: t.orderId,
+            upi: t.type,
+            amt: parseFloat(String(t.amt).replace(/[^0-9.]/g, "")) || 0,
+            date: t.date || "-",
+            status: isPaid ? "PAID" : (isRej ? "REJECTED" : "PENDING"),
+            ts: 0
+          });
+        }
+      });
+
+      const wdList = Array.from(mergedMap.values()).sort((a, b) => b.ts - a.ts);
+      document.getElementById("txnList").innerHTML = wdList.map(w => {
+        const badgeCls = w.status === "PAID" ? "wd-paid" : (w.status === "REJECTED" ? "wd-rej" : "wd-pending");
+        const badgeTxt = w.status === "PAID" ? "✅ PAID" : (w.status === "REJECTED" ? "❌ REJECTED" : "⏳ PENDING");
+        return `
+          <div class="txn-item">
+            <div>
+              <strong>Withdraw (${w.upi})</strong>
+              <div class="txn-sub">Order: ${w.reqId}</div>
+              <div class="txn-date">${w.date}</div>
+              <span class="wd-badge ${badgeCls}">${badgeTxt}</span>
+            </div>
+            <div style="font-weight:bold; font-size:15px; color:${w.status === 'PAID' ? '#28e04d' : (w.status === 'REJECTED' ? '#ff5252' : '#ffae00')};">₹${w.amt}</div>
+          </div>
+        `;
+      }).join("") || `<div style="color:#aaa; font-size:12px; padding:10px 0;">No withdrawal history yet.</div>`;
+      return;
+    }
+
+    let filtered = [];
     if (activeHistTab === "deposit") {
       filtered = allTxns.filter(t => /deposit|add|recharge/i.test(t.type || "") || (t.orderId && String(t.orderId).startsWith("DEP")));
-    } else if (activeHistTab === "withdraw") {
-      filtered = allTxns.filter(t => /withdraw|payout/i.test(t.type || "") || (t.orderId && String(t.orderId).startsWith("WD")));
     } else {
       filtered = allTxns.filter(t => {
         const isDep = /deposit|add|recharge/i.test(t.type || "") || (t.orderId && String(t.orderId).startsWith("DEP"));
@@ -194,23 +257,19 @@
       });
     }
 
-    const emptyLabel = activeHistTab === "deposit"
-      ? "No deposit history yet."
-      : (activeHistTab === "withdraw" ? "No withdrawal history yet." : "No bet history yet.");
-
+    const emptyLabel = activeHistTab === "deposit" ? "No deposit history yet." : "No bet history yet.";
     document.getElementById("txnList").innerHTML = filtered.map(t => `
       <div class="txn-item">
         <div>
           <strong>${t.type}</strong>
-          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} \vert{} Order:${t.orderId || '-'}</div>` : ''}
+          ${t.refId ? `<div class="txn-sub">Ref/UTR: ${t.refId} | Order: ${t.orderId || '-'}</div>` : ''}
           <div class="txn-date">${t.date}</div>
         </div>
         <div style="font-weight:bold; font-size:15px; color:${String(t.amt).startsWith('+') ? '#28e04d' : '#ff5252'};">${t.amt}</div>
       </div>
     `).join("") || `<div style="color:#aaa; font-size:12px; padding:10px 0;">${emptyLabel}</div>`;
   }
-   // Lifetime Deposit Commission Credit to Referrer (5% Starter | 8% VIP Agent | 10% Diamond Agent)
-  async function creditReferrerCommission(depositorData, depositAmt, depOrderId, nowStr) {
+   async function creditReferrerCommission(depositorData, depositAmt, depOrderId, nowStr) {
     try {
       const refId = String(depositorData?.referredBy || depositorData?.refBy || "").trim();
       if (!refId || refId === mobile) return;
@@ -235,7 +294,6 @@
       const rUser = allUsers[referrerMob];
       const rCode = rUser.refCode || referrerMob;
 
-      // Count active referrals (deposited >= 300) to determine VIP Agent Commission Tier
       let activeCount = 0;
       Object.keys(allUsers).forEach(k => {
         if (k === referrerMob) return;
@@ -273,6 +331,73 @@
       await update(ref(db, "users/" + referrerMob), patchObj);
     } catch (e) {}
   }
+
+  // Real-time listener on `withdrawals` to auto-deduct ONLY when Admin marks PAID / APPROVED
+  let isSyncingWd = false;
+  onValue(ref(db, "withdrawals"), async (snap) => {
+    const allWd = snap.exists() ? snap.val() : {};
+    userWithdrawals = Object.keys(allWd)
+      .map(k => ({ reqId: k, ...allWd[k] }))
+      .filter(w => String(w.mobile) === String(mobile));
+
+    renderFilteredTxns();
+
+    if (!userData || isSyncingWd) return;
+    isSyncingWd = true;
+    try {
+      let curWin = Number(userData.winningBal ?? userData.winningBalance ?? 0);
+      let txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+      let changed = false;
+
+      for (const w of userWithdrawals) {
+        const stUpper = String(w.status || "").toUpperCase();
+        const isPaid = /APPROVED|SUCCESS|PAID/i.test(stUpper);
+        const isRej = /REJECT/i.test(stUpper);
+
+        // Jab Admin Approve/Success kare aur abhi tak wallet se deduct na hua ho
+        if (isPaid && !w.walletDeducted) {
+          const amt = Number(w.amount || 0);
+          curWin = Math.max(0, Number((curWin - amt).toFixed(2)));
+          changed = true;
+
+          // Update txn entry in user's history to PAID
+          const idx = txns.findIndex(t => t.orderId === w.reqId);
+          if (idx >= 0) {
+            txns[idx].refId = "PAID";
+            txns[idx].amt = "-₹" + amt;
+          } else {
+            txns.unshift({
+              type: "Withdraw (" + (w.upi || "") + ")",
+              orderId: w.reqId,
+              refId: "PAID",
+              amt: "-₹" + amt,
+              date: w.date || new Date().toLocaleString()
+            });
+          }
+
+          await update(ref(db, "withdrawals/" + w.reqId), {
+            walletDeducted: true,
+            status: "PAID"
+          });
+        } else if (isRej) {
+          const idx = txns.findIndex(t => t.orderId === w.reqId);
+          if (idx >= 0 && txns[idx].refId !== "REJECTED") {
+            txns[idx].refId = "REJECTED";
+            txns[idx].amt = "₹0 (Rejected)";
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        const patchObj = { winningBal: curWin, txns: txns.slice(0, 30) };
+        if ("winningBalance" in userData) patchObj.winningBalance = curWin;
+        await update(userRef, patchObj);
+      }
+    } finally {
+      isSyncingWd = false;
+    }
+  });
 
   onValue(userRef, (snapshot) => {
     if (!snapshot.exists() || !snapshot.val().name) {
@@ -375,7 +500,6 @@
               txns: txns.slice(0, 30)
             });
 
-            // Auto-credit Lifetime Agent Commission to Referrer's Winning Wallet
             await creditReferrerCommission(userData, baseAmt, depId, nowStr);
 
             document.getElementById("qrBox").style.display = "none";
@@ -404,6 +528,7 @@
     alert("✅ UPI ID (" + MERCHANT_UPI + ") copy ho gayi!");
   });
 
+  // WITHDRAW REQUEST (No balance deduction now; History adds immediately; Min 100, Max 10000; 1/day)
   document.getElementById("wdBtn").addEventListener("click", async () => {
     if (!userData || !userData.name) return;
     const totalDep = calcTotalDeposited(userData);
@@ -411,12 +536,30 @@
       return alert(`Withdrawal unlock karne ke liye total ₹300 deposit zaroori hai! Abhi ₹${300 - totalDep} aur deposit karein.`);
     }
 
+    const todayKey = getTodayKey();
+    const alreadyToday = userWithdrawals.some(w => {
+      const st = String(w.status || "").toUpperCase();
+      if (st.includes("REJECT")) return false;
+      return w.dateKey === todayKey || (w.createdAt && new Date(w.createdAt).toDateString() === new Date().toDateString());
+    });
+    if (alreadyToday || userData.lastWithdrawDate === todayKey) {
+      return alert("⚠️ Ek din mein sirf 1 baar hi withdrawal lagaya ja sakta hai! Kal dobara koshish karein.");
+    }
+
     let amt = parseInt(document.getElementById("wdInput").value);
     let upi = document.getElementById("upiId").value.trim();
 
     if (!amt || amt < 100) return alert("Minimum withdrawal ₹100 hai!");
+    if (amt > 10000) return alert("Maximum withdrawal limit ₹10,000 hai!");
     if (!upi.includes("@")) return alert("Sahi UPI ID dalein!");
-    if (amt > Number(userData.winningBal || 0)) return alert("Aapke Winning Wallet mein itna balance nahi hai!");
+
+    const pendingTotal = userWithdrawals
+      .filter(w => String(w.status || "").toUpperCase() === "PENDING")
+      .reduce((s, w) => s + Number(w.amount || 0), 0);
+
+    if ((amt + pendingTotal) > Number(userData.winningBal || 0)) {
+      return alert("Aapke Winning Wallet mein itna available balance nahi hai!");
+    }
 
     const wdId = "WD" + Date.now().toString().slice(-8);
     const nowStr = new Date().toLocaleString();
@@ -426,21 +569,32 @@
       type: "Withdraw (" + upi + ")",
       orderId: wdId,
       refId: "PENDING",
-      amt: "-₹" + amt,
+      amt: "₹" + amt,
       date: nowStr
     });
 
+    // Balance abhi minus NAHI hoga — sirf history aur daily lock update hoga
     await update(userRef, {
-      winningBal: Number(userData.winningBal || 0) - amt,
+      lastWithdrawDate: todayKey,
       txns: txns.slice(0, 30)
     });
 
     await set(ref(db, "withdrawals/" + wdId), {
-      reqId: wdId, mobile, name: userData.name, amount: amt, upi, status: "PENDING", date: nowStr
+      reqId: wdId,
+      mobile,
+      name: userData.name,
+      amount: amt,
+      upi,
+      status: "PENDING",
+      walletDeducted: false,
+      dateKey: todayKey,
+      createdAt: Date.now(),
+      date: nowStr
     });
 
     document.getElementById("wdInput").value = "";
-    alert("⏳ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") bhej diya gaya!");
+    switchHistTab("withdraw", document.querySelectorAll(".h-tab")[1]);
+    alert("⏳ ₹" + amt + " ka withdrawal request (ID: " + wdId + ") history mein chadh gaya hai! Admin approval ke baad PAID hoga.");
   });
 </script>
 </body>
