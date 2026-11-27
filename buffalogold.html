@@ -234,6 +234,22 @@
   } catch (e) {}
   let winRateSetting = 20;
 
+  // Per-User Loss, 5-6 Small-Bet Loss Counter & 1-Time 25x Recovery Tracker
+  const SLOT_LOSS_KEY = "bg_slot_loss_" + mobile;
+  const SLOT_25X_KEY = "bg_slot_25x_" + mobile;
+  const SLOT_SMALL_STREAK_KEY = "bg_slot_sm_loss_" + mobile;
+  const SLOT_DRY_STREAK_KEY = "bg_slot_dry_" + mobile;
+
+  let slotNetLoss = Number(localStorage.getItem(SLOT_LOSS_KEY) || 0);
+  let slot25xGiven = localStorage.getItem(SLOT_25X_KEY) === "1";
+  let smallBetConsecLosses = Number(localStorage.getItem(SLOT_SMALL_STREAK_KEY) || 0);
+  let slotDryStreak = Number(localStorage.getItem(SLOT_DRY_STREAK_KEY) || 0);
+
+  function trackSlotPnL(deltaLoss) {
+    slotNetLoss = Math.max(0, Number((slotNetLoss + deltaLoss).toFixed(2)));
+    localStorage.setItem(SLOT_LOSS_KEY, String(slotNetLoss));
+  }
+
   function getTotalBal() {
     const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     const win = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
@@ -327,9 +343,7 @@
       }
     } catch (e) {}
   }
-
-  // STRICT HOUSE PROFIT SYMBOL WEIGHTS
-  const SYMBOLS = [
+   const SYMBOLS = [
     { icon: "🐃", mult: 25, weight: 1 },
     { icon: "🪙", mult: 12, weight: 2 },
     { icon: "💎", mult: 8,  weight: 7 },
@@ -361,13 +375,17 @@
   }
 
   function pickWeightedSymbol(betAmt = 20) {
-    const pool = betAmt >= 100
+    // Normal win par chhote symbols (3x / 5x) hi khulenge; 25x sirf ₹500+ loss recovery par
+    const pool = betAmt >= 50
       ? [
-          { icon: "💎", mult: 8, weight: 3 },
-          { icon: "🦅", mult: 5, weight: 27 },
-          { icon: "🐺", mult: 3, weight: 70 }
+          { icon: "🦅", mult: 5, weight: 15 },
+          { icon: "🐺", mult: 3, weight: 85 }
         ]
-      : SYMBOLS;
+      : [
+          { icon: "💎", mult: 8, weight: 5 },
+          { icon: "🦅", mult: 5, weight: 30 },
+          { icon: "🐺", mult: 3, weight: 65 }
+        ];
 
     const totalW = pool.reduce((s, x) => s + x.weight, 0);
     let r = Math.random() * totalW;
@@ -411,6 +429,7 @@
       document.getElementById(`reelCol${c}`).classList.add("spinning");
     }
 
+    // Deduct Bet
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
     if (dBal >= bet) {
@@ -429,6 +448,7 @@
     userData.txns = txns.slice(0, 30);
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
+    trackSlotPnL(bet);
 
     fetch(`${DB_URL}/users/${mobile}.json`, {
       method: "PATCH",
@@ -436,25 +456,61 @@
       body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
     });
 
-    // Strict House Profit Win Rate
-    let effectiveWinChance = winRateSetting <= 25 ? 6.5
-                           : winRateSetting <= 40 ? 11.0
-                           : winRateSetting <= 55 ? 18.0
-                           : 35.0;
-    if (bet >= 500) effectiveWinChance *= 0.45;
-    else if (bet >= 100) effectiveWinChance *= 0.65;
+    // ========================================================
+    // SMART BUFFALO GOLD OUTCOME LOGIC:
+    // 1. ₹500+ haarne par 1 baar 🐃 25x (jab bet ₹10-₹20 ho)
+    // 2. ₹10-₹20 ki bet 5-6 baar haarne ke baad 🐺 3x
+    // 3. Dry streak (4/10/15 spins) & Badi bet (₹50+) strict loss
+    // ========================================================
+    let isWin = false;
+    let forcedWinSymbol = null;
 
-    const isWin = (Math.random() * 100) < effectiveWinChance;
+    if (slotNetLoss >= 500 && !slot25xGiven && bet <= 20) {
+      isWin = true;
+      slot25xGiven = true;
+      localStorage.setItem(SLOT_25X_KEY, "1");
+      forcedWinSymbol = SYMBOLS[0]; // 🐃 25x
+    } else if (bet <= 20 && smallBetConsecLosses >= (5 + Math.floor(Math.random() * 2))) {
+      isWin = true;
+      forcedWinSymbol = SYMBOLS[4]; // 🐺 3x
+    } else if (slotDryStreak > 0 && winRateSetting < 65) {
+      slotDryStreak--;
+      localStorage.setItem(SLOT_DRY_STREAK_KEY, String(slotDryStreak));
+      isWin = false;
+    } else {
+      // Kabhi-kabhi 4, 10, ya 15 spins ki dry streak shuru karein
+      if (winRateSetting <= 55 && Math.random() < 0.25) {
+        const streaks = [4, 10, 15];
+        slotDryStreak = streaks[Math.floor(Math.random() * streaks.length)] - 1;
+        localStorage.setItem(SLOT_DRY_STREAK_KEY, String(slotDryStreak));
+        isWin = false;
+      } else {
+        let chance = winRateSetting <= 25 ? 8.0
+                   : winRateSetting <= 40 ? 14.0
+                   : winRateSetting <= 55 ? 24.0
+                   : 45.0;
+        if (bet >= 50) chance *= 0.45;
+        isWin = (Math.random() * 100) < chance;
+      }
+    }
+
     let midSymbols = [];
-
     if (isWin) {
-      const winSym = pickWeightedSymbol(bet);
+      const winSym = forcedWinSymbol || pickWeightedSymbol(bet);
       midSymbols = [winSym, winSym, winSym];
+      if (bet <= 20) {
+        smallBetConsecLosses = 0;
+        localStorage.setItem(SLOT_SMALL_STREAK_KEY, "0");
+      }
     } else {
       const s0 = pickWeightedSymbol(20);
       const s1 = pickWeightedSymbol(20);
       const s2 = (s0.icon === s1.icon) ? pickDifferentSymbol(s0.icon) : pickWeightedSymbol(20);
       midSymbols = [s0, s1, s2];
+      if (bet <= 20) {
+        smallBetConsecLosses++;
+        localStorage.setItem(SLOT_SMALL_STREAK_KEY, String(smallBetConsecLosses));
+      }
     }
 
     for (let col = 0; col < 3; col++) {
@@ -477,6 +533,7 @@
       const mult = midSymbols[0].mult;
       const winAmt = bet * mult;
       playSlotSound("win");
+      trackSlotPnL(-winAmt);
 
       for (let c = 0; c < 3; c++) {
         document.getElementById(`c${c}_1`).classList.add("win-glow");
@@ -522,6 +579,7 @@
     }
   }
 
+  // Hybrid Live Winners Feed
   const BOTS = ["r***4", "k***8", "a***1", "s***9", "v***3", "m***7", "p***2", "d***6", "n***5", "t***0"];
   let liveFeedData = [
     { name: "r***4", bet: 100, mult: "25x", win: 2500, isMe: false },
