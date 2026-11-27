@@ -232,7 +232,7 @@
   try {
     userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
   } catch (e) {}
-  let winRateSetting = 35;
+  let winRateSetting = 20;
 
   function getTotalBal() {
     const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
@@ -330,15 +330,16 @@
       }
     } catch (e) {}
   }
-   // ==========================================
-  // BUFFALO GOLD SLOT LOGIC & ADMIN WIN RATE
+
+  // ==========================================
+  // BUFFALO GOLD SLOT LOGIC (STRICT HOUSE PROFIT)
   // ==========================================
   const SYMBOLS = [
-    { icon: "🐃", mult: 25, weight: 8 },
-    { icon: "🪙", mult: 12, weight: 14 },
-    { icon: "💎", mult: 8,  weight: 20 },
-    { icon: "🦅", mult: 5,  weight: 28 },
-    { icon: "🐺", mult: 3,  weight: 30 }
+    { icon: "🐃", mult: 25, weight: 1 },
+    { icon: "🪙", mult: 12, weight: 2 },
+    { icon: "💎", mult: 8,  weight: 7 },
+    { icon: "🦅", mult: 5,  weight: 30 },
+    { icon: "🐺", mult: 3,  weight: 60 }
   ];
 
   let isSpinning = false;
@@ -364,14 +365,23 @@
     if (autoSpin && !isSpinning) spinReels();
   }
 
-  function pickWeightedSymbol() {
-    const totalW = SYMBOLS.reduce((s, x) => s + x.weight, 0);
+  function pickWeightedSymbol(betAmt = 20) {
+    // Badi bet par sirf chhote multipliers (3x / 5x) hi khulenge
+    const pool = betAmt >= 100
+      ? [
+          { icon: "💎", mult: 8, weight: 3 },
+          { icon: "🦅", mult: 5, weight: 27 },
+          { icon: "🐺", mult: 3, weight: 70 }
+        ]
+      : SYMBOLS;
+
+    const totalW = pool.reduce((s, x) => s + x.weight, 0);
     let r = Math.random() * totalW;
-    for (const s of SYMBOLS) {
+    for (const s of pool) {
       if (r < s.weight) return s;
       r -= s.weight;
     }
-    return SYMBOLS[4];
+    return pool[pool.length - 1];
   }
 
   function pickDifferentSymbol(excludeIcon) {
@@ -434,17 +444,25 @@
       body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns })
     });
 
-    // Determine outcome strictly by Admin winRateSetting
-    const isWin = (Math.random() * 100) < winRateSetting;
+    // Tight House Win Probability:
+    // Admin 20% -> ~6.5% real win | Admin 35% -> ~11% real win | High bet (₹100+) -> aur tight
+    let effectiveWinChance = winRateSetting <= 25 ? 6.5
+                           : winRateSetting <= 40 ? 11.0
+                           : winRateSetting <= 55 ? 18.0
+                           : 35.0;
+    if (bet >= 500) effectiveWinChance *= 0.45;
+    else if (bet >= 100) effectiveWinChance *= 0.65;
+
+    const isWin = (Math.random() * 100) < effectiveWinChance;
     let midSymbols = [];
 
     if (isWin) {
-      const winSym = pickWeightedSymbol();
+      const winSym = pickWeightedSymbol(bet);
       midSymbols = [winSym, winSym, winSym];
     } else {
-      const s0 = pickWeightedSymbol();
-      const s1 = pickWeightedSymbol();
-      const s2 = (s0.icon === s1.icon) ? pickDifferentSymbol(s0.icon) : pickWeightedSymbol();
+      const s0 = pickWeightedSymbol(20);
+      const s1 = pickWeightedSymbol(20);
+      const s2 = (s0.icon === s1.icon) ? pickDifferentSymbol(s0.icon) : pickWeightedSymbol(20);
       midSymbols = [s0, s1, s2];
     }
 
