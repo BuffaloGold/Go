@@ -189,6 +189,19 @@
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
   let winRateSetting = 20;
 
+  // Per-User Loss, One-Time Recovery & Low-Round Streak Tracker
+  const LOSS_KEY = "bg_av_loss_" + mobile;
+  const REC_KEY = "bg_av_rec_" + mobile;
+  const STREAK_KEY = "bg_av_lowstreak";
+  let userNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
+  let oneTimeRecoveryUsed = localStorage.getItem(REC_KEY) === "1";
+  let lowStreakRemaining = Number(localStorage.getItem(STREAK_KEY) || 0);
+
+  function trackUserAviatorPnL(deltaLoss) {
+    userNetLoss = Math.max(0, Number((userNetLoss + deltaLoss).toFixed(2)));
+    localStorage.setItem(LOSS_KEY, String(userNetLoss));
+  }
+
   function getTotalBal() {
     return (Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0) + (Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0);
   }
@@ -259,7 +272,7 @@
     } catch (e) {}
   }
 
-  let gameState = "WAITING", currentMult = 1.00, historyList = [1.14, 1.32, 1.08, 2.15, 1.21, 1.04, 1.48, 1.19];
+  let gameState = "WAITING", currentMult = 1.00, historyList = [12.40, 1.32, 6.15, 1.18, 14.80, 1.48, 5.60, 1.24];
   const panels = [
     { state: "IDLE", amount: 20, autoBet: false, autoCash: false },
     { state: "IDLE", amount: 50, autoBet: false, autoCash: false }
@@ -304,34 +317,91 @@
     document.getElementById(`betInp${idx}`).value = val;
     document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-  function updatePanelBtn(idx) {
+function updatePanelBtn(idx) {
     const btn = document.getElementById(`betBtn${idx}`), p = panels[idx];
     const inpVal = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
     if (p.state === "IDLE") { btn.className = "action-btn btn-green"; btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`; }
     else if (p.state === "QUEUED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`; }
     else if (p.state === "PLACED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`; }
     else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
-  }
-   function generateCrashPoint() {
-    const r = Math.random() * 100;
-    if (winRateSetting <= 25) {
-      if (r < 68) return Number((1.00 + Math.random() * 0.35).toFixed(2));
-      if (r < 92) return Number((1.36 + Math.random() * 0.60).toFixed(2));
-      return Number((2.00 + Math.random() * 2.50).toFixed(2));
-    } else if (winRateSetting <= 40) {
-      if (r < 55) return Number((1.00 + Math.random() * 0.42).toFixed(2));
-      if (r < 88) return Number((1.43 + Math.random() * 0.65).toFixed(2));
-      return Number((2.10 + Math.random() * 2.90).toFixed(2));
-    } else {
-      if (r < 25) return Number((1.02 + Math.random() * 0.50).toFixed(2));
-      return Number((1.60 + Math.random() * 6.50).toFixed(2));
+}
+   // 1. Round Generator: Beech me kabhi 4, kabhi 10, kabhi 15 baar लगातार <2.00x streak, aur normal me 5x/6x/10x+
+  function generateCrashPoint() {
+    // Agar low-streak chal rahi hai toh 2.00x se upar bilkul nahi jayega
+    if (lowStreakRemaining > 0) {
+      lowStreakRemaining--;
+      localStorage.setItem(STREAK_KEY, String(lowStreakRemaining));
+      return Number((1.00 + Math.random() * 0.88).toFixed(2)); // 1.00x - 1.88x (< 2x)
     }
+
+    // 32% chance ki nayi <2x streak shuru ho (kabhi 4, kabhi 10, kabhi 15 rounds ki)
+    if (winRateSetting <= 55 && Math.random() < 0.32) {
+      const streaks = [4, 10, 15];
+      lowStreakRemaining = streaks[Math.floor(Math.random() * streaks.length)] - 1;
+      localStorage.setItem(STREAK_KEY, String(lowStreakRemaining));
+      return Number((1.00 + Math.random() * 0.85).toFixed(2));
+    }
+
+    // Normal Spectator Look: 10+ kai baar, 5x-6x, aur 1.2x-1.5x
+    const r = Math.random() * 100;
+    if (r < 32) return Number((1.15 + Math.random() * 0.45).toFixed(2));   // 1.15x - 1.60x
+    if (r < 58) return Number((2.20 + Math.random() * 2.50).toFixed(2));   // 2.20x - 4.70x
+    if (r < 78) return Number((5.00 + Math.random() * 3.50).toFixed(2));   // 5.00x - 8.50x
+    return Number((10.10 + Math.random() * 14.00).toFixed(2));             // 10.10x - 24.10x
+  }
+
+  // 2. Active Bet Control: ₹10-₹30 har baar na jeete, <2x streak respect kare, ₹50+ tight, ₹300 loss -> 1-time ~₹200 recovery
+  async function adjustCrashOnUserBet(betAmt) {
+    if (!roomState || !roomState.roundId) return;
+    let targetCrash;
+
+    // A: ₹300+ haar chuka hai toh SIRF 1 BAAR chhoti bet par ~₹200 tak recovery mile
+    if (userNetLoss >= 300 && !oneTimeRecoveryUsed && betAmt <= 50) {
+      oneTimeRecoveryUsed = true;
+      localStorage.setItem(REC_KEY, "1");
+      const neededMult = Math.min(20.0, Math.max(4.5, Number((200 / Math.max(10, betAmt)).toFixed(2))));
+      targetCrash = Number((neededMult + 0.35 + Math.random() * 0.6).toFixed(2));
+    }
+    // B: Agar abhi <2x streak chal rahi hai (4/10/15 rounds wali) toh ₹10-₹30 par bhi 2x se neeche hi rahe
+    else if (lowStreakRemaining > 0 && winRateSetting < 60) {
+      targetCrash = Number((1.00 + Math.random() * 0.84).toFixed(2)); // Strictly < 1.85x
+    }
+    // C: ₹10 - ₹30 ki common bets -> har baar 3x-5x NA jeete (sirf ~28% baar tease, baaki 72% < 1.65x; Admin WinRate badhne par zyada)
+    else if (betAmt <= 30) {
+      const teaseChance = winRateSetting >= 70 ? 0.78
+                        : winRateSetting >= 50 ? 0.55
+                        : winRateSetting >= 35 ? 0.36
+                        : 0.26; // Default 20% par sirf ~26% baar 3x-5x milega
+
+      if (Math.random() < teaseChance) {
+        targetCrash = Number((2.85 + Math.random() * 2.35).toFixed(2)); // 2.85x - 5.20x
+      } else {
+        targetCrash = Number((1.00 + Math.random() * 0.68).toFixed(2)); // 1.00x - 1.68x (Loss)
+      }
+    }
+    // D: Amount badhate hi (₹31+) -> 1.12x - 1.50x par crash
+    else {
+      if (winRateSetting >= 70 && Math.random() < 0.45) {
+        targetCrash = Number((2.10 + Math.random() * 1.50).toFixed(2));
+      } else {
+        targetCrash = Number((1.08 + Math.random() * 0.42).toFixed(2)); // 1.08x - 1.50x
+      }
+    }
+
+    roomState.crashAt = targetCrash;
+    try {
+      await fetch(`${DB_URL}/aviatorRoom/crashAt.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(targetCrash)
+      });
+    } catch (e) {}
   }
 
   const WAIT_MS = 5000, CRASH_PAUSE_MS = 2800;
   let lastHandledRoundId = null, roundCrashHandled = false, roundTakeoffHandled = false, isCreatingRound = false;
   const bootNow = Date.now();
-  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 1.24, history: historyList };
+  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 11.40, history: historyList };
 
   function calcMultAtElapsed(sec) { return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2)); }
   function calcDurationToCrash(targetMult) { return targetMult <= 1.00 ? 0.15 : Math.log(targetMult) / 0.135; }
@@ -382,7 +452,12 @@
     userData.depositBal = dBal; userData.winningBal = wBal; userData.txns = txns.slice(0, 30);
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
+
+    trackUserAviatorPnL(val);
     panels[idx].amount = val; panels[idx].state = "PLACED"; updatePanelBtn(idx);
+
+    const combinedBet = (panels[0].state === "PLACED" ? panels[0].amount : 0) + (panels[1].state === "PLACED" ? panels[1].amount : 0);
+    adjustCrashOnUserBet(combinedBet || val);
 
     const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
     liveBetsData.unshift({ id: "me_" + idx, name: maskedMe + " (You)", bet: val, mult: null, win: 0, isMe: true });
@@ -407,6 +482,8 @@
     else if (p.state === "ACTIVE" && gameState === "FLYING") {
       const cashMult = currentMult, winAmt = Number((p.amount * cashMult).toFixed(2));
       p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
+      trackUserAviatorPnL(-winAmt);
+
       const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
       const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
       txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
@@ -521,7 +598,7 @@
     liveBetsData = [];
     for (let i = 0; i < 16; i++) {
       const bAmt = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
-      liveBetsData.push({ id: "bot_" + i, name: BOT_NAMES[i % BOT_NAMES.length], bet: bAmt, mult: null, win: 0, isMe: false, targetBotCash: Number((1.12 + Math.random() * 0.45).toFixed(2)) });
+      liveBetsData.push({ id: "bot_" + i, name: BOT_NAMES[i % BOT_NAMES.length], bet: bAmt, mult: null, win: 0, isMe: false, targetBotCash: Number((1.45 + Math.random() * 4.50).toFixed(2)) });
     }
     renderLiveFeed();
   }
