@@ -189,13 +189,14 @@
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
   let winRateSetting = 20;
 
-  // Per-User Loss, One-Time Recovery & Low-Round Streak Tracker
   const LOSS_KEY = "bg_av_loss_" + mobile;
   const REC_KEY = "bg_av_rec_" + mobile;
   const STREAK_KEY = "bg_av_lowstreak";
+  const COOL_KEY = "bg_av_streak_cool";
   let userNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
   let oneTimeRecoveryUsed = localStorage.getItem(REC_KEY) === "1";
   let lowStreakRemaining = Number(localStorage.getItem(STREAK_KEY) || 0);
+  let streakCooldown = Number(localStorage.getItem(COOL_KEY) || 6);
 
   function trackUserAviatorPnL(deltaLoss) {
     userNetLoss = Math.max(0, Number((userNetLoss + deltaLoss).toFixed(2)));
@@ -317,74 +318,72 @@
     document.getElementById(`betInp${idx}`).value = val;
     document.getElementById(`betSub${idx}`).innerText = val.toFixed(2) + " INR";
   }
-function updatePanelBtn(idx) {
+  function updatePanelBtn(idx) {
     const btn = document.getElementById(`betBtn${idx}`), p = panels[idx];
     const inpVal = parseInt(document.getElementById(`betInp${idx}`).value) || 20;
     if (p.state === "IDLE") { btn.className = "action-btn btn-green"; btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`; }
     else if (p.state === "QUEUED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`; }
     else if (p.state === "PLACED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`; }
     else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
-}
-   // 1. Round Generator: Beech me kabhi 4, kabhi 10, kabhi 15 baar लगातार <2.00x streak, aur normal me 5x/6x/10x+
-  function generateCrashPoint() {
-    // Agar low-streak chal rahi hai toh 2.00x se upar bilkul nahi jayega
+  }
+   function generateCrashPoint() {
     if (lowStreakRemaining > 0) {
       lowStreakRemaining--;
       localStorage.setItem(STREAK_KEY, String(lowStreakRemaining));
-      return Number((1.00 + Math.random() * 0.88).toFixed(2)); // 1.00x - 1.88x (< 2x)
+      if (lowStreakRemaining === 0) {
+        streakCooldown = 8 + Math.floor(Math.random() * 5);
+        localStorage.setItem(COOL_KEY, String(streakCooldown));
+      }
+      return Number((1.05 + Math.random() * 0.80).toFixed(2));
     }
 
-    // 32% chance ki nayi <2x streak shuru ho (kabhi 4, kabhi 10, kabhi 15 rounds ki)
-    if (winRateSetting <= 55 && Math.random() < 0.32) {
+    if (streakCooldown > 0) {
+      streakCooldown--;
+      localStorage.setItem(COOL_KEY, String(streakCooldown));
+    } else if (winRateSetting <= 55 && Math.random() < 0.22) {
       const streaks = [4, 10, 15];
       lowStreakRemaining = streaks[Math.floor(Math.random() * streaks.length)] - 1;
       localStorage.setItem(STREAK_KEY, String(lowStreakRemaining));
-      return Number((1.00 + Math.random() * 0.85).toFixed(2));
+      return Number((1.05 + Math.random() * 0.80).toFixed(2));
     }
 
-    // Normal Spectator Look: 10+ kai baar, 5x-6x, aur 1.2x-1.5x
     const r = Math.random() * 100;
-    if (r < 32) return Number((1.15 + Math.random() * 0.45).toFixed(2));   // 1.15x - 1.60x
-    if (r < 58) return Number((2.20 + Math.random() * 2.50).toFixed(2));   // 2.20x - 4.70x
-    if (r < 78) return Number((5.00 + Math.random() * 3.50).toFixed(2));   // 5.00x - 8.50x
-    return Number((10.10 + Math.random() * 14.00).toFixed(2));             // 10.10x - 24.10x
+    if (r < 25) return Number((1.18 + Math.random() * 0.42).toFixed(2));
+    if (r < 50) return Number((2.30 + Math.random() * 2.50).toFixed(2));
+    if (r < 74) return Number((5.10 + Math.random() * 3.70).toFixed(2));
+    return Number((10.20 + Math.random() * 14.00).toFixed(2));
   }
 
-  // 2. Active Bet Control: ₹10-₹30 har baar na jeete, <2x streak respect kare, ₹50+ tight, ₹300 loss -> 1-time ~₹200 recovery
   async function adjustCrashOnUserBet(betAmt) {
     if (!roomState || !roomState.roundId) return;
     let targetCrash;
 
-    // A: ₹300+ haar chuka hai toh SIRF 1 BAAR chhoti bet par ~₹200 tak recovery mile
     if (userNetLoss >= 300 && !oneTimeRecoveryUsed && betAmt <= 50) {
       oneTimeRecoveryUsed = true;
       localStorage.setItem(REC_KEY, "1");
       const neededMult = Math.min(20.0, Math.max(4.5, Number((200 / Math.max(10, betAmt)).toFixed(2))));
       targetCrash = Number((neededMult + 0.35 + Math.random() * 0.6).toFixed(2));
     }
-    // B: Agar abhi <2x streak chal rahi hai (4/10/15 rounds wali) toh ₹10-₹30 par bhi 2x se neeche hi rahe
     else if (lowStreakRemaining > 0 && winRateSetting < 60) {
-      targetCrash = Number((1.00 + Math.random() * 0.84).toFixed(2)); // Strictly < 1.85x
+      targetCrash = Number((1.00 + Math.random() * 0.84).toFixed(2));
     }
-    // C: ₹10 - ₹30 ki common bets -> har baar 3x-5x NA jeete (sirf ~28% baar tease, baaki 72% < 1.65x; Admin WinRate badhne par zyada)
     else if (betAmt <= 30) {
       const teaseChance = winRateSetting >= 70 ? 0.78
                         : winRateSetting >= 50 ? 0.55
                         : winRateSetting >= 35 ? 0.36
-                        : 0.26; // Default 20% par sirf ~26% baar 3x-5x milega
+                        : 0.26;
 
       if (Math.random() < teaseChance) {
-        targetCrash = Number((2.85 + Math.random() * 2.35).toFixed(2)); // 2.85x - 5.20x
+        targetCrash = Number((2.85 + Math.random() * 2.35).toFixed(2));
       } else {
-        targetCrash = Number((1.00 + Math.random() * 0.68).toFixed(2)); // 1.00x - 1.68x (Loss)
+        targetCrash = Number((1.00 + Math.random() * 0.68).toFixed(2));
       }
     }
-    // D: Amount badhate hi (₹31+) -> 1.12x - 1.50x par crash
     else {
       if (winRateSetting >= 70 && Math.random() < 0.45) {
         targetCrash = Number((2.10 + Math.random() * 1.50).toFixed(2));
       } else {
-        targetCrash = Number((1.08 + Math.random() * 0.42).toFixed(2)); // 1.08x - 1.50x
+        targetCrash = Number((1.08 + Math.random() * 0.42).toFixed(2));
       }
     }
 
