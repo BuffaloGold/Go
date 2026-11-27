@@ -173,7 +173,7 @@
   try {
     userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
   } catch (e) {}
-  let winRateSetting = 35;
+  let winRateSetting = 20;
 
   function getTotalBal() {
     const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
@@ -204,9 +204,6 @@
   }
   syncUser();
 
-  // ==========================================
-  // WEB AUDIO 3D CAR ROULETTE SOUNDS
-  // ==========================================
   let soundOn = true;
   let audioCtx = null;
 
@@ -269,9 +266,7 @@
       }
     } catch (e) {}
   }
-   // ==========================================
-  // 8 LUXURY CAR BRANDS & BETTING SLOTS
-  // ==========================================
+
   const CARS = [
     { id: 0, name: "FERRARI",  emoji: "🏎️", mult: 40, vip: true,  color: "#ef4444" },
     { id: 1, name: "LAMBO",    emoji: "🚀", mult: 25, vip: true,  color: "#f59e0b" },
@@ -284,7 +279,7 @@
   ];
 
   let selectedChip = 10;
-  let myBets = {}; // { carId: amount }
+  let myBets = {};
   let recentCars = [4, 6, 2, 5, 7, 4, 1, 6];
   let highlightedCarIdx = 0;
   let winningCarIdx = -1;
@@ -365,9 +360,6 @@
     });
   }
 
-  // ==========================================
-  // 3D ELLIPTICAL RACE TRACK CANVAS
-  // ==========================================
   const canvas = document.getElementById("carTrackCanvas");
   const ctx = canvas.getContext("2d");
 
@@ -379,7 +371,6 @@
     const rx = 165;
     const ry = 76;
 
-    // Outer 3D Track Ring
     ctx.save();
     ctx.strokeStyle = "#1e293b";
     ctx.lineWidth = 34;
@@ -396,7 +387,6 @@
     ctx.ellipse(cx, cy, rx - 17, ry - 17, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Draw 8 Car Nodes around 3D Track
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
       const x = cx + Math.cos(angle) * rx;
@@ -433,9 +423,6 @@
   }
   requestAnimationFrame(draw3DRouletteTrack);
 
-  // ==========================================
-  // SYNCHRONIZED 25-SECOND ROULETTE CLOCK
-  // ==========================================
   const ROUND_SEC = 25;
   const BET_SEC = 15;
   const SPIN_SEC = 6;
@@ -444,16 +431,25 @@
   let settledRoundIdx = -1;
   let lastTickStep = -1;
 
+  // STRICT HOUSE PROFIT CAR SELECTION
   function chooseWinningCar(rIdx) {
     const x = Math.sin(rIdx * 7919) * 10000;
     const frac = x - Math.floor(x);
-    let defaultPick = frac < 0.78 ? (4 + Math.floor((frac / 0.78) * 4)) : Math.floor(((frac - 0.78) / 0.22) * 4);
+    let defaultPick = frac < 0.88 ? (4 + Math.floor((frac / 0.88) * 4)) : Math.floor(((frac - 0.88) / 0.12) * 4);
 
-    // Apply Admin car winRateSetting if user has active bets
-    const betKeys = Object.keys(myBets).map(Number);
-    if (betKeys.length > 0 && (Math.random() * 100) > winRateSetting) {
-      const unbetCars = [4, 5, 6, 7, 3, 2, 1, 0].filter(id => !betKeys.includes(id));
-      if (unbetCars.length > 0) return unbetCars[0];
+    const betKeys = Object.keys(myBets).map(Number).filter(id => (myBets[id] || 0) > 0);
+    if (betKeys.length > 0) {
+      // Admin 20% -> sirf 7% real win chance | Admin 35% -> 12%
+      const realWinChance = winRateSetting <= 25 ? 7 : (winRateSetting <= 40 ? 12 : (winRateSetting <= 55 ? 20 : 40));
+      if ((Math.random() * 100) >= realWinChance) {
+        // Sabse kam payout wali car chunein jahan user ki bet nahi hai (ya sabse kam loss hai)
+        const order = [4, 5, 6, 7, 3, 2, 1, 0].sort((a, b) => {
+          const payA = (myBets[a] || 0) * CARS[a].mult;
+          const payB = (myBets[b] || 0) * CARS[b].mult;
+          return payA - payB;
+        });
+        return order[0];
+      }
     }
     return defaultPick;
   }
@@ -514,6 +510,7 @@
   }
 
   let currentRoundWinner = 4;
+  let spinWinnerLocked = false;
   function tickCarClock() {
     const nowSec = Math.floor(Date.now() / 1000);
     const rIdx = Math.floor(nowSec / ROUND_SEC);
@@ -523,11 +520,11 @@
       lastRoundIdx = rIdx;
       myBets = {};
       winningCarIdx = -1;
+      spinWinnerLocked = false;
       currentRoundWinner = chooseWinningCar(rIdx);
       renderCarsGrid();
     }
-
-    if (elapsed < BET_SEC) {
+   if (elapsed < BET_SEC) {
       roundPhase = "BETTING";
       const rem = BET_SEC - elapsed;
       document.getElementById("phaseTag").innerText = "PLACE YOUR BETS";
@@ -536,7 +533,8 @@
       document.getElementById("timerNum").style.color = rem <= 4 ? "#ef4444" : "#fff";
     } else if (elapsed < BET_SEC + SPIN_SEC) {
       roundPhase = "SPINNING";
-      if (settledRoundIdx !== rIdx && Object.keys(myBets).length > 0) {
+      if (!spinWinnerLocked) {
+        spinWinnerLocked = true;
         currentRoundWinner = chooseWinningCar(rIdx);
       }
       const spinElapsed = (Date.now() / 1000) % ROUND_SEC - BET_SEC;
@@ -563,7 +561,6 @@
     }
   }
 
-  // Hybrid Live Feed
   const BOTS = ["r***5", "k***2", "a***8", "s***4", "v***7", "m***1", "p***9", "d***3", "n***6", "t***0"];
   let liveFeedData = [
     { name: "r***5", car: "🏎️ FERRARI", mult: "40x", win: 4000, isMe: false },
@@ -607,9 +604,6 @@
     renderFeed();
   }, 4500);
 
-  // ==========================================
-  // SAFE EXIT & BACK BUTTON CONFIRMATION
-  // ==========================================
   function hasRunningBet() {
     return Object.values(myBets).some(v => v > 0);
   }
