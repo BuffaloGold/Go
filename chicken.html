@@ -170,7 +170,7 @@
   try {
     userData = JSON.parse(localStorage.getItem("cachedUser") || "{}");
   } catch (e) {}
-  let winRateSetting = 35;
+  let winRateSetting = 20;
 
   function getTotalBal() {
     const dep = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
@@ -201,9 +201,6 @@
   }
   syncUser();
 
-  // ==========================================
-  // WEB AUDIO 3D CHICKEN ROAD SOUNDS
-  // ==========================================
   let soundOn = true;
   let audioCtx = null;
 
@@ -267,9 +264,7 @@
       }
     } catch (e) {}
   }
-   // ==========================================
-  // GAME CONFIG & MULTIPLIER LADDERS
-  // ==========================================
+
   const LADDERS = {
     easy: [1.25, 1.55, 1.95, 2.45, 3.10, 4.00, 5.20, 7.00],
     med:  [1.55, 2.30, 3.40, 5.00, 7.50, 11.0, 16.5, 25.0],
@@ -387,14 +382,17 @@
     `;
   }
 
+  // STRICT HOUSE PROFIT STEP SURVIVAL LOGIC
   function stepForward() {
     if (!isPlaying || currentLane >= 8) return;
     initAudio();
 
     const nextLane = currentLane + 1;
-    const diffPenalty = difficulty === "easy" ? 1.0 : (difficulty === "med" ? 0.82 : 0.65);
-    const laneDecay = Math.pow(0.84, nextLane - 1);
-    const surviveChance = Math.min(82, Math.max(12, winRateSetting * 1.45 * diffPenalty * laneDecay));
+    const diffPenalty = difficulty === "easy" ? 1.0 : (difficulty === "med" ? 0.65 : 0.42);
+    const laneDecay = Math.pow(0.55, nextLane - 1);
+    const betPenalty = activeBet >= 200 ? 0.65 : (activeBet >= 100 ? 0.80 : 1.0);
+    const baseRate = winRateSetting <= 25 ? 24 : (winRateSetting <= 40 ? 34 : (winRateSetting <= 55 ? 48 : 70));
+    const surviveChance = Math.min(65, Math.max(4, baseRate * diffPenalty * laneDecay * betPenalty));
 
     const survived = (Math.random() * 100) < surviveChance;
 
@@ -466,9 +464,6 @@
     });
   }
 
-  // ==========================================
-  // 3D HIGHWAY & TRAFFIC ANIMATION CANVAS
-  // ==========================================
   const canvas = document.getElementById("roadCanvas");
   const ctx = canvas.getContext("2d");
 
@@ -610,7 +605,6 @@
   }
   requestAnimationFrame(animateRoad);
 
-  // Hybrid Live Winners Feed
   const BOTS = ["r***8", "k***3", "a***7", "s***1", "v***9", "m***4", "p***2", "d***5", "n***6", "t***0"];
   let liveFeedData = [
     { name: "r***8", bet: 200, mult: "2.45x", win: 490, isMe: false },
@@ -654,9 +648,6 @@
     renderFeed();
   }, 4500);
 
-  // ==========================================
-  // SAFE EXIT & BACK BUTTON CONFIRMATION
-  // ==========================================
   function hasRunningBet() {
     return isPlaying;
   }
