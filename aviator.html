@@ -219,18 +219,17 @@
     toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
   }
 
+    // =========================================================================
+  // SHARED GLOBAL POOL (Safe Profit NEVER decreases on user cashout!)
   // =========================================================================
-  // SHARED GLOBAL NET-CASH POOL (Sabhi live users ka ek saath hisaab)
-  // netCashIn = Total Bets - Total Wins (never inflated by recycled wins)
-  // =========================================================================
-  let globalPool = { netCashIn: 0, totalSafeProfit: 0 };
+  let globalPool = { playablePool: 0, totalSafeProfit: 0 };
 
   async function syncGlobalPool() {
     try {
       const res = await fetch(`${DB_URL}/aviatorGlobalPool.json?t=${Date.now()}`);
       const data = await res.json();
       if (data && typeof data === "object") {
-        globalPool.netCashIn = Math.max(0, Number(data.netCashIn || 0));
+        globalPool.playablePool = Math.max(0, Number(data.playablePool || 0));
         globalPool.totalSafeProfit = Math.max(0, Number(data.totalSafeProfit || 0));
       }
     } catch (e) {}
@@ -238,9 +237,15 @@
 
   async function recordGlobalBetOutflow(betAmt) {
     await syncGlobalPool();
-    globalPool.netCashIn = Number((globalPool.netCashIn + Number(betAmt || 0)).toFixed(2));
+    const amt = Number(betAmt || 0);
     const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
-    globalPool.totalSafeProfit = Number((globalPool.netCashIn * profitRatio).toFixed(2));
+    const lockedProfit = Number((amt * profitRatio).toFixed(2));
+    const userShare = Number((amt - lockedProfit).toFixed(2));
+
+    // Safe profit permanently add hota rahega, aur sirf baaki hissa user pool mein jayega
+    globalPool.totalSafeProfit = Number((globalPool.totalSafeProfit + lockedProfit).toFixed(2));
+    globalPool.playablePool = Number((globalPool.playablePool + userShare).toFixed(2));
+
     try {
       await fetch(`${DB_URL}/aviatorGlobalPool.json`, {
         method: "PUT",
@@ -252,9 +257,8 @@
 
   async function recordGlobalWinInflow(winAmt) {
     await syncGlobalPool();
-    globalPool.netCashIn = Math.max(0, Number((globalPool.netCashIn - Number(winAmt || 0)).toFixed(2)));
-    const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
-    globalPool.totalSafeProfit = Number((globalPool.netCashIn * profitRatio).toFixed(2));
+    // Cashout hone par sirf playablePool ghatega — totalSafeProfit kabhi minus nahi hoga!
+    globalPool.playablePool = Math.max(0, Number((globalPool.playablePool - Number(winAmt || 0)).toFixed(2)));
     try {
       await fetch(`${DB_URL}/aviatorGlobalPool.json`, {
         method: "PUT",
@@ -262,6 +266,16 @@
         body: JSON.stringify({ ...globalPool, updatedAt: getSyncedNow() })
       });
     } catch (e) {}
+  }
+
+  function getSharedMaxAllowedPayout(betAmt) {
+    // Agar pool bilkul naya hai (<= 1.5x bet), toh chhota win (up to 1.85x) allow karein taaki game real lage
+    if (globalPool.playablePool <= 0 && globalPool.totalSafeProfit <= betAmt) {
+      return Number((betAmt * 1.85).toFixed(2));
+    }
+    return Number(globalPool.playablePool.toFixed(2));
+  }
+ 
   }
 
   // Sabhi live users ke shared pool se kitna max payout allowed hai:
