@@ -219,31 +219,64 @@
     toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
   }
 
-  // Real Cash Outflow / Inflow Tracker (Prevents turnover inflation)
-  const LOSS_KEY = "bg_av_netloss_" + mobile;
-  let userRealNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
+  // =========================================================================
+  // SHARED GLOBAL NET-CASH POOL (Sabhi live users ka ek saath hisaab)
+  // netCashIn = Total Bets - Total Wins (never inflated by recycled wins)
+  // =========================================================================
+  let globalPool = { netCashIn: 0, totalSafeProfit: 0 };
 
-  function recordRealBetOutflow(betAmt) {
-    userRealNetLoss = Number((userRealNetLoss + Number(betAmt || 0)).toFixed(2));
-    localStorage.setItem(LOSS_KEY, String(userRealNetLoss));
+  async function syncGlobalPool() {
+    try {
+      const res = await fetch(`${DB_URL}/aviatorGlobalPool.json?t=${Date.now()}`);
+      const data = await res.json();
+      if (data && typeof data === "object") {
+        globalPool.netCashIn = Math.max(0, Number(data.netCashIn || 0));
+        globalPool.totalSafeProfit = Math.max(0, Number(data.totalSafeProfit || 0));
+      }
+    } catch (e) {}
   }
 
-  function recordRealWinInflow(winAmt) {
-    userRealNetLoss = Math.max(0, Number((userRealNetLoss - Number(winAmt || 0)).toFixed(2)));
-    localStorage.setItem(LOSS_KEY, String(userRealNetLoss));
-  }
-
-  // Admin Safe Profit % chhod kar baaki hissa user recovery limit hai
-  function getMaxAllowedPayout(betAmt) {
+  async function recordGlobalBetOutflow(betAmt) {
+    await syncGlobalPool();
+    globalPool.netCashIn = Number((globalPool.netCashIn + Number(betAmt || 0)).toFixed(2));
     const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
-    const playableRatio = 1 - profitRatio; // e.g., 35% profit -> 65% user pool; 20% profit -> 80% user pool
-    const lossBasedCap = Number((userRealNetLoss * playableRatio).toFixed(2));
-    // Agar user ka net loss abhi kam hai (shuruat ki bets), toh chhota win (up to 1.85x) allow karein
-    // taaki har bet par crash na ho aur game bilkul asli lage!
-    if (userRealNetLoss <= betAmt * 2) {
-      return Math.max(lossBasedCap, Number((betAmt * 1.85).toFixed(2)));
+    globalPool.totalSafeProfit = Number((globalPool.netCashIn * profitRatio).toFixed(2));
+    try {
+      await fetch(`${DB_URL}/aviatorGlobalPool.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...globalPool, updatedAt: getSyncedNow() })
+      });
+    } catch (e) {}
+  }
+
+  async function recordGlobalWinInflow(winAmt) {
+    await syncGlobalPool();
+    globalPool.netCashIn = Math.max(0, Number((globalPool.netCashIn - Number(winAmt || 0)).toFixed(2)));
+    const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
+    globalPool.totalSafeProfit = Number((globalPool.netCashIn * profitRatio).toFixed(2));
+    try {
+      await fetch(`${DB_URL}/aviatorGlobalPool.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...globalPool, updatedAt: getSyncedNow() })
+      });
+    } catch (e) {}
+  }
+
+  // Sabhi live users ke shared pool se kitna max payout allowed hai:
+  // Example: User A (₹300) + User B (₹700) = ₹1,000 netCashIn
+  // Admin Safe Profit = 35% (₹350 locked) -> Shared Max Payout = ₹650
+  function getSharedMaxAllowedPayout(betAmt) {
+    const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
+    const playableRatio = 1 - profitRatio;
+    const sharedPoolCap = Number((globalPool.netCashIn * playableRatio).toFixed(2));
+    // Agar global pool abhi bilkul naya/chhota hai (<= 2x bet), toh chhota win (up to 1.85x) allow karein
+    // taaki shuruat ki har bet par crash na ho aur game bilkul asli lage
+    if (globalPool.netCashIn <= betAmt * 2) {
+      return Math.max(sharedPoolCap, Number((betAmt * 1.85).toFixed(2)));
     }
-    return lossBasedCap;
+    return sharedPoolCap;
   }
 
   function getTotalBal() {
@@ -271,6 +304,7 @@
     } catch (e) {}
   }
   syncUserFromDB();
+  syncGlobalPool();
 
   let soundEnabled = true, audioCtx = null;
   function initAudio() {
@@ -392,14 +426,14 @@
   async function adjustCrashOnUserBet(betAmt) {
     if (!roomState || !roomState.roundId) return;
     roundHadUserBet = true;
+    await recordGlobalBetOutflow(betAmt);
 
-    const maxRecover = getMaxAllowedPayout(betAmt);
+    const sharedCap = getSharedMaxAllowedPayout(betAmt);
     let targetCrash;
 
-    if (maxRecover >= betAmt * 1.45) {
+    if (sharedCap >= betAmt * 1.45) {
       targetCrash = generateCrashPoint();
     } else {
-      // Kabhi natural early crash (1.06x-1.75x) aur kabhi upar udne dein
       if (Math.random() < 0.35) {
         targetCrash = Number((1.06 + Math.random() * 0.68).toFixed(2));
       } else {
@@ -529,7 +563,6 @@
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
 
-    recordRealBetOutflow(val);
     panels[idx].amount = val; panels[idx].state = "PLACED"; updatePanelBtn(idx);
 
     const combinedBet = (panels[0].state === "PLACED" ? panels[0].amount : 0) + (panels[1].state === "PLACED" ? panels[1].amount : 0);
@@ -543,7 +576,7 @@
     return true;
   }
 
-  // 0.10s (100ms) Cashout vs 0.15s (150ms) Crash (Manual + Auto Cashout dono ke liye)
+  // 0.10s (100ms) Cashout vs 0.15s (150ms) Crash with Shared Multi-User Pool
   async function handleBetBtn(idx) {
     initAudio();
     const p = panels[idx];
@@ -560,10 +593,11 @@
       p.state = "CASHOUT_PENDING";
       updatePanelBtn(idx);
 
+      await syncGlobalPool();
       const tapMult = currentMult;
       const winAmt = Number((p.amount * tapMult).toFixed(2));
-      const maxAllowedNow = getMaxAllowedPayout(p.amount);
-      const isOverSafeProfit = winAmt > maxAllowedNow;
+      const sharedCapNow = getSharedMaxAllowedPayout(p.amount);
+      const isOverSafeProfit = winAmt > sharedCapNow;
 
       if (isOverSafeProfit) {
         // 0.15s (150ms) baad crash -> aisa lagega ki cash out ho raha tha aur plane crash ho gaya!
@@ -580,13 +614,13 @@
         }, 150);
       } else {
         // 0.10s (100ms) me smooth cashout win
-        setTimeout(() => {
+        setTimeout(async () => {
           if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
           const cashMult = currentMult;
           const finalWin = Number((p.amount * cashMult).toFixed(2));
 
           p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
-          recordRealWinInflow(finalWin);
+          await recordGlobalWinInflow(finalWin);
           showResultBanner(true, `🎉 YOU WON @ ${cashMult.toFixed(2)}x • +₹${finalWin.toFixed(2)} INR`);
 
           const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + finalWin).toFixed(2));
@@ -771,6 +805,7 @@
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 450);
   setInterval(syncUserFromDB, 4000);
+  setInterval(syncGlobalPool, 2500);
   setInterval(tickSynchronizedEngine, 40);
 </script>
 </body>
