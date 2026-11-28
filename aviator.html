@@ -30,7 +30,6 @@
   .wait-bar-fill { height: 100%; background: #ff2e4c; width: 100%; transition: width 0.1s linear; }
   .live-users-tag { position: absolute; bottom: 8px; right: 10px; background: rgba(0,0,0,0.65); padding: 3px 8px; border-radius: 10px; font-size: 10px; color: #ccc; }
 
-  /* Win / Loss Result Toast Banner */
   .result-toast {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
     padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 900;
@@ -201,7 +200,9 @@
 
   let userData = {};
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
-  let winRateSetting = 25;
+  // Admin Panel se set ki gayi User Recovery / Win Rate % (20%, 35%, 50%, 75%)
+  // Safe House Profit % = 100 - winRateSetting
+  let winRateSetting = 35;
 
   let serverOffsetMs = 0;
   function getSyncedNow() {
@@ -219,54 +220,26 @@
     toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
   }
 
-  function getCurrentHourKey() {
-    const d = new Date(getSyncedNow());
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}`;
+  // Real Cash-In vs Cash-Out Tracking (Prevents turnover inflation!)
+  // Sirf user ki asal jeb se nikle hue paise (netLoss) par Admin % apply hoga
+  const LOSS_KEY = "bg_av_netloss_" + mobile;
+  let userRealNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
+
+  function recordRealBetOutflow(betAmt) {
+    userRealNetLoss = Number((userRealNetLoss + Number(betAmt || 0)).toFixed(2));
+    localStorage.setItem(LOSS_KEY, String(userRealNetLoss));
   }
 
-  let hourlyPool = { hourKey: getCurrentHourKey(), totalIn: 0, totalOut: 0 };
-
-  async function syncHourlyPool() {
-    const hKey = getCurrentHourKey();
-    try {
-      const res = await fetch(`${DB_URL}/aviatorHourlyPool/${hKey}.json?t=${Date.now()}`);
-      const data = await res.json();
-      if (data && typeof data === "object") {
-        hourlyPool = { hourKey: hKey, totalIn: Number(data.totalIn || 0), totalOut: Number(data.totalOut || 0) };
-      } else {
-        hourlyPool = { hourKey: hKey, totalIn: 0, totalOut: 0 };
-      }
-    } catch (e) {}
+  function recordRealWinInflow(winAmt) {
+    userRealNetLoss = Math.max(0, Number((userRealNetLoss - Number(winAmt || 0)).toFixed(2)));
+    localStorage.setItem(LOSS_KEY, String(userRealNetLoss));
   }
 
-  async function recordHourlyBet(betAmt) {
-    const hKey = getCurrentHourKey();
-    hourlyPool.totalIn = Number((hourlyPool.totalIn + Number(betAmt || 0)).toFixed(2));
-    try {
-      await fetch(`${DB_URL}/aviatorHourlyPool/${hKey}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(hourlyPool)
-      });
-    } catch (e) {}
-  }
-
-  async function recordHourlyWin(winAmt) {
-    const hKey = getCurrentHourKey();
-    hourlyPool.totalOut = Number((hourlyPool.totalOut + Number(winAmt || 0)).toFixed(2));
-    try {
-      await fetch(`${DB_URL}/aviatorHourlyPool/${hKey}.json`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(hourlyPool)
-      });
-    } catch (e) {}
-  }
-
-  function getAvailableUserPool() {
-    const houseMarginPct = 0.25;
-    const maxPlayableOut = hourlyPool.totalIn * (1 - houseMarginPct);
-    return Number(Math.max(0, maxPlayableOut - hourlyPool.totalOut).toFixed(2));
+  // Admin Rate Setting ke hisaab se Max Allowed Payout
+  // Example: Admin ne 35% rakha -> 65% aapka Safe Profit, max 35% recovery allowed
+  function getMaxAllowedPayout() {
+    const allowedPct = Math.min(95, Math.max(10, Number(winRateSetting || 35))) / 100;
+    return Number((userRealNetLoss * allowedPct).toFixed(2));
   }
 
   function getTotalBal() {
@@ -290,11 +263,10 @@
         localStorage.setItem("cachedUser", JSON.stringify(userData));
         updateHeaderBal();
       }
-      if (typeof r === "number") winRateSetting = r;
+      if (typeof r === "number" && r > 0) winRateSetting = r;
     } catch (e) {}
   }
   syncUserFromDB();
-  syncHourlyPool();
 
   let soundEnabled = true, audioCtx = null;
   function initAudio() {
@@ -340,7 +312,7 @@
     } catch (e) {}
   }
 
-  let gameState = "WAITING", currentMult = 1.00, historyList = [3.85, 1.42, 7.20, 1.18, 16.40, 4.95, 8.10, 1.76];
+  let gameState = "WAITING", currentMult = 1.00, historyList = [3.45, 1.38, 6.80, 1.15, 15.20, 4.10, 7.60, 1.84];
   const panels = [
     { state: "IDLE", amount: 20, autoBet: false, autoCash: false },
     { state: "IDLE", amount: 50, autoBet: false, autoCash: false }
@@ -391,18 +363,24 @@
     if (p.state === "IDLE") { btn.className = "action-btn btn-green"; btn.innerHTML = `<span>BET</span><span class="action-sub" id="betSub${idx}">${inpVal.toFixed(2)} INR</span>`; }
     else if (p.state === "QUEUED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CANCEL</span><span class="action-sub">₹${p.amount} (NEXT ROUND)</span>`; }
     else if (p.state === "PLACED") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>✔ BET PLACED</span><span class="action-sub">₹${p.amount} (STARTING...)</span>`; }
+    else if (p.state === "CASHOUT_PENDING") { btn.className = "action-btn btn-queued"; btn.innerHTML = `<span>CASHING OUT...</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
     else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
   }
- 
-  let roundHadUserBet = false;
+   let roundHadUserBet = false;
   let allCashoutBoostApplied = false;
   let localCrashLockUntil = 0;
 
-  // NORMAL CYCLE: 20% (1-2x) | 35% (1-5x) | 35% (5-10x) | 10% (10-100x)
+  // ========================================================
+  // NO BET PLACED (SPECTATOR / NATURAL CYCLE):
+  // 20% -> 1.00x to 1.99x
+  // 50% -> 1.00x to 5.00x
+  // 20% -> 5.00x to 10.00x
+  // 10% -> 10.00x to 100.00x
+  // ========================================================
   function generateCrashPoint() {
     const r = Math.random() * 100;
     if (r < 20) return Number((1.00 + Math.random() * 0.99).toFixed(2));
-    if (r < 55) return Number((1.00 + Math.random() * 4.00).toFixed(2));
+    if (r < 70) return Number((1.00 + Math.random() * 4.00).toFixed(2));
     if (r < 90) return Number((5.00 + Math.random() * 5.00).toFixed(2));
     return Number((10.00 + Math.random() * 90.00).toFixed(2));
   }
@@ -410,19 +388,20 @@
   async function adjustCrashOnUserBet(betAmt) {
     if (!roomState || !roomState.roundId) return;
     roundHadUserBet = true;
-    await syncHourlyPool();
-    await recordHourlyBet(betAmt);
 
-    const playablePool = getAvailableUserPool();
+    const maxRecover = getMaxAllowedPayout();
     let targetCrash;
 
-    if (playablePool >= betAmt * 1.5) {
+    if (maxRecover >= betAmt * 1.4) {
+      // Allowed recovery pool available -> natural उड़ान
       targetCrash = generateCrashPoint();
     } else {
-      if (Math.random() < 0.45) {
-        targetCrash = Number((1.02 + Math.random() * 0.78).toFixed(2));
+      // Kabhi natural low crash (1.04x-1.75x) aur kabhi upar udne dein
+      // taaki user Cash Out dabaye toh 0.15s me crash ho!
+      if (Math.random() < 0.42) {
+        targetCrash = Number((1.04 + Math.random() * 0.72).toFixed(2));
       } else {
-        targetCrash = Number((2.50 + Math.random() * 6.50).toFixed(2));
+        targetCrash = Number((3.20 + Math.random() * 11.80).toFixed(2));
       }
     }
 
@@ -440,7 +419,7 @@
   async function forceImmediateCrashAt(crashMult) {
     const exactCrash = Number(Math.max(1.00, crashMult).toFixed(2));
     const now = getSyncedNow();
-    localCrashLockUntil = now + CRASH_PAUSE_MS + 300;
+    localCrashLockUntil = now + CRASH_PAUSE_MS + 350;
     roomState.crashAt = exactCrash;
     roomState.flyStart = now - calcDurationToCrash(exactCrash) * 1000 - 15;
     tickSynchronizedEngine();
@@ -457,7 +436,7 @@
     if (allCashoutBoostApplied || !roomState || gameState !== "FLYING") return;
     if (!roundHadUserBet) return;
 
-    const anyMyBetActive = panels.some(p => p.state === "ACTIVE" || p.state === "PLACED");
+    const anyMyBetActive = panels.some(p => p.state === "ACTIVE" || p.state === "PLACED" || p.state === "CASHOUT_PENDING");
     if (anyMyBetActive) return;
 
     const anyOtherActive = liveBetsData.some(b => !b.isMe && !b.id.startsWith("bot_") && !b.mult);
@@ -482,7 +461,7 @@
   const WAIT_MS = 5000, CRASH_PAUSE_MS = 2600;
   let lastHandledRoundId = null, roundCrashHandled = false, roundTakeoffHandled = false, isCreatingRound = false;
   const bootNow = getSyncedNow();
-  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 4.85, history: historyList };
+  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 4.25, history: historyList };
 
   function calcMultAtElapsed(sec) { return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2)); }
   function calcDurationToCrash(targetMult) { return targetMult <= 1.00 ? 0.15 : Math.log(targetMult) / 0.135; }
@@ -549,6 +528,7 @@
     localStorage.setItem("cachedUser", JSON.stringify(userData));
     updateHeaderBal();
 
+    recordRealBetOutflow(val);
     panels[idx].amount = val; panels[idx].state = "PLACED"; updatePanelBtn(idx);
 
     const combinedBet = (panels[0].state === "PLACED" ? panels[0].amount : 0) + (panels[1].state === "PLACED" ? panels[1].amount : 0);
@@ -562,6 +542,7 @@
     return true;
   }
 
+  // 0.10s (100ms) Cashout vs 0.15s (150ms) Crash
   async function handleBetBtn(idx) {
     initAudio();
     const p = panels[idx];
@@ -575,42 +556,55 @@
       }
     } else if (p.state === "QUEUED") { p.state = "IDLE"; updatePanelBtn(idx); }
     else if (p.state === "ACTIVE" && gameState === "FLYING") {
-      const cashMult = currentMult;
-      const winAmt = Number((p.amount * cashMult).toFixed(2));
-      const availableNow = getAvailableUserPool();
+      p.state = "CASHOUT_PENDING";
+      updatePanelBtn(idx);
 
-      // Limit ke bahar Cash Out dabate hi instant crash + clear LOST banner
-      if (winAmt > availableNow && winRateSetting < 75) {
-        const lostBetAmt = p.amount;
-        p.state = "IDLE";
-        updatePanelBtn(idx);
-        myBetsHistory.unshift({ bet: lostBetAmt, mult: "0.00x", win: 0 });
-        renderLiveFeed();
-        showResultBanner(false, `💥 FLEW AWAY @ ${cashMult.toFixed(2)}x • BET LOST (-₹${lostBetAmt})`);
-        await forceImmediateCrashAt(cashMult);
-        return;
+      const tapMult = currentMult;
+      const winAmt = Number((p.amount * tapMult).toFixed(2));
+      const maxAllowedNow = getMaxAllowedPayout();
+      const isOverSafeProfit = (winAmt > maxAllowedNow) && (winRateSetting < 75);
+
+      if (isOverSafeProfit) {
+        // 0.15s (150ms) par plane crash -> aisa lagega ki cashout ho raha tha aur plane crash ho gaya!
+        setTimeout(async () => {
+          if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
+          const crashMult = currentMult;
+          const lostBetAmt = p.amount;
+          p.state = "IDLE";
+          updatePanelBtn(idx);
+          myBetsHistory.unshift({ bet: lostBetAmt, mult: "0.00x", win: 0 });
+          renderLiveFeed();
+          showResultBanner(false, `💥 FLEW AWAY @ ${crashMult.toFixed(2)}x • BET LOST (-₹${lostBetAmt})`);
+          await forceImmediateCrashAt(crashMult);
+        }, 150);
+      } else {
+        // 0.10s (100ms) par smooth cashout win
+        setTimeout(() => {
+          if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
+          const cashMult = currentMult;
+          const finalWin = Number((p.amount * cashMult).toFixed(2));
+
+          p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
+          recordRealWinInflow(finalWin);
+          showResultBanner(true, `🎉 YOU WON @ ${cashMult.toFixed(2)}x • +₹${finalWin.toFixed(2)} INR`);
+
+          const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + finalWin).toFixed(2));
+          const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+          txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + finalWin, date: new Date().toLocaleString() });
+          userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
+          localStorage.setItem("cachedUser", JSON.stringify(userData));
+          updateHeaderBal();
+          const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+          const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
+          if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = finalWin; }
+          myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: finalWin });
+          renderLiveFeed();
+          fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
+          fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: finalWin, ts: getSyncedNow() }) });
+
+          boostCrashWhenAllCashedOut();
+        }, 100);
       }
-
-      // Pool ke andar hai toh instant win + clear WIN banner
-      p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
-      recordHourlyWin(winAmt);
-      showResultBanner(true, `🎉 YOU WON @ ${cashMult.toFixed(2)}x • +₹${winAmt.toFixed(2)} INR`);
-
-      const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
-      const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
-      txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
-      userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
-      localStorage.setItem("cachedUser", JSON.stringify(userData));
-      updateHeaderBal();
-      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
-      const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
-      if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = winAmt; }
-      myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
-      renderLiveFeed();
-      fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
-      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: getSyncedNow() }) });
-
-      boostCrashWhenAllCashedOut();
     }
   }
 
@@ -701,7 +695,7 @@
         roundCrashHandled = true; playAviatorSound("crash");
         let totalLostAmt = 0;
         [0, 1].forEach(idx => {
-          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED") {
+          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED" || panels[idx].state === "CASHOUT_PENDING") {
             totalLostAmt += panels[idx].amount;
             myBetsHistory.unshift({ bet: panels[idx].amount, mult: "0.00x", win: 0 });
             panels[idx].state = "IDLE"; updatePanelBtn(idx);
@@ -761,7 +755,7 @@
     listEl.innerHTML = rows.map(r => `<div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}"><div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div><div>₹${Number(r.bet).toFixed(2)}</div><div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div><div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div></div>`).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
   }
 
-  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED"); }
+  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED" || p.state === "CASHOUT_PENDING"); }
   function safeExitTo(url) {
     const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
     if (confirm(msg)) window.location.href = url;
@@ -775,7 +769,7 @@
 
   syncRoomFromFirebase();
   setInterval(syncRoomFromFirebase, 450);
-  setInterval(syncHourlyPool, 2500);
+  setInterval(syncUserFromDB, 4000);
   setInterval(tickSynchronizedEngine, 40);
 </script>
 </body>
