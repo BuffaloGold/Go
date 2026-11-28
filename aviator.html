@@ -200,8 +200,8 @@
 
   let userData = {};
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
-  // Admin ke Aviator Rate (20, 35, 50, 75) ko hi direct Safe House Profit % maanenge!
   let safeProfitPctSetting = 35;
+  let dbSyncLockUntil = 0;
 
   let serverOffsetMs = 0;
   function getSyncedNow() {
@@ -220,8 +220,8 @@
   }
 
   // =========================================================================
-  // STRICT SHARED GLOBAL POOL
-  // Cashout sirf playablePool se minus hoga — totalSafeProfit kabhi minus nahi hoga!
+  // SHARED GLOBAL POOL (Cashout sirf playablePool ko PATCH karega -
+  // totalSafeProfit kabhi minus ya overwrite nahi hoga!)
   // =========================================================================
   let globalPool = { playablePool: 0, totalSafeProfit: 0 };
 
@@ -278,9 +278,10 @@
     } catch (e) {}
   }
 
-  // Strictly NO bypass — winAmt must be <= playablePool
-  function getSharedMaxAllowedPayout() {
-    return Math.max(0, Number(globalPool.playablePool || 0));
+  function getSharedMaxAllowedPayout(betAmt) {
+    const pool = Math.max(0, Number(globalPool.playablePool || 0));
+    const currentBet = Math.max(0, Number(betAmt || 0));
+    return Number((currentBet + pool).toFixed(2));
   }
 
   function getTotalBal() {
@@ -292,11 +293,13 @@
   updateHeaderBal();
 
   async function syncUserFromDB() {
+    if (Date.now() < dbSyncLockUntil) return;
     try {
       const [uRes, rRes] = await Promise.all([
         fetch(`${DB_URL}/users/${mobile}.json?t=${Date.now()}`),
         fetch(`${DB_URL}/settings/rates/aviator.json?t=${Date.now()}`)
       ]);
+      if (Date.now() < dbSyncLockUntil) return;
       const u = await uRes.json();
       const r = await rRes.json();
       if (u && typeof u === "object") {
@@ -432,7 +435,7 @@
     roundHadUserBet = true;
     await recordGlobalBetOutflow(betAmt);
 
-    const sharedCap = getSharedMaxAllowedPayout();
+    const sharedCap = getSharedMaxAllowedPayout(betAmt);
     let targetCrash;
 
     if (sharedCap >= betAmt * 1.45) {
@@ -558,6 +561,7 @@
       return false;
     }
     playAviatorSound("bet");
+    dbSyncLockUntil = Date.now() + 3500;
     let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
     let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
     if (dBal >= val) dBal -= val; else { const rem = val - dBal; dBal = 0; wBal -= rem; }
@@ -579,7 +583,7 @@
     return true;
   }
 
-  // STRICT 0.10s (100ms) Cashout vs 0.15s (150ms) Crash
+  // STRICT roundId + latestCrashMs lock so crashed rounds NEVER pay out late
   async function handleBetBtn(idx) {
     initAudio();
     const p = panels[idx];
@@ -593,18 +597,21 @@
       }
     } else if (p.state === "QUEUED") { p.state = "IDLE"; updatePanelBtn(idx); }
     else if (p.state === "ACTIVE" && gameState === "FLYING") {
+      const activeRoundId = roomState.roundId;
+      const flyStart = Number(roomState.flyStart);
+      const crashTimeMs = flyStart + calcDurationToCrash(Number(roomState.crashAt)) * 1000;
+      if (getSyncedNow() >= crashTimeMs) return;
+
       p.state = "CASHOUT_PENDING";
       updatePanelBtn(idx);
 
-      await syncGlobalPool();
       const tapMult = currentMult;
       const winAmt = Number((p.amount * tapMult).toFixed(2));
-      const availablePoolNow = getSharedMaxAllowedPayout();
+      const maxAllowedNow = getSharedMaxAllowedPayout(p.amount);
 
-      // STRICT CHECK: playablePool se 1 paisa bhi zyada hua toh 0.15s me CRASH!
-      if (winAmt > availablePoolNow || availablePoolNow <= 0) {
+      if (winAmt > maxAllowedNow) {
         setTimeout(async () => {
-          if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
+          if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING" || roomState.roundId !== activeRoundId) return;
           const crashMult = currentMult;
           const lostBetAmt = p.amount;
           p.state = "IDLE";
@@ -617,25 +624,24 @@
         return;
       }
 
-      // Pool ke andar hai toh 0.10s me smooth cashout win
-      setTimeout(async () => {
-        if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
-        const cashMult = currentMult;
-        const finalWin = Number((p.amount * cashMult).toFixed(2));
-
-        if (finalWin > getSharedMaxAllowedPayout()) {
-          const lostBetAmt = p.amount;
-          p.state = "IDLE";
-          updatePanelBtn(idx);
-          myBetsHistory.unshift({ bet: lostBetAmt, mult: "0.00x", win: 0 });
-          renderLiveFeed();
-          showResultBanner(false, `💥 FLEW AWAY @ ${cashMult.toFixed(2)}x • BET LOST (-₹${lostBetAmt})`);
-          await forceImmediateCrashAt(cashMult);
+      setTimeout(() => {
+        const nowCheck = getSyncedNow();
+        const latestCrashMs = Number(roomState.flyStart) + calcDurationToCrash(Number(roomState.crashAt)) * 1000;
+        if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING" || roomState.roundId !== activeRoundId || nowCheck >= latestCrashMs) {
           return;
         }
 
-        p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
-        await recordGlobalWinInflow(finalWin);
+        const cashMult = currentMult;
+        const finalWin = Number((p.amount * cashMult).toFixed(2));
+        if (finalWin > getSharedMaxAllowedPayout(p.amount)) return;
+
+        const netProfitWon = Math.max(0, Number((finalWin - p.amount).toFixed(2)));
+        dbSyncLockUntil = Date.now() + 3500;
+
+        p.state = "IDLE";
+        updatePanelBtn(idx);
+        playAviatorSound("cashout");
+        recordGlobalWinInflow(netProfitWon);
         showResultBanner(true, `🎉 YOU WON @ ${cashMult.toFixed(2)}x • +₹${finalWin.toFixed(2)} INR`);
 
         const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + finalWin).toFixed(2));
@@ -644,11 +650,13 @@
         userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
         localStorage.setItem("cachedUser", JSON.stringify(userData));
         updateHeaderBal();
+
         const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
         const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
         if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = finalWin; }
         myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: finalWin });
         renderLiveFeed();
+
         fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
         fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: finalWin, ts: getSyncedNow() }) });
 
@@ -794,7 +802,7 @@
     renderLiveFeed();
   }, 900);
 
-function switchFeedTab(tab, el) { activeFeedTab = tab; document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active")); el.classList.add("active"); renderLiveFeed(); }
+  function switchFeedTab(tab, el) { activeFeedTab = tab; document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active")); el.classList.add("active"); renderLiveFeed(); }
   function renderLiveFeed() {
     const listEl = document.getElementById("liveBetsList");
     let rows = activeFeedTab === "all" ? liveBetsData.slice(0, 20) : (activeFeedTab === "my" ? myBetsHistory.slice(0, 15).map(m => ({ name: "You", bet: m.bet, mult: m.mult, win: m.win, isMe: true })) : [...liveBetsData].filter(b => b.win > 0).sort((a, b) => b.win - a.win).slice(0, 15));
