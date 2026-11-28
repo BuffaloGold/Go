@@ -40,7 +40,7 @@
     .rate-btn { width: 64px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; color: #000; }
     .rate-back { background: linear-gradient(180deg, #8ecbf5, #5aaee8); }
     .rate-lay { background: linear-gradient(180deg, #fcb9c8, #f58fa6); }
-    .rate-main { font-size: 14px; font-weight: 900; }
+    .rate-main { font-size: 13px; font-weight: 900; }
     .rate-sub { font-size: 9px; font-weight: 700; opacity: 0.85; }
     .digit-section { padding: 10px; border-bottom: 1px solid #3c0c54; position: relative; }
     .digit-section:last-child { border-bottom: none; }
@@ -95,6 +95,7 @@
 
   <div class="market-pills">
     <button class="pill-btn active" onclick="filterMarket('all', this)">All</button>
+    <button class="pill-btn" onclick="filterMarket('playerbox', this)">🏏 Player Live</button>
     <button class="pill-btn" onclick="filterMarket('overbox', this)">⚡ Over Special</button>
     <button class="pill-btn" onclick="filterMarket('odds', this)">Match Odds</button>
     <button class="pill-btn" onclick="filterMarket('bookmaker', this)">Bookmaker</button>
@@ -102,10 +103,18 @@
     <button class="pill-btn" onclick="filterMarket('digit', this)">Lucky Number</button>
   </div>
 
+  <div class="market-card sec-playerbox" id="playerSpecialCard" style="border:1.5px solid #38bdf8;">
+    <div class="market-head">
+      <span id="playerSpecialTitle">🏏 Live Batsman & Bowler Special</span>
+      <span id="playerSpecialBadge" style="font-size:10px; color:#38bdf8;">● AUTO PLAYER</span>
+    </div>
+    <div id="playerSpecialBody"></div>
+  </div>
+
   <div class="market-card sec-overbox" id="nextOverCard" style="border:1.5px solid #ffd700;">
     <div class="market-head">
-      <span id="nextOverTitle">⚡ Over 1 Special (Runs • 4s • 6s • Wkt)</span>
-      <span id="nextOverBadge" style="font-size:10px; color:#28e04d;">● AUTO ROTATE</span>
+      <span id="nextOverTitle">⚡ Over 1 Special (Runs • 2+ 4s • 2+ 6s • Wkt)</span>
+      <span id="nextOverBadge" style="font-size:10px; color:#28e04d;">● MAX ₹300</span>
     </div>
     <div id="nextOverBody"></div>
   </div>
@@ -157,9 +166,9 @@
   <input type="number" class="bet-input" id="stakeInput" value="100" oninput="updateCalc()" placeholder="Enter Amount (Min ₹100)" />
   <div class="quick-stakes">
     <button class="stake-chip" onclick="setStake(100)">+100</button>
-    <button class="stake-chip" onclick="setStake(500)">+500</button>
+    <button class="stake-chip" onclick="setStake(200)">+200</button>
+    <button class="stake-chip" onclick="setStake(300)">+300</button>
     <button class="stake-chip" onclick="setStake(1000)">+1K</button>
-    <button class="stake-chip" onclick="setStake(5000)">+5K</button>
   </div>
   <div style="display:flex; gap:8px;">
     <button style="flex:1; padding:11px; background:#4b5563; color:#fff; border:none; border-radius:8px; font-weight:700;" onclick="document.getElementById('betModal').classList.remove('open')">Cancel</button>
@@ -198,7 +207,13 @@
 
   let userBal = 0, userNameStr = "Player", ctrl = {}, customContestsObj = {}, winRate = 35, selBet = null;
   let matchBetsStats = {}, teamExposure = {}, myTeamBets = {};
-  let liveState = { runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0, formatType: "T20", maxOvers: 20, inningNo: 1, isInningsBreak: false, isEnded: matchInfo.isEnded };
+  let liveState = {
+    runsNum: 0, wktsNum: 0, ovNum: 0, batTeam: "", targetRuns: 0, firstInnRuns: 0,
+    formatType: "T20 (20 OV)", maxOvers: 20, inningNo: 1, isInningsBreak: false,
+    isEnded: matchInfo.isEnded,
+    batsmen: [],
+    bowler: null
+  };
 
   function renderUser(u) {
     if (!u) return;
@@ -246,6 +261,43 @@
       .trim();
   }
 
+  // Extract live batsmen (with runs & balls) and current bowler from Cricbuzz HTML
+  function extractLivePlayersFromHtml(html) {
+    const batsmen = [];
+    let bowler = null;
+    const raw = String(html || "");
+
+    // Pattern 1: JSON fields in embedded Cricbuzz state ("batName":"...", "runs":24, "balls":15)
+    for (const bm of raw.matchAll(/"batName"\s*:\s*"([^"]{2,32})"[\s\S]{0,220}?"runs"\s*:\s*(\d+)[\s\S]{0,120}?"balls"\s*:\s*(\d+)/g)) {
+      const name = bm[1].trim();
+      if (!batsmen.some(x => x.name === name) && batsmen.length < 2) {
+        batsmen.push({ name, runs: Number(bm[2]), balls: Number(bm[3]) });
+      }
+    }
+    const bowlJson = raw.match(/"bowlName"\s*:\s*"([^"]{2,32})"[\s\S]{0,220}?"overs"\s*:\s*"?([\d.]+)"?[\s\S]{0,160}?"wickets"\s*:\s*(\d+)/);
+    if (bowlJson) {
+      bowler = { name: bowlJson[1].trim(), overs: bowlJson[2], wkts: Number(bowlJson[3]) };
+    }
+
+    // Pattern 2: Plain text fallback ("Player Name * 28 (19)" and bowler "Name 2.3 0 18 1")
+    if (batsmen.length === 0) {
+      const clean = raw.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      for (const tm of clean.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*\*?\s+(\d{1,3})\s*\(\s*(\d{1,3})\s*\)/g)) {
+        const name = tm[1].trim();
+        if (/^(Match|Overs|Runs|Total|Extras|Fall|Recent|Last|Current|Run|Target)$/i.test(name.split(" ")[0])) continue;
+        if (!batsmen.some(x => x.name === name) && batsmen.length < 2) {
+          batsmen.push({ name, runs: Number(tm[2]), balls: Number(tm[3]) });
+        }
+      }
+      if (!bowler) {
+        const bwm = clean.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s+(\d+\.\d)\s+\d+\s+\d+\s+(\d+)\b/);
+        if (bwm) bowler = { name: bwm[1].trim(), overs: bwm[2], wkts: Number(bwm[3]) };
+      }
+    }
+
+    return { batsmen, bowler };
+  }
+
   function parseCricbuzzMatchHtml(html, title) {
     const txt = String(html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
     const head = txt.slice(0, 4500);
@@ -267,11 +319,15 @@
     });
 
     const fmt = detectMatchFormat(title, highestOv);
+    const players = extractLivePlayersFromHtml(html);
+
     const out = {
       headline: "", overs: "", status, runsNum: 0, wktsNum: 0, ovNum: 0,
       batTeam: "", targetRuns: 0, firstInnRuns: 0,
       formatType: fmt.formatType, maxOvers: fmt.maxOvers,
       inningNo: 1, isInningsBreak: false,
+      batsmen: players.batsmen,
+      bowler: players.bowler,
       isEnded: matchInfo.isEnded || /\b(won by \d+\s+(?:runs?|wkts?|wickets?)|match drawn|match tied|abandoned|no result)\b/i.test(status)
     };
 
@@ -292,7 +348,8 @@
     if (needM && out.inningNo === 2 && out.targetRuns === 0) out.targetRuns = out.runsNum + Number(needM[1]);
     return out;
   }
-    function computeDynamicMatchOdds(tA, tB, sd, wr) {
+
+  function computeDynamicMatchOdds(tA, tB, sd, wr) {
     let probA = 0.50;
     const runs = sd.runsNum || 0, wkts = sd.wktsNum || 0, ov = sd.ovNum || 0, maxOv = sd.maxOvers || 20;
     const isTeamABat = !sd.batTeam || sd.batTeam === tA;
@@ -318,7 +375,6 @@
     let oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm));
     let oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
 
-    // Zero-Loss Book Balancing + Anti-Arbitrage
     const expA = teamExposure[tA] || { stake: 0, payout: 0 };
     const expB = teamExposure[tB] || { stake: 0, payout: 0 };
     const totalPool = expA.stake + expB.stake;
@@ -328,18 +384,14 @@
       const roomOnA = Math.max(1000, maxCap - expA.stake);
       const safeBoostOddA = Math.min(6.0, Math.max(oA, ((totalPool + roomOnA - expA.payout) / roomOnA) * 0.94));
       oB = Math.max(1.05, oB * 0.85);
-      if (!myTeamBets[tB]) {
-        oA = Number(safeBoostOddA.toFixed(2));
-      }
+      if (!myTeamBets[tB]) oA = Number(safeBoostOddA.toFixed(2));
     }
 
     if (expA.payout > totalPool) {
       const roomOnB = Math.max(1000, maxCap - expB.stake);
       const safeBoostOddB = Math.min(6.0, Math.max(oB, ((totalPool + roomOnB - expB.payout) / roomOnB) * 0.94));
       oA = Math.max(1.05, oA * 0.85);
-      if (!myTeamBets[tA]) {
-        oB = Number(safeBoostOddB.toFixed(2));
-      }
+      if (!myTeamBets[tA]) oB = Number(safeBoostOddB.toFixed(2));
     }
 
     return {
@@ -379,9 +431,7 @@
           exp[winTeam].stake += stake;
           exp[winTeam].payout += ret;
 
-          if (String(b.mobile).trim() === mob) {
-            myBets[winTeam] = (myBets[winTeam] || 0) + stake;
-          }
+          if (String(b.mobile).trim() === mob) myBets[winTeam] = (myBets[winTeam] || 0) + stake;
         }
       });
       matchBetsStats = stats;
@@ -458,15 +508,71 @@
     const effR = isBreak ? 0 : (ctrl.liveRuns ? Number(String(ctrl.liveRuns).split("/")[0] || 0) : (liveState.runsNum || 0));
     const effO = isBreak ? 0 : (ctrl.liveOvers ? Number(ctrl.liveOvers) : (liveState.ovNum || 0));
 
-    let targetOverNo = isBreak ? 1 : (curBallPart >= 2 ? curOverPart + 2 : curOverPart + 1);
+    // Strict .1 ball lock: jaise hi current over ki pehli ball (x.1) ho, seedha agle over par shift!
+    let targetOverNo = isBreak ? 1 : (curBallPart >= 1 ? curOverPart + 2 : curOverPart + 1);
     const maxMatchOv = liveState.maxOvers || 20;
     const overOutOfRange = targetOverNo > maxMatchOv;
     const ovLocked = gLock || overOutOfRange;
 
+    // Max bet cap for Over & Player Specials (₹300 max so 1 ball cannot drain ₹2,450)
+    const specialCap = maxB > 0 ? Math.min(300, maxB) : 300;
+
+    // 1. AUTO LIVE BATSMAN & BOWLER SPECIAL
+    const batList = Array.isArray(liveState.batsmen) ? liveState.batsmen : [];
+    const curBowl = liveState.bowler;
+    const p1 = batList[0] || { name: `${fTeam} Striker`, runs: 0, balls: 0 };
+    const p2 = batList[1] || { name: `${fTeam} Non-Striker`, runs: 0, balls: 0 };
+    const bw = curBowl || { name: `${fTeam === tA ? tB : tA} Bowler`, overs: "0.0", wkts: 0 };
+
+    const p1Target = p1.runs + 12;
+    const p2Target = p2.runs + 10;
+    const plLocked = gLock || isBreak || (effO >= maxMatchOv - 1);
+
+    document.getElementById("playerSpecialTitle").innerText = `🏏 Live Player Special (${fTeam} • Max ₹${specialCap})`;
+    document.getElementById("playerSpecialBadge").innerText = plLocked ? "🔒 LOCKED" : (batList.length ? "● LIVE SCORECARD" : "● AUTO PLAYER");
+    document.getElementById("playerSpecialBody").innerHTML = `
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">${p1.name} (${p1.runs}* in ${p1.balls}b)</div>
+          <div class="runner-sub">Next 2 Overs Mein ${p1Target}+ Runs Banayega?</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Batsman ${p1.name} Runs (${fTeam})','NO','Under ${p1Target} Runs',1.82,${specialCap})"><span class="rate-main">No ${p1Target}</span><span class="rate-sub">1.82x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Batsman ${p1.name} Runs (${fTeam})','YES','${p1Target}+ Runs',1.92,${specialCap})"><span class="rate-main">${p1Target}+</span><span class="rate-sub">1.92x</span></div>
+          ${plLocked ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">${p2.name} (${p2.runs}* in ${p2.balls}b)</div>
+          <div class="runner-sub">Next 2 Overs Mein ${p2Target}+ Runs Banayega?</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Batsman ${p2.name} Runs (${fTeam})','NO','Under ${p2Target} Runs',1.80,${specialCap})"><span class="rate-main">No ${p2Target}</span><span class="rate-sub">1.80x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Batsman ${p2.name} Runs (${fTeam})','YES','${p2Target}+ Runs',1.95,${specialCap})"><span class="rate-main">${p2Target}+</span><span class="rate-sub">1.95x</span></div>
+          ${plLocked ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="contest-row">
+        <div>
+          <div class="runner-name">🎯 Bowler: ${bw.name} (${bw.wkts} Wkt)</div>
+          <div class="runner-sub">Current Over Mein Wicket Lega?</div>
+        </div>
+        <div class="rate-boxes">
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Bowler ${bw.name} Wicket (${fTeam})','NO','0 Wicket',1.35,${specialCap})"><span class="rate-main">0 Wkt</span><span class="rate-sub">1.35x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Bowler ${bw.name} Wicket (${fTeam})','YES','1+ Wicket',2.25,${specialCap})"><span class="rate-main">1+ Wkt</span><span class="rate-sub">2.25x</span></div>
+          ${ovLocked ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    // 2. OVER SPECIAL (2+ FOURS & 2+ SIXES — ANTI-EASY-WIN)
     const isOvMan = modes.over === "manual";
-    document.getElementById("nextOverTitle").innerText = `⚡ Over ${targetOverNo} Special (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
+    document.getElementById("nextOverTitle").innerText = `⚡ Over ${targetOverNo} Special (${fTeam} • Max ₹${specialCap})`;
     const noBadge = document.getElementById("nextOverBadge");
-    noBadge.innerText = ovLocked ? "🔒 LOCKED" : (isOvMan ? "✍️ MANUAL RATE" : "● AUTO ROTATE");
+    noBadge.innerText = ovLocked ? "🔒 LOCKED" : (isOvMan ? "✍️ MANUAL RATE" : "● 2+ BOUNDARY");
     noBadge.style.color = ovLocked ? "#ff4d6d" : (isOvMan ? "#ff9f1c" : "#28e04d");
 
     const fPay = winRate <= 20 ? 85 : winRate <= 35 ? 95 : winRate <= 50 ? 100 : 105;
@@ -481,43 +587,44 @@
       const r1 = parseFloat(p[0]), r2 = parseFloat(p[1]);
       return [r1 > 1 ? r1.toFixed(2) : d1, r2 > 1 ? r2.toFixed(2) : d2];
     };
-    const [r4No, r4Yes] = isOvMan ? parsePair(ctrl.ov4Rate, "1.95", "1.85") : ["1.95", "1.85"];
-    const [r6No, r6Yes] = isOvMan ? parsePair(ctrl.ov6Rate, "1.55", "2.45") : ["1.55", "2.45"];
-    const [rWNo, rWYes] = isOvMan ? parsePair(ctrl.ovWktRate, "1.40", "2.90") : ["1.40", "2.90"];
+    // 2+ Fours aur 2+ Sixes ke house-safe rates
+    const [r4No, r4Yes] = isOvMan ? parsePair(ctrl.ov4Rate, "1.38", "2.35") : ["1.38", "2.35"];
+    const [r6No, r6Yes] = isOvMan ? parsePair(ctrl.ov6Rate, "1.22", "3.10") : ["1.22", "3.10"];
+    const [rWNo, rWYes] = isOvMan ? parsePair(ctrl.ovWktRate, "1.35", "2.25") : ["1.35", "2.25"];
 
     document.getElementById("nextOverBody").innerHTML = `
       <div class="contest-row">
         <div>
           <div class="runner-name">Over ${targetOverNo} Total Runs (${fTeam})</div>
-          <div class="runner-sub">Is Over Mein Kitne Runs Banenge</div>
+          <div class="runner-sub">Under ${baseOvRuns} Runs vs ${baseOvRuns + 1}+ Runs</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Runs (${fTeam})','NO','Under ${baseOvRuns} Runs',${ovRunsMult})"><span class="rate-main">${baseOvRuns}</span><span class="rate-sub">No (${ovRunsMult}x)</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Runs (${fTeam})','YES','${baseOvRuns + 1}+ Runs',${ovRunsMult})"><span class="rate-main">${baseOvRuns + 1}</span><span class="rate-sub">Yes (${ovRunsMult}x)</span></div>
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Over ${targetOverNo} Runs (${fTeam})','NO','Under ${baseOvRuns} Runs',${ovRunsMult},${specialCap})"><span class="rate-main">${baseOvRuns}</span><span class="rate-sub">No (${ovRunsMult}x)</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Over ${targetOverNo} Runs (${fTeam})','YES','${baseOvRuns + 1}+ Runs',${ovRunsMult},${specialCap})"><span class="rate-main">${baseOvRuns + 1}</span><span class="rate-sub">Yes (${ovRunsMult}x)</span></div>
           ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
         </div>
       </div>
 
       <div class="contest-row">
         <div>
-          <div class="runner-name">Over ${targetOverNo} Fours (4s)</div>
-          <div class="runner-sub">0 Four (No) vs 1+ Four (Yes)</div>
+          <div class="runner-name">Over ${targetOverNo} Fours (2+ 4s)</div>
+          <div class="runner-sub">0–1 Four (No) vs 2+ Fours (Yes)</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Fours (${fTeam})','NO','0 Four',${r4No})"><span class="rate-main">0 Four</span><span class="rate-sub">${r4No}x</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Fours (${fTeam})','YES','1+ Four',${r4Yes})"><span class="rate-main">1+ Four</span><span class="rate-sub">${r4Yes}x</span></div>
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Over ${targetOverNo} Fours (${fTeam})','NO','0-1 Four',${r4No},${specialCap})"><span class="rate-main">0-1 Four</span><span class="rate-sub">${r4No}x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Over ${targetOverNo} Fours (${fTeam})','YES','2+ Fours',${r4Yes},${specialCap})"><span class="rate-main">2+ Fours</span><span class="rate-sub">${r4Yes}x</span></div>
           ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
         </div>
       </div>
 
       <div class="contest-row">
         <div>
-          <div class="runner-name">Over ${targetOverNo} Sixes (6s)</div>
-          <div class="runner-sub">0 Six (No) vs 1+ Six (Yes)</div>
+          <div class="runner-name">Over ${targetOverNo} Sixes (2+ 6s)</div>
+          <div class="runner-sub">0–1 Six (No) vs 2+ Sixes (Yes)</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Sixes (${fTeam})','NO','0 Six',${r6No})"><span class="rate-main">0 Six</span><span class="rate-sub">${r6No}x</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Sixes (${fTeam})','YES','1+ Six',${r6Yes})"><span class="rate-main">1+ Six</span><span class="rate-sub">${r6Yes}x</span></div>
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Over ${targetOverNo} Sixes (${fTeam})','NO','0-1 Six',${r6No},${specialCap})"><span class="rate-main">0-1 Six</span><span class="rate-sub">${r6No}x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Over ${targetOverNo} Sixes (${fTeam})','YES','2+ Sixes',${r6Yes},${specialCap})"><span class="rate-main">2+ Sixes</span><span class="rate-sub">${r6Yes}x</span></div>
           ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
         </div>
       </div>
@@ -528,14 +635,13 @@
           <div class="runner-sub">0 Wicket (No) vs 1+ Wicket (Yes)</div>
         </div>
         <div class="rate-boxes">
-          <div class="rate-btn rate-lay" onclick="openBet('Over ${targetOverNo} Wicket (${fTeam})','NO','0 Wicket',${rWNo})"><span class="rate-main">0 Wkt</span><span class="rate-sub">${rWNo}x</span></div>
-          <div class="rate-btn rate-back" onclick="openBet('Over ${targetOverNo} Wicket (${fTeam})','YES','1+ Wicket',${rWYes})"><span class="rate-main">1+ Wkt</span><span class="rate-sub">${rWYes}x</span></div>
+          <div class="rate-btn rate-lay" onclick="openSpecialBet('Over ${targetOverNo} Wicket (${fTeam})','NO','0 Wicket',${rWNo},${specialCap})"><span class="rate-main">0 Wkt</span><span class="rate-sub">${rWNo}x</span></div>
+          <div class="rate-btn rate-back" onclick="openSpecialBet('Over ${targetOverNo} Wicket (${fTeam})','YES','1+ Wicket',${rWYes},${specialCap})"><span class="rate-main">1+ Wkt</span><span class="rate-sub">${rWYes}x</span></div>
           ${ovLocked ? `<div class="suspended-overlay">${overOutOfRange ? "Inning End" : lockTxt}</div>` : ''}
         </div>
       </div>
     `;
-
-    const customList = Object.values(customContestsObj || {});
+        const customList = Object.values(customContestsObj || {});
     document.getElementById("customContestsBox").innerHTML = customList.map(c => {
       const tOv = Number(c.targetOv || 0);
       const tRuns = Number(c.targetRuns || 0);
@@ -623,7 +729,7 @@
     document.getElementById("bm1Body").innerHTML = `
       <div class="contest-row"><div class="runner-name">${tA}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tA} (Bookmaker 1%)','BACK','BM1 ${bm1AB}',${(1 + bm1AB / 100).toFixed(2)})"><span class="rate-main">${bm1AB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tA} (Bookmaker 1%)','LAY','BM1 ${bm1AL}',${(1 + bm1AL / 100).toFixed(2)})"><span class="rate-main">${bm1AL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>
       <div class="contest-row"><div class="runner-name">${tB}</div><div class="rate-boxes"><div class="rate-btn rate-back" onclick="openBet('${tB} (Bookmaker 1%)','BACK','BM1 ${bm1BB}',${(1 + bm1BB / 100).toFixed(2)})"><span class="rate-main">${bm1BB}</span><span class="rate-sub">Back</span></div><div class="rate-btn rate-lay" onclick="openBet('${tB} (Bookmaker 1%)','LAY','BM1 ${bm1BL}',${(1 + bm1BL / 100).toFixed(2)})"><span class="rate-main">${bm1BL}</span><span class="rate-sub">Lay</span></div>${gLock ? `<div class="suspended-overlay">${lockTxt}</div>` : ''}</div></div>`;
-        // 5. OVER SESSIONS (AUTO vs MANUAL)
+
     const isSessMan = modes.sess === "manual";
     document.getElementById("fancyHeaderTitle").innerText = `Over Sessions (${fTeam} • ${inn === 2 ? "2nd" : "1st"} Inn)`;
     const sGap = winRate <= 20 ? 4 : winRate <= 35 ? 2 : 1;
@@ -652,7 +758,6 @@
       </div>`;
     }).join("");
 
-    // 6. LUCKY NUMBER (AUTO vs MANUAL)
     const isDigitMan = modes.digit === "manual";
     const autoDigitOdd = winRate <= 20 ? 9.00 : winRate <= 35 ? 9.50 : 9.75;
     const digitOdd = (isDigitMan && Number(ctrl.digitRate) > 1) ? Number(Number(ctrl.digitRate).toFixed(2)) : autoDigitOdd;
@@ -681,6 +786,7 @@
     document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("customContestsBox").style.display = (type === "all") ? "block" : "none";
+    document.querySelectorAll(".sec-playerbox").forEach(el => el.style.display = (type === "all" || type === "playerbox") ? "block" : "none");
     document.querySelectorAll(".sec-overbox").forEach(el => el.style.display = (type === "all" || type === "overbox") ? "block" : "none");
     document.querySelectorAll(".sec-odds").forEach(el => el.style.display = (type === "all" || type === "odds") ? "block" : "none");
     document.querySelectorAll(".sec-bookmaker").forEach(el => el.style.display = (type === "all" || type === "bookmaker") ? "block" : "none");
@@ -702,6 +808,18 @@
     selBet = { mkt, side, line, odd: Number(odd), customContestId: "", customMaxBet: 0 };
     document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line})`;
     document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    document.getElementById("betModal").classList.add("open");
+    updateCalc();
+  }
+
+  function openSpecialBet(mkt, side, line, odd, maxCap) {
+    const mLim = Number(maxCap || 300);
+    selBet = { mkt, side, line, odd: Number(odd), customContestId: "", customMaxBet: mLim };
+    document.getElementById("betTitle").innerText = `${mkt} (${side}: ${line}) • Max ₹${mLim}`;
+    document.getElementById("betOddTag").innerText = `@ ${odd}x`;
+    if (Number(document.getElementById("stakeInput").value) > mLim) {
+      document.getElementById("stakeInput").value = mLim;
+    }
     document.getElementById("betModal").classList.add("open");
     updateCalc();
   }
@@ -748,7 +866,7 @@
     if (!st || st < 100) return alert("Minimum bet ₹100 hai!");
 
     if (selBet.customMaxBet > 0 && st > selBet.customMaxBet) {
-      return alert(`⚠️ Is contest par maximum ₹${selBet.customMaxBet} tak hi bet laga sakte hain!`);
+      return alert(`⚠️ Is market par maximum ₹${selBet.customMaxBet} tak hi bet laga sakte hain!`);
     }
     const maxB = Number(ctrl.maxBet || 0);
     if (maxB > 0 && st > maxB) return alert(`⚠️ Admin Maximum Bet limit ₹${maxB} hai!`);
@@ -780,8 +898,8 @@
       if (ovSpecialM) {
         const targetOv = Number(ovSpecialM[1]);
         const curOv = Number(ctrl.liveOvers || liveState.ovNum || 0);
-        if (curOv >= targetOv - 0.5) {
-          alert(`⚠️ Over ${targetOv} ka time nikal chuka hai! Agle over par bet lagayein.`);
+        if (curOv >= targetOv - 0.9) {
+          alert(`⚠️ Over ${targetOv} shuru ho chuka hai! Agle over par bet lagayein.`);
           renderPage();
           return;
         }
@@ -822,6 +940,7 @@
         customContestId: selBet.customContestId || "",
         stake: f.debit, profitTarget: f.profit, lockedReturn: f.ret,
         status: "OPEN", time: new Date().toLocaleString("en-IN"),
+        placedAtMs: Date.now(),
         entryRuns: liveState.runsNum || 0,
         entryWkts: liveState.wktsNum || 0,
         entryOv: liveState.ovNum || 0
