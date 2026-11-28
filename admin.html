@@ -392,3 +392,1057 @@
     </div>
   </div>
 </div>
+<script>
+  const DB_URL = "https://coin-play-7ac49-default-rtdb.firebaseio.com";
+  const WORKER_URL = "https://lingering-sun-3a12.dkdeepakverma143.workers.dev";
+  let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {};
+  let selectedMatchLiveState = null;
+  let marketModes = { odds: "auto", tied: "auto", bm: "auto", over: "auto", sess: "auto", digit: "auto" };
+  let liveAutoPreview = {};
+
+  // UI State for Compact Collapsible Sections
+  let showWdHistory = false;
+  let onlyOpenTickets = false;
+  const expandedTktUsers = new Set();
+
+  function fillAutoPreviewValues(onlyKey) {
+    const p = liveAutoPreview;
+    if (!p || !p.ready) return;
+    if (!onlyKey || onlyKey === "odds") {
+      document.getElementById("bgCric_aBack").value = p.aBack;
+      document.getElementById("bgCric_aLay").value = p.aLay;
+      document.getElementById("bgCric_bBack").value = p.bBack;
+      document.getElementById("bgCric_bLay").value = p.bLay;
+    }
+    if (!onlyKey || onlyKey === "tied") {
+      document.getElementById("bgCric_tiedYesBack").value = "12.00";
+      document.getElementById("bgCric_tiedYesLay").value = "14.00";
+      document.getElementById("bgCric_tiedNoBack").value = "1.05";
+      document.getElementById("bgCric_tiedNoLay").value = "1.08";
+    }
+    if (!onlyKey || onlyKey === "bm") {
+      document.getElementById("bgCric_bmABack").value = p.bmABack;
+      document.getElementById("bgCric_bmALay").value = p.bmALay;
+      document.getElementById("bgCric_bmBBack").value = p.bmBBack;
+      document.getElementById("bgCric_bmBLay").value = p.bmBLay;
+    }
+    if (!onlyKey || onlyKey === "over") {
+      document.getElementById("bgCric_ovRunsLine").value = p.ovRunsLine;
+      document.getElementById("bgCric_ovRunsRate").value = p.sessMult;
+      document.getElementById("bgCric_ov4Rate").value = "1.60/2.10";
+      document.getElementById("bgCric_ov6Rate").value = "1.55/2.45";
+      document.getElementById("bgCric_ovWktRate").value = "1.40/2.90";
+    }
+    if (!onlyKey || onlyKey === "sess") {
+      document.getElementById("bgCric_s4").value = p.s4;
+      document.getElementById("bgCric_s6").value = p.s6;
+      document.getElementById("bgCric_s10").value = p.s10;
+      document.getElementById("bgCric_s15").value = p.s15;
+      document.getElementById("bgCric_s20").value = p.s20;
+      document.getElementById("bgCric_sessMult").value = p.sessMult;
+    }
+    if (!onlyKey || onlyKey === "digit") {
+      document.getElementById("bgCric_digitRate").value = p.digitRate;
+    }
+  }
+
+  function setMarketMode(key, mode) {
+    marketModes[key] = mode;
+    const isMan = mode === "manual";
+    const bAuto = document.getElementById(`btn_${key}_auto`);
+    const bMan = document.getElementById(`btn_${key}_man`);
+    const box = document.getElementById(`box_${key}`);
+    const note = document.getElementById(`note_${key}`);
+    if (bAuto) bAuto.className = isMan ? "mode-btn" : "mode-btn auto-on";
+    if (bMan) bMan.className = isMan ? "mode-btn man-on" : "mode-btn";
+    if (box) {
+      box.classList.remove("hidden");
+      box.classList.toggle("is-auto", !isMan);
+      box.querySelectorAll("input").forEach(inp => { inp.readOnly = !isMan; });
+    }
+    if (note) {
+      note.classList.remove("hidden");
+      note.style.color = isMan ? "#ff9f1c" : "#86efac";
+      note.innerText = isMan
+        ? "✍️ MANUAL ACTIVE: Neeche rate edit karke Save dabayein."
+        : "● AUTO LIVE: Abhi ye live rates chal rahe hain (Edit karne ke liye MANUAL dabayein).";
+    }
+    if (!isMan) fillAutoPreviewValues(key);
+  }
+
+  function logoutAdmin() {
+    localStorage.removeItem("activeUser");
+    localStorage.removeItem("cachedUser");
+    window.location.replace("index.html");
+  }
+
+  function showTab(tabId, el) {
+    ["wdTab", "depTab", "tktTab", "usersTab", "settingsTab", "cricTab"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById(tabId).classList.remove("hidden");
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    if (el) el.classList.add("active");
+  }
+
+  function jumpTab(tabId) {
+    const btn = document.getElementById("tabBtn_" + tabId);
+    showTab(tabId, btn);
+  }
+
+  function copyText(val, label) {
+    navigator.clipboard.writeText(val);
+    alert("✅ " + label + " (" + val + ") copy ho gaya!");
+  }
+
+  function toggleWdQr(reqId, upiId, name, amount) {
+    const box = document.getElementById("qrBox_" + reqId);
+    const img = document.getElementById("qrImg_" + reqId);
+    if (!box) return;
+    if (box.style.display === "block") { box.style.display = "none"; return; }
+    const upiUri = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(upiUri);
+    box.style.display = "block";
+  }
+
+  function payViaUpiApp(upiId, name, amount) {
+    window.location.href = "upi://pay?pa=" + encodeURIComponent((upiId || "").trim()) + "&pn=" + encodeURIComponent(name || "Player") + "&am=" + amount + "&cu=INR";
+  }
+
+  async function dbGet(path) {
+    const res = await fetch(`${DB_URL}/${path}.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  async function dbPatch(path, data) {
+    const res = await fetch(`${DB_URL}/${path}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  async function dbPut(path, data) {
+    const res = await fetch(`${DB_URL}/${path}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  function getUserTotalDep(u) {
+    if (!u) return 0;
+    if (typeof u.totalDeposited === "number" && u.totalDeposited > 0) return u.totalDeposited;
+    let sum = 0;
+    if (Array.isArray(u.txns)) {
+      u.txns.forEach(t => {
+        if (t && t.amt && String(t.amt).startsWith("+₹") && t.type && String(t.type).toLowerCase().includes("auto-deposit")) {
+          const v = parseInt(String(t.amt).replace("+₹", ""));
+          if (!isNaN(v)) sum += v;
+        }
+      });
+    }
+    return sum;
+  }
+
+  function updateAdminBusinessLedger(uData, wData, dData, allBets) {
+    const users = uData || {}, wds = wData || {}, deps = dData || {}, bets = allBets || {};
+
+    let totalDep = 0;
+    const paidUsers = new Set();
+    Object.values(deps).forEach(d => {
+      if (!d) return;
+      const st = String(d.status || "APPROVED").toUpperCase();
+      if (st === "APPROVED" || st === "AUTO_APPROVED") {
+        const amt = Number(d.amount || 0);
+        if (amt > 0) {
+          totalDep += amt;
+          if (d.mobile) paidUsers.add(String(d.mobile).trim());
+        }
+      }
+    });
+    Object.entries(users).forEach(([m, u]) => {
+      const uDep = getUserTotalDep(u);
+      if (uDep > 0 && !paidUsers.has(String(m).trim())) {
+        paidUsers.add(String(m).trim());
+        totalDep += uDep;
+      }
+    });
+
+    let totalBetStake = 0, totalWinPaid = 0;
+    Object.values(bets).forEach(mObj => {
+      Object.values(mObj || {}).forEach(b => {
+        if (!b) return;
+        if (b.mobile) paidUsers.add(String(b.mobile).trim());
+        totalBetStake += Number(b.stake || 0);
+        if (String(b.status || "").toUpperCase() === "WON") {
+          totalWinPaid += Number(b.lockedReturn || 0);
+        }
+      });
+    });
+
+    let totalWdPaid = 0, pendingWd = 0;
+    Object.values(wds).forEach(w => {
+      if (!w) return;
+      const amt = Number(w.amount || 0);
+      const st = String(w.status || "PENDING").toUpperCase();
+      if (st === "APPROVED" || st === "PAID") totalWdPaid += amt;
+      else if (st === "PENDING") pendingWd += amt;
+    });
+
+    const userLagaya = Number((totalDep + totalBetStake).toFixed(0));
+    const userKoMila = Number((totalWdPaid + totalWinPaid).toFixed(0));
+    const meraProfit = Number((userLagaya - userKoMila).toFixed(0));
+
+    document.getElementById("ldgUserCount").innerText = `${paidUsers.size} Active Users`;
+    document.getElementById("ldgTotalIn").innerText = "₹" + userLagaya;
+    document.getElementById("ldgInBreak").innerText = `Deposit: ₹${totalDep} • Bet: ₹${totalBetStake}`;
+
+    document.getElementById("ldgTotalOut").innerText = "₹" + userKoMila;
+    document.getElementById("ldgOutBreak").innerText = `Withdraw: ₹${totalWdPaid} • Win: ₹${totalWinPaid}`;
+    document.getElementById("ldgPendingNote").innerText = `Pending Withdraw (Dena Baaki): ₹${pendingWd}`;
+
+    const pBox = document.getElementById("ldgProfitBox");
+    const pLbl = document.getElementById("ldgProfitLabel");
+    const pVal = document.getElementById("ldgNetProfit");
+
+    if (meraProfit >= 0) {
+      pBox.style.background = "rgba(40, 224, 77, 0.16)";
+      pBox.style.borderColor = "#28e04d";
+      pBox.style.color = "#28e04d";
+      pLbl.innerText = "✅ MERA NET PROFIT";
+      pVal.innerText = "+₹" + meraProfit;
+    } else {
+      pBox.style.background = "rgba(239, 68, 68, 0.18)";
+      pBox.style.borderColor = "#ef4444";
+      pBox.style.color = "#ff6b6b";
+      pLbl.innerText = "⚠️ MERA NET LOSS (GHATA)";
+      pVal.innerText = "-₹" + Math.abs(meraProfit);
+    }
+  }
+
+  function updateUsersUI(data) {
+    allUsers = data || {};
+    const count = Object.keys(allUsers).length;
+    document.getElementById("stUsers").innerText = count;
+    document.getElementById("connStatus").innerText = "✅ Auto-Sync Active! Total " + count + " users (" + new Date().toLocaleTimeString() + ")";
+    if (!document.activeElement || !document.activeElement.id.startsWith("user")) renderUsers();
+  }
+
+  function toggleWdHist() {
+    showWdHistory = !showWdHistory;
+    updateWithdrawalsUI(allWithdrawals);
+  }
+
+  function updateWithdrawalsUI(data) {
+    allWithdrawals = data || {};
+    const list = document.getElementById("wdList");
+    const keys = Object.keys(allWithdrawals).reverse();
+
+    const pendingKeys = keys.filter(k => allWithdrawals[k] && String(allWithdrawals[k].status || "PENDING").toUpperCase() === "PENDING");
+    const doneKeys = keys.filter(k => allWithdrawals[k] && String(allWithdrawals[k].status || "PENDING").toUpperCase() !== "PENDING");
+
+    document.getElementById("stWd").innerText = pendingKeys.length;
+
+    const renderWdCard = (k) => {
+      const w = allWithdrawals[k];
+      if (!w) return "";
+      const st = String(w.status || "PENDING").toUpperCase();
+      const userRec = allUsers[w.mobile] || {};
+      const totalDep = getUserTotalDep(userRec);
+      const hasDepBadge = (totalDep >= 300 || userRec.hasDeposited)
+        ? `<span style="color:#28e04d; font-size:11px;">✔ Deposited: ₹${totalDep} | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`
+        : `<span style="color:#ff4d6d; font-size:11px;">⚠ Deposited: ₹${totalDep} (&lt; ₹300) | Win Bal: ₹${userRec.winningBal ?? userRec.winningBalance ?? 0}</span>`;
+      const safeName = String(w.name || "User").replace(/['"\\]/g, "");
+      const safeUpi = String(w.upi || "").replace(/['"\\]/g, "");
+
+      return `<div class="card" style="${st === 'PENDING' ? 'border-color:#ff9f1c;' : ''}">
+        <div class="row-between"><strong>👤 ${w.name || 'User'} (${w.mobile || '-'})</strong><span class="badge ${st}">${st}</span></div>
+        <div style="margin-top:4px;">${hasDepBadge}</div>
+        <div class="upi-row">
+          <div style="flex:1;">
+            <div style="font-size:11px; color:#bbb;">PAY AMOUNT: <strong style="color:#ffd700; font-size:16px;">₹${w.amount || 0}</strong></div>
+            <div style="font-size:13px; color:#28e04d; font-weight:bold; word-break:break-all;">UPI: ${w.upi || '-'}</div>
+            <div style="font-size:11px; color:#ccc; margin-top:2px;">ID: ${w.reqId || k} • ${w.date || ''}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <button type="button" class="btn btn-copy" onclick="copyText('${safeUpi}', 'UPI ID')">📋 UPI</button>
+            <button type="button" class="btn btn-copy" onclick="copyText('${w.mobile || ''}', 'Mobile')">📱 Mob</button>
+          </div>
+        </div>
+        ${st === "PENDING" ? `
+          <button type="button" class="btn btn-qr" onclick="toggleWdQr('${k}', '${safeUpi}', '${safeName}', '${w.amount || 0}')">📷 SHOW / SCAN QR CODE</button>
+          <div class="qr-popup" id="qrBox_${k}"><img id="qrImg_${k}" src="" alt="QR"><div style="font-size:12px; color:#28e04d; font-weight:bold;">₹${w.amount || 0} → ${w.upi || ''}</div></div>
+          <button type="button" class="btn btn-upi" onclick="payViaUpiApp('${safeUpi}', '${safeName}', '${w.amount || 0}')">⚡ DIRECT UPI APP LINK (₹${w.amount || 0})</button>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-green" style="flex:1; padding:10px;" onclick="processWd('${k}', 'PAID')">✅ Mark PAID & Deduct Bal</button>
+            <button type="button" class="btn btn-red" style="flex:1; padding:10px;" onclick="processWd('${k}', 'REJECTED')">❌ Reject</button>
+          </div>` : ""}
+      </div>`;
+    };
+
+    let html = "";
+    if (pendingKeys.length === 0) {
+      html += `<div class="card" style="text-align:center; color:#28e04d; font-weight:bold;">✅ Abhi koi Pending Withdrawal nahi hai!</div>`;
+    } else {
+      html += pendingKeys.map(renderWdCard).join("");
+    }
+
+    if (doneKeys.length > 0) {
+      html += `<button type="button" class="btn btn-copy" style="width:100%; margin:6px 0 10px;" onclick="toggleWdHist()">
+        ${showWdHistory ? `▲ Hide Paid/Rejected History (${doneKeys.length})` : `▼ Show Paid/Rejected History (${doneKeys.length})`}
+      </button>`;
+      if (showWdHistory) {
+        html += doneKeys.slice(0, 30).map(renderWdCard).join("");
+      }
+    }
+    list.innerHTML = html;
+  }
+
+  function renderDeposits() {
+    const q = (document.getElementById("searchDep")?.value || "").toLowerCase();
+    const list = document.getElementById("depList");
+    const keys = Object.keys(allDeposits).reverse().filter(k => {
+      const d = allDeposits[k];
+      if (!d) return false;
+      if (!q) return true;
+      return String(d.mobile || "").includes(q) || String(d.name || "").toLowerCase().includes(q) || String(d.utr || "").toLowerCase().includes(q);
+    });
+    document.getElementById("stDep").innerText = Object.keys(allDeposits).length;
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Koi deposit record nahi mila.</div>"; return; }
+    list.innerHTML = keys.slice(0, 35).map(k => {
+      const d = allDeposits[k];
+      return `<div class="card">
+        <div class="row-between"><strong>${d.name || 'User'} (${d.mobile || '-'})</strong><span class="badge ${d.status || 'APPROVED'}">${d.status || 'APPROVED'}</span></div>
+        <div style="margin:6px 0; font-size:13px;">Amount: <strong style="color:#28e04d;">₹${d.amount || 0}</strong> | UTR: <strong style="color:#ffd700;">${d.utr || '-'}</strong></div>
+        <div style="font-size:11px; color:#aaa;">Order: ${d.depId || k} | ${d.date || ''}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function updateDepositsUI(data) {
+    allDeposits = data || {};
+    renderDeposits();
+  }
+
+  function toggleTktUser(mob) {
+    if (expandedTktUsers.has(mob)) expandedTktUsers.delete(mob);
+    else expandedTktUsers.add(mob);
+    renderTickets();
+  }
+
+  function toggleOpenTktOnly() {
+    onlyOpenTickets = !onlyOpenTickets;
+    const btn = document.getElementById("tktFilterBtn");
+    btn.innerText = onlyOpenTickets ? "Only Open: ON" : "Only Open: OFF";
+    btn.className = onlyOpenTickets ? "btn btn-green" : "btn btn-blue";
+    renderTickets();
+  }
+
+  // GROUPED TICKETS BY USER (1 Card per User instead of 15 separate cards)
+  function renderTickets() {
+    const list = document.getElementById("tktList");
+    const q = (document.getElementById("searchTkt")?.value || "").toLowerCase();
+    const keys = Object.keys(allTickets).reverse();
+
+    let totalOpen = 0;
+    const grouped = new Map();
+
+    keys.forEach(k => {
+      const t = allTickets[k];
+      if (!t) return;
+      const isOpen = String(t.status || "OPEN").toUpperCase() === "OPEN";
+      if (isOpen) totalOpen++;
+
+      const mob = String(t.mobile || "unknown");
+      if (!grouped.has(mob)) {
+        grouped.set(mob, { mobile: mob, name: t.name || "User", openCount: 0, items: [] });
+      }
+      const g = grouped.get(mob);
+      if (isOpen) g.openCount++;
+      g.items.push({ id: k, ...t, isOpen });
+    });
+
+    document.getElementById("stTkt").innerText = totalOpen;
+
+    let folders = Array.from(grouped.values()).filter(g => {
+      if (onlyOpenTickets && g.openCount === 0) return false;
+      if (!q) return true;
+      return g.mobile.includes(q) || g.name.toLowerCase().includes(q);
+    });
+
+    // Jinke OPEN tickets hain unhe sabse upar rakhein
+    folders.sort((a, b) => b.openCount - a.openCount);
+
+    if (folders.length === 0) {
+      list.innerHTML = "<div class='card'>Koi support ticket nahi mila.</div>";
+      return;
+    }
+
+    list.innerHTML = folders.map(g => {
+      const isExpanded = expandedTktUsers.has(g.mobile);
+      return `<div class="card" style="${g.openCount > 0 ? 'border-color:#ff9f1c;' : ''}">
+        <div class="tkt-folder-head" onclick="toggleTktUser('${g.mobile}')">
+          <div>
+            <strong>👤 ${g.name} (${g.mobile})</strong>
+            <div style="font-size:11px; color:#ccc; margin-top:2px;">Total Tickets: ${g.items.length} • Latest: ${(g.items[0]?.mainReason || '').slice(0, 38)}...</div>
+          </div>
+          <div style="text-align:right;">
+            ${g.openCount > 0 ? `<span class="badge OPEN">${g.openCount} OPEN</span>` : `<span class="badge RESOLVED">ALL SOLVED</span>`}
+            <div style="font-size:11px; color:#ffd700; margin-top:3px;">${isExpanded ? '▲ Close' : '▼ Open'}</div>
+          </div>
+        </div>
+
+        ${isExpanded ? `<div class="tkt-folder-body">
+          ${g.openCount > 1 ? `
+            <div style="display:flex; gap:6px; margin-bottom:9px; background:#260636; padding:7px; border-radius:8px; border:1px solid #ffd700;">
+              <input type="text" id="bulkRep_${g.mobile}" placeholder="Ek hi reply se sabhi ${g.openCount} Open tickets close karein..." style="margin:0; padding:7px; font-size:11px;">
+              <button type="button" class="btn btn-green" style="white-space:nowrap;" onclick="replyAllUserTickets('${g.mobile}')">✅ Reply All (${g.openCount})</button>
+            </div>
+          ` : ''}
+          ${g.items.map(t => `
+            <div class="sub-tkt">
+              <div class="row-between">
+                <span style="font-size:10px; color:#aaa;">${t.date || ''}</span>
+                <span class="badge ${t.status || 'OPEN'}">${t.status || 'OPEN'}</span>
+              </div>
+              <div class="reason-box"><strong>Reason:</strong> ${t.mainReason || ''}</div>
+              ${t.adminReply ? `<div style="font-size:11px; color:#28e04d; margin-bottom:5px;">✅ Reply: ${t.adminReply}</div>` : ""}
+              <div style="display:flex; gap:6px;">
+                <input type="text" id="repInput_${t.id}" placeholder="Reply likhein..." style="margin:0; padding:7px; font-size:11px;">
+                <button type="button" class="btn btn-green" onclick="replyTicket('${t.id}')">Send</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>` : ''}
+      </div>`;
+    }).join("");
+  }
+
+  function updateTicketsUI(data) {
+    allTickets = data || {};
+    renderTickets();
+  }
+
+  async function forceLoadAll() {
+    try {
+      const anyQrOpen = Array.from(document.querySelectorAll(".qr-popup")).some(el => el.style.display === "block");
+      const activeId = document.activeElement ? document.activeElement.id : "";
+      const isTyping = activeId.startsWith("repInput_") || activeId.startsWith("bulkRep_") || activeId.startsWith("rate_") || activeId.startsWith("custAmt_");
+      if (anyQrOpen || isTyping) return;
+
+      const [uData, wData, dData, tData, ratesData, betsData] = await Promise.all([
+        dbGet("users"), dbGet("withdrawals"), dbGet("deposits"), dbGet("supportTickets"),
+        dbGet("settings/rates"), dbGet("cricketBets")
+      ]);
+      updateAdminBusinessLedger(uData, wData, dData, betsData);
+      updateUsersUI(uData);
+      updateWithdrawalsUI(wData);
+      updateDepositsUI(dData);
+      updateTicketsUI(tData);
+      if (ratesData && typeof ratesData === "object") {
+        if (ratesData.slot) document.getElementById("rate_slot").value = ratesData.slot;
+        if (ratesData.aviator) document.getElementById("rate_aviator").value = ratesData.aviator;
+        if (ratesData.chicken) document.getElementById("rate_chicken").value = ratesData.chicken;
+        if (ratesData.car) document.getElementById("rate_car").value = ratesData.car;
+        if (ratesData.dice) document.getElementById("rate_dice").value = ratesData.dice;
+        if (ratesData.color) document.getElementById("rate_color").value = ratesData.color;
+        if (ratesData.cricket) document.getElementById("rate_cricket").value = ratesData.cricket;
+      }
+    } catch (e) {
+      document.getElementById("connStatus").innerText = "❌ Connection Error: " + e.message;
+    }
+  }
+
+  async function autoSettleOpenManualContests() {
+    try {
+      const customRoot = (await dbGet("customContests")) || {};
+      for (const [mId, cMap] of Object.entries(customRoot)) {
+        const openContests = Object.values(cMap || {}).filter(c => c && c.status === "OPEN" && (Number(c.targetOv || 0) > 0 || Number(c.targetRuns || 0) > 0));
+        if (!openContests.length) continue;
+
+        const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+        const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(txt.slice(0, 4500));
+
+        const inns = {};
+        let lastInn = null;
+        for (const x of txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)) {
+          const t = x[1].toUpperCase(), r = Number(x[2]), w = Number(x[3]), ov = Number(x[4]);
+          if (!inns[t] || ov >= inns[t].ov) {
+            inns[t] = { team: t, runs: r, wkts: w, ov };
+            lastInn = inns[t];
+          }
+        }
+        if (!lastInn) continue;
+
+        for (const c of openContests) {
+          const tOv = Number(c.targetOv || 0), tRuns = Number(c.targetRuns || 0);
+          const tKey = String(c.team || "").toUpperCase();
+          const inn = (tKey && tKey !== "CURRENT" && inns[tKey]) ? inns[tKey] : lastInn;
+          let winOpt = "";
+
+          if (tOv > 0 && tRuns > 0) {
+            if (inn.runs >= tRuns && inn.ov <= tOv) winOpt = c.opt1;
+            else if (inn.ov >= tOv || isEnded || inn.wkts >= 10) winOpt = (inn.runs >= tRuns) ? c.opt1 : c.opt2;
+          } else if (tRuns > 0 && tOv === 0) {
+            if (inn.runs >= tRuns) winOpt = c.opt1;
+            else if (isEnded || inn.wkts >= 10) winOpt = c.opt2;
+          }
+
+          if (winOpt) {
+            await dbPatch(`customContests/${mId}/${c.cId}`, { status: "SETTLED", winner: winOpt });
+            const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
+            for (const b of Object.values(betsObj)) {
+              if (!b || b.customContestId !== c.cId || String(b.status).toUpperCase() !== "OPEN") continue;
+              const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
+              await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: isWon ? "WON" : "LOST", resultInfo: `🎯 Auto-Settled: ${winOpt} (${inn.runs}/${inn.wkts})`, settledAt: new Date().toLocaleString("en-IN") });
+              if (isWon && b.mobile) {
+                const u = (await dbGet(`users/${b.mobile}`)) || {};
+                const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
+                const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+                await dbPatch(`users/${b.mobile}`, p);
+              }
+            }
+          }
+        }
+      }
+      const curSelId = document.getElementById("bgCric_matchSelect").value;
+      if (curSelId) loadManualContests(curSelId);
+    } catch (e) {}
+  }
+
+  async function replyTicket(tktId) {
+    const inp = document.getElementById("repInput_" + tktId);
+    const msg = (inp.value || "").trim();
+    if (!msg) return alert("Reply message likhein!");
+    await dbPatch("supportTickets/" + tktId, { adminReply: msg, status: "RESOLVED" });
+    inp.value = "";
+    alert("✅ User ko reply bhej diya gaya!");
+    forceLoadAll();
+  }
+
+  async function replyAllUserTickets(mob) {
+    const inp = document.getElementById("bulkRep_" + mob);
+    const msg = (inp.value || "").trim();
+    if (!msg) return alert("Sabhi open tickets ke liye reply likhein!");
+    const openIds = Object.keys(allTickets).filter(k => allTickets[k] && String(allTickets[k].mobile) === String(mob) && String(allTickets[k].status || "OPEN").toUpperCase() === "OPEN");
+    for (const id of openIds) {
+      await dbPatch("supportTickets/" + id, { adminReply: msg, status: "RESOLVED" });
+    }
+    alert(`✅ ${openIds.length} Open tickets ek saath close ho gaye!`);
+    forceLoadAll();
+  }
+
+  // Single Balance Deduction + PAID Status
+  async function processWd(reqId, newStatus) {
+    try {
+      const w = allWithdrawals[reqId];
+      if (!w || String(w.status || "PENDING").toUpperCase() !== "PENDING") return;
+      const isPaid = newStatus === "PAID" || newStatus === "APPROVED";
+
+      if (allUsers[w.mobile]) {
+        const u = allUsers[w.mobile];
+        const currentWinBal = Number(u.winningBal ?? u.winningBalance ?? 0);
+        const wdAmt = Number(w.amount || 0);
+        if (isPaid && currentWinBal < wdAmt) {
+          if (!confirm(`⚠️ User ke Winning Wallet mein ₹${currentWinBal} hai (Request ₹${wdAmt}). Phir bhi PAID mark karein?`)) return;
+        }
+        let txns = Array.isArray(u.txns) ? [...u.txns] : [];
+        let foundInTxns = false;
+        txns = txns.map(t => {
+          if (t && t.orderId === (w.reqId || reqId)) {
+            foundInTxns = true;
+            return {
+              ...t,
+              type: isPaid ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`,
+              refId: isPaid ? "PAID" : "REJECTED",
+              amt: isPaid ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt)
+            };
+          }
+          return t;
+        });
+        if (!foundInTxns) {
+          txns.unshift({
+            type: isPaid ? `Withdraw Paid (${w.upi})` : `Withdraw Rejected (${w.upi})`,
+            orderId: w.reqId || reqId,
+            refId: isPaid ? "PAID" : "REJECTED",
+            amt: isPaid ? ("-₹" + wdAmt) : ("❌ ₹" + wdAmt),
+            date: new Date().toLocaleString()
+          });
+        }
+        const updateObj = { txns };
+        if (isPaid) {
+          const newBal = Math.max(0, Number((currentWinBal - wdAmt).toFixed(2)));
+          updateObj.winningBal = newBal;
+          updateObj.winningBalance = newBal;
+        }
+        await dbPatch("users/" + w.mobile, updateObj);
+      }
+      await dbPatch("withdrawals/" + reqId, { status: isPaid ? "PAID" : "REJECTED" });
+      alert(isPaid ? "✅ Withdrawal PAID mark ho gaya aur balance ek baar deduct ho gaya!" : "❌ Withdrawal Reject kar diya gaya!");
+      forceLoadAll();
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  }
+
+  function renderUsers() {
+    const q = (document.getElementById("searchUser").value || "").toLowerCase();
+    const list = document.getElementById("usersList");
+    const keys = Object.keys(allUsers).filter(k => {
+      const u = allUsers[k];
+      return k.includes(q) || (u && u.name && u.name.toLowerCase().includes(q));
+    });
+    if (keys.length === 0) { list.innerHTML = "<div class='card'>Koi user nahi mila.</div>"; return; }
+    list.innerHTML = keys.map(k => {
+      const u = allUsers[k];
+      if (!u) return "";
+      const dep = Number(u.depositBal ?? u.depositBalance ?? 0);
+      const win = Number(u.winningBal ?? u.winningBalance ?? 0);
+      return `<div class="card">
+        <div class="row-between"><strong>👤 ${u.name || 'User'}</strong><span style="color:#ffd700; font-size:12px;">📱 ${k}</span></div>
+        <div style="font-size:12px; color:#ccc; margin:6px 0;">Deposit: <strong style="color:#28e04d;">₹${dep}</strong> | Winning: <strong style="color:#ffd700;">₹${win}</strong></div>
+        <div style="display:flex; gap:5px; margin-bottom:6px;">
+          <input type="number" id="custAmt_${k}" placeholder="Amount ₹" style="margin:0; padding:6px; font-size:12px; flex:1;">
+          <button type="button" class="btn btn-green" onclick="adjustCustomBal('${k}', 'dep', 1)">+Dep</button>
+          <button type="button" class="btn btn-red" onclick="adjustCustomBal('${k}', 'dep', -1)">-Dep</button>
+          <button type="button" class="btn btn-blue" onclick="adjustCustomBal('${k}', 'win', 1)">+Win</button>
+          <button type="button" class="btn btn-del" onclick="adjustCustomBal('${k}', 'win', -1)">-Win</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-green" style="flex:1;" onclick="adjustUserBal('${k}', 100)">+100 Dep</button>
+          <button type="button" class="btn btn-red" style="flex:1;" onclick="adjustUserBal('${k}', -100)">-100 Dep</button>
+          <button type="button" class="btn btn-del" onclick="deleteUser('${k}')">🗑️</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function adjustCustomBal(mob, walletType, sign) {
+    const u = allUsers[mob];
+    const inp = document.getElementById("custAmt_" + mob);
+    const val = parseFloat(inp?.value || "0");
+    if (!u || !val || val <= 0) return alert("Pehle valid amount dalein!");
+    const delta = val * sign;
+    if (walletType === "dep") {
+      const cur = Number(u.depositBal ?? u.depositBalance ?? 0);
+      const next = Math.max(0, Number((cur + delta).toFixed(2)));
+      await dbPatch("users/" + mob, { depositBal: next, depositBalance: next });
+    } else {
+      const cur = Number(u.winningBal ?? u.winningBalance ?? 0);
+      const next = Math.max(0, Number((cur + delta).toFixed(2)));
+      await dbPatch("users/" + mob, { winningBal: next, winningBalance: next });
+    }
+    inp.value = "";
+    forceLoadAll();
+  }
+
+  async function adjustUserBal(mob, delta) {
+    const u = allUsers[mob];
+    if (!u) return;
+    const curDep = Number(u.depositBal ?? u.depositBalance ?? 0);
+    const newDep = Math.max(0, curDep + delta);
+    await dbPatch("users/" + mob, { depositBal: newDep, depositBalance: newDep });
+    forceLoadAll();
+  }
+
+  async function deleteUser(mob) {
+    if (!confirm("User " + mob + " ko delete karein?")) return;
+    await fetch(`${DB_URL}/users/${mob}.json`, { method: "DELETE" });
+    alert("🗑️ User deleted!");
+    forceLoadAll();
+  }
+
+  async function saveSettings() {
+    const rates = {
+      slot: Number(document.getElementById("rate_slot").value),
+      aviator: Number(document.getElementById("rate_aviator").value),
+      chicken: Number(document.getElementById("rate_chicken").value),
+      car: Number(document.getElementById("rate_car").value),
+      dice: Number(document.getElementById("rate_dice").value),
+      color: Number(document.getElementById("rate_color").value),
+      cricket: Number(document.getElementById("rate_cricket").value)
+    };
+    await dbPut("settings/rates", rates);
+    alert("✅ Sabhi Game aur Cricket Win Rates Save Ho Gaye!");
+  }
+
+  forceLoadAll();
+  setInterval(forceLoadAll, 8000);
+  setInterval(autoSettleOpenManualContests, 8000);
+
+  function parseTeamsFromTitle(title) {
+    const clean = String(title || "").split(/\b(?:\d+(?:st|nd|rd|th)|Final|Semi|Quarter|Qualifier|Eliminator|Icc|Womens?|Mens?|Emerging|Trophy|Cup|League|Series|Elite|Group|Match|Test|Odi|T20)\b/i)[0].trim();
+    const parts = clean.split(/\s+vs\s+/i);
+    if (parts.length >= 2) return [parts[0].trim().toUpperCase(), parts[1].trim().split(/\s+/)[0].trim().toUpperCase()];
+    return ["TEAM A", "TEAM B"];
+  }
+
+  async function inspectMatchLiveCondition(mId, title) {
+    const box = document.getElementById("matchIntelBox");
+    box.innerHTML = "⏳ Live match condition (Inning, Overs, Batting Team) check ho rahi hai...";
+    try {
+      const html = await (await fetch(`${WORKER_URL}?id=${mId}&t=${Date.now()}`)).text();
+      const txt = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+      const head = txt.slice(0, 4500);
+      const [tA, tB] = parseTeamsFromTitle(title);
+
+      const isTest = /\b(test|shield|ranji|county|4-day)\b/i.test(title) && !/t20|odi/i.test(title);
+      const isOdi = /\b(odi|one day|list a|50 over)\b/i.test(title) && !/t20/i.test(title);
+      const maxOv = isTest ? 90 : isOdi ? 50 : 20;
+
+      const stM = head.match(/(Match drawn|Match tied|No result|Match abandoned|[A-Za-z][A-Za-z0-9\s]{1,36}?\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)|[A-Za-z][A-Za-z\s]{1,22}(?:need|trail by|lead by)\s+\d+\s+runs?|Day\s*\d+:\s*(?:Stumps|Lunch|Tea|Innings Break)|Innings Break)/i);
+      const status = stM ? stM[1].replace(/^.*?\b(?:Commentary|Scorecard|Squads|Highlights|News|Live Cricket Score)\b\s*/gi, "").trim() : "Upcoming / Live";
+      const isEnded = /\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(status);
+
+      const scMatches = [...txt.matchAll(/\b([A-Z]{2,6})\s*(?:1st|2nd)?\s*(?:inn)?\s*(\d+)\s*[-\/]\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:Ovs?)?\s*\)/gi)];
+      const inns = [];
+      scMatches.forEach(x => {
+        const team = x[1].toUpperCase(), runs = Number(x[2]), wkts = Number(x[3]), ov = Number(x[4]), ovStr = String(x[4]);
+        if (tA !== "TEAM A" && team !== tA && team !== tB && !tA.startsWith(team) && !tB.startsWith(team)) return;
+        const idx = inns.findIndex(u => u.team === team);
+        if (idx === -1) inns.push({ team, runs, wkts, ov, ovStr });
+        else if (ov >= inns[idx].ov) inns[idx] = { team, runs, wkts, ov, ovStr };
+      });
+
+      const inningNo = inns.length >= 2 ? 2 : 1;
+      const curInn = inns[inns.length - 1] || null;
+      const firstInn = inns[0] || null;
+      const target = (inningNo === 2 && firstInn && !isTest) ? (firstInn.runs + 1) : 0;
+      const playedTeam = (inningNo === 2 && firstInn) ? firstInn.team : "";
+      const activeBatTeam = curInn ? curInn.team : tA;
+
+      selectedMatchLiveState = {
+        mId, title, tA, tB, maxOv, isEnded, status, inningNo,
+        curRuns: curInn ? curInn.runs : 0,
+        curWkts: curInn ? curInn.wkts : 0,
+        curOv: curInn ? curInn.ov : 0,
+        activeBatTeam, playedTeam, target
+      };
+
+      const tSel = document.getElementById("mc_teamSelect");
+      tSel.innerHTML = `<option value="${activeBatTeam}">Current Batting: ${activeBatTeam}</option><option value="${tA}">${tA}</option><option value="${tB}">${tB}</option>`;
+
+      if (isEnded) {
+        box.style.borderColor = "#ef4444";
+        box.innerHTML = `<strong style="color:#ef4444;">🚫 MATCH KHATAM HO CHUKA HAI!</strong><br>Result: <b>${status}</b><br>Is match par naya contest nahi ban sakta.`;
+      } else {
+        box.style.borderColor = "#28e04d";
+        box.innerHTML = `<strong style="color:#28e04d;">✅ LIVE CONDITION VERIFIED (${isTest ? "TEST" : isOdi ? "ODI 50 Ov" : "T20 20 Ov"})</strong><br>` +
+          `• <b>Inning:</b> ${inningNo === 2 ? "2nd Inning (Chase)" : "1st Inning"} | <b>Batting:</b> ${activeBatTeam} (${selectedMatchLiveState.curRuns}/${selectedMatchLiveState.curWkts} in ${selectedMatchLiveState.curOv} Ov)<br>` +
+          (playedTeam ? `• <b>1st Inning Khel Chuki Team:</b> ${playedTeam} (${firstInn.runs}/${firstInn.wkts}) • Target: ${target}<br>` : "") +
+          `• <b>Status:</b> ${status}`;
+      }
+
+      const wr = Number(document.getElementById("rate_cricket")?.value || 35);
+      let probA = 0.50;
+      const runs = selectedMatchLiveState.curRuns, wkts = selectedMatchLiveState.curWkts, ov = selectedMatchLiveState.curOv;
+      const isTeamABat = activeBatTeam === tA;
+      if (target > 0 && inningNo === 2) {
+        const need = Math.max(0, target - runs);
+        const ovLeft = Math.max(0.16, maxOv - (Math.floor(ov) + ((ov % 1) * 10) / 6));
+        const parRr = maxOv === 20 ? 8.3 : 5.4;
+        let chaseP = need === 0 ? 0.98 : (wkts >= 10 || ovLeft <= 0) ? 0.02 : (0.58 - (((need / ovLeft) - parRr) * 0.065) - (wkts * 0.045));
+        chaseP = Math.min(0.95, Math.max(0.06, chaseP));
+        probA = isTeamABat ? chaseP : (1 - chaseP);
+      } else if (ov > 0) {
+        const parRr = maxOv === 20 ? 7.8 : maxOv === 50 ? 5.2 : 3.4;
+        const clamped = Math.min(0.86, Math.max(0.14, 0.50 + (((runs / Math.max(0.5, ov)) - parRr) * 0.035) - (wkts * 0.04)));
+        probA = isTeamABat ? clamped : (1 - clamped);
+      }
+      const hm = wr <= 20 ? 0.91 : wr <= 35 ? 0.95 : wr <= 50 ? 0.97 : 0.99;
+      const oA = Math.min(15.0, Math.max(1.04, (1 / probA) * hm));
+      const oB = Math.min(15.0, Math.max(1.04, (1 / (1 - probA)) * hm));
+      const fPay = wr <= 20 ? 85 : wr <= 35 ? 95 : wr <= 50 ? 100 : 105;
+      const sGap = wr <= 20 ? 4 : wr <= 35 ? 2 : 1;
+      const baseRr = maxOv === 20 ? 8.4 : maxOv === 50 ? 5.5 : 3.5;
+      const sLine = (tOv) => ov === 0 ? Math.round(tOv * baseRr) : Math.round(runs + (Math.max(0, tOv - ov) * (((runs / Math.max(0.5, ov)) * 0.55) + (baseRr * 0.45))));
+
+      const bmAB = Math.max(5, Math.round((oA - 1) * 100));
+      const bmBB = Math.max(5, Math.round((oB - 1) * 100));
+
+      liveAutoPreview = {
+        ready: true,
+        aBack: oA.toFixed(2),
+        aLay: (oA + (oA > 4 ? 0.15 : oA > 2.5 ? 0.06 : 0.03)).toFixed(2),
+        bBack: oB.toFixed(2),
+        bLay: (oB + (oB > 4 ? 0.15 : oB > 2.5 ? 0.06 : 0.03)).toFixed(2),
+        bmABack: bmAB,
+        bmALay: bmAB + 3,
+        bmBBack: bmBB,
+        bmBLay: bmBB + 4,
+        ovRunsLine: maxOv === 20 ? 8 : 5,
+        sessMult: (1 + (fPay / 100)).toFixed(2),
+        s4: `${sLine(4)}/${sLine(4) + sGap}`,
+        s6: `${sLine(6)}/${sLine(6) + sGap}`,
+        s10: `${sLine(10)}/${sLine(10) + sGap}`,
+        s15: `${sLine(15)}/${sLine(15) + sGap}`,
+        s20: `${sLine(20)}/${sLine(20) + sGap}`,
+        digitRate: wr <= 20 ? "9.00" : wr <= 35 ? "9.50" : "9.75"
+      };
+
+      ["odds", "tied", "bm", "over", "sess", "digit"].forEach(k => {
+        if (marketModes[k] !== "manual") fillAutoPreviewValues(k);
+      });
+    } catch (e) {
+      box.innerHTML = "⚠️ Match status check nahi ho paya, manual check karke banayein.";
+    }
+  }
+
+  async function initAdminCricDropdown() {
+    try {
+      const [rLive, rUp] = await Promise.all([
+        fetch(`${WORKER_URL}?t=${Date.now()}`),
+        fetch(`${WORKER_URL}?type=upcoming&t=${Date.now()}`).catch(() => null)
+      ]);
+      const parseList = (html, tag) => {
+        const arr = [], seen = new Set();
+        for (const m of html.matchAll(/href="\/(?:live-cricket-scores|cricket-scores)\/(\d+)\/([^"?#]+)"/g)) {
+          if (seen.has(m[1])) continue;
+          seen.add(m[1]);
+          const sub = html.slice(m.index, m.index + 450).replace(/<[^>]+>/g, " ");
+          if (/\b(won by \d+|match drawn|match tied|abandoned|no result)\b/i.test(sub)) continue;
+          arr.push({ id: m[1], name: `${tag} ${m[2].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()).trim()}` });
+        }
+        return arr;
+      };
+      const liveArr = parseList(await rLive.text(), "🔴");
+      const upArr = rUp && rUp.ok ? parseList(await rUp.text(), "🕒") : [];
+      const map = new Map();
+      [...liveArr, ...upArr].forEach(m => { if (!map.has(m.id)) map.set(m.id, m); });
+
+      const sel = document.getElementById("bgCric_matchSelect");
+      sel.innerHTML = "";
+      Array.from(map.values()).forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.text = m.name;
+        sel.appendChild(opt);
+      });
+      bgCricLoadRates();
+    } catch (e) {
+      document.getElementById("bgCric_matchSelect").innerHTML = "<option>Matches load nahi ho paye</option>";
+    }
+  }
+
+  async function bgCricLoadRates() {
+    const sel = document.getElementById("bgCric_matchSelect");
+    const id = sel.value;
+    if (!id) return;
+    const title = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text.replace(/^[🔴🕒]\s*/, "") : "";
+    await inspectMatchLiveCondition(id, title);
+
+    try {
+      const ov = (await dbGet(`cricketControls/${id}`)) || {};
+      const modes = ov.modes || {};
+
+      document.getElementById("bgCric_maxBet").value = ov.maxBet || "";
+      document.getElementById("bgCric_maxUsers").value = ov.maxUsers || 25;
+      document.getElementById("bgCric_maxMoney").value = ov.maxMoney || 15000;
+      document.getElementById("bgCric_lock").checked = Boolean(ov.locked);
+
+      if (modes.odds === "manual") {
+        document.getElementById("bgCric_aBack").value = ov.teamABack || "";
+        document.getElementById("bgCric_aLay").value = ov.teamALay || "";
+        document.getElementById("bgCric_bBack").value = ov.teamBBack || "";
+        document.getElementById("bgCric_bLay").value = ov.teamBLay || "";
+      }
+      if (modes.tied === "manual") {
+        document.getElementById("bgCric_tiedYesBack").value = ov.tiedYesBack || "";
+        document.getElementById("bgCric_tiedYesLay").value = ov.tiedYesLay || "";
+        document.getElementById("bgCric_tiedNoBack").value = ov.tiedNoBack || "";
+        document.getElementById("bgCric_tiedNoLay").value = ov.tiedNoLay || "";
+      }
+      if (modes.bm === "manual") {
+        document.getElementById("bgCric_bmABack").value = ov.bmABack || "";
+        document.getElementById("bgCric_bmALay").value = ov.bmALay || "";
+        document.getElementById("bgCric_bmBBack").value = ov.bmBBack || "";
+        document.getElementById("bgCric_bmBLay").value = ov.bmBLay || "";
+      }
+      if (modes.over === "manual") {
+        document.getElementById("bgCric_ovRunsLine").value = ov.ovRunsLine || "";
+        document.getElementById("bgCric_ovRunsRate").value = ov.ovRunsRate || "";
+        document.getElementById("bgCric_ov4Rate").value = ov.ov4Rate || "";
+        document.getElementById("bgCric_ov6Rate").value = ov.ov6Rate || "";
+        document.getElementById("bgCric_ovWktRate").value = ov.ovWktRate || "";
+      }
+      if (modes.sess === "manual") {
+        document.getElementById("bgCric_s4").value = ov.sess4No ? `${ov.sess4No}/${ov.sess4Yes}` : "";
+        document.getElementById("bgCric_s6").value = ov.sess6No ? `${ov.sess6No}/${ov.sess6Yes}` : "";
+        document.getElementById("bgCric_s10").value = ov.sess10No ? `${ov.sess10No}/${ov.sess10Yes}` : "";
+        document.getElementById("bgCric_s15").value = ov.sess15No ? `${ov.sess15No}/${ov.sess15Yes}` : "";
+        document.getElementById("bgCric_s20").value = ov.sess20No ? `${ov.sess20No}/${ov.sess20Yes}` : "";
+        document.getElementById("bgCric_sessMult").value = ov.sessMult || "";
+      }
+      if (modes.digit === "manual") {
+        document.getElementById("bgCric_digitRate").value = ov.digitRate || "";
+      }
+
+      ["odds", "tied", "bm", "over", "sess", "digit"].forEach(k => {
+        setMarketMode(k, modes[k] === "manual" ? "manual" : "auto");
+      });
+
+      loadManualContests(id);
+    } catch (e) {}
+  }
+
+  async function bgCricSaveRates() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
+    const s4 = document.getElementById("bgCric_s4").value.split("/");
+    const s6 = document.getElementById("bgCric_s6").value.split("/");
+    const s10 = document.getElementById("bgCric_s10").value.split("/");
+    const s15 = document.getElementById("bgCric_s15").value.split("/");
+    const s20 = document.getElementById("bgCric_s20").value.split("/");
+
+    const payload = {
+      modes: { ...marketModes },
+      maxBet: Number(document.getElementById("bgCric_maxBet").value || 0),
+      maxUsers: Number(document.getElementById("bgCric_maxUsers").value || 25),
+      maxMoney: Number(document.getElementById("bgCric_maxMoney").value || 15000),
+      locked: document.getElementById("bgCric_lock").checked,
+
+      teamABack: marketModes.odds === "manual" ? document.getElementById("bgCric_aBack").value.trim() : "",
+      teamALay: marketModes.odds === "manual" ? document.getElementById("bgCric_aLay").value.trim() : "",
+      teamBBack: marketModes.odds === "manual" ? document.getElementById("bgCric_bBack").value.trim() : "",
+      teamBLay: marketModes.odds === "manual" ? document.getElementById("bgCric_bLay").value.trim() : "",
+
+      tiedYesBack: marketModes.tied === "manual" ? document.getElementById("bgCric_tiedYesBack").value.trim() : "",
+      tiedYesLay: marketModes.tied === "manual" ? document.getElementById("bgCric_tiedYesLay").value.trim() : "",
+      tiedNoBack: marketModes.tied === "manual" ? document.getElementById("bgCric_tiedNoBack").value.trim() : "",
+      tiedNoLay: marketModes.tied === "manual" ? document.getElementById("bgCric_tiedNoLay").value.trim() : "",
+
+      bmABack: marketModes.bm === "manual" ? document.getElementById("bgCric_bmABack").value.trim() : "",
+      bmALay: marketModes.bm === "manual" ? document.getElementById("bgCric_bmALay").value.trim() : "",
+      bmBBack: marketModes.bm === "manual" ? document.getElementById("bgCric_bmBBack").value.trim() : "",
+      bmBLay: marketModes.bm === "manual" ? document.getElementById("bgCric_bmBLay").value.trim() : "",
+
+      ovRunsLine: marketModes.over === "manual" ? document.getElementById("bgCric_ovRunsLine").value.trim() : "",
+      ovRunsRate: marketModes.over === "manual" ? document.getElementById("bgCric_ovRunsRate").value.trim() : "",
+      ov4Rate: marketModes.over === "manual" ? document.getElementById("bgCric_ov4Rate").value.trim() : "",
+      ov6Rate: marketModes.over === "manual" ? document.getElementById("bgCric_ov6Rate").value.trim() : "",
+      ovWktRate: marketModes.over === "manual" ? document.getElementById("bgCric_ovWktRate").value.trim() : "",
+
+      sess4No: marketModes.sess === "manual" && s4[0] ? s4[0].trim() : "",
+      sess4Yes: marketModes.sess === "manual" && s4[1] ? s4[1].trim() : "",
+      sess6No: marketModes.sess === "manual" && s6[0] ? s6[0].trim() : "",
+      sess6Yes: marketModes.sess === "manual" && s6[1] ? s6[1].trim() : "",
+      sess10No: marketModes.sess === "manual" && s10[0] ? s10[0].trim() : "",
+      sess10Yes: marketModes.sess === "manual" && s10[1] ? s10[1].trim() : "",
+      sess15No: marketModes.sess === "manual" && s15[0] ? s15[0].trim() : "",
+      sess15Yes: marketModes.sess === "manual" && s15[1] ? s15[1].trim() : "",
+      sess20No: marketModes.sess === "manual" && s20[0] ? s20[0].trim() : "",
+      sess20Yes: marketModes.sess === "manual" && s20[1] ? s20[1].trim() : "",
+      sessMult: marketModes.sess === "manual" ? document.getElementById("bgCric_sessMult").value.trim() : "",
+
+      digitRate: marketModes.digit === "manual" ? document.getElementById("bgCric_digitRate").value.trim() : ""
+    };
+
+    await dbPut(`cricketControls/${id}`, payload);
+    alert("✅ Auto / Manual Settings Save Ho Gayi!");
+  }
+
+  async function bgCricResetRates() {
+    const id = document.getElementById("bgCric_matchSelect").value;
+    if (!id) return;
+    await fetch(`${DB_URL}/cricketControls/${id}.json`, { method: "DELETE" });
+    bgCricLoadRates();
+    alert("🗑️ Sabhi Contests Auto Mode par reset ho gaye!");
+  }
+
+  async function createManualContest() {
+    const mId = document.getElementById("bgCric_matchSelect").value;
+    const title = (document.getElementById("mc_title").value || "").trim();
+    const innChoice = document.getElementById("mc_inning").value;
+    const targetOv = Number(document.getElementById("mc_targetOv").value || 0);
+    const targetRuns = Number(document.getElementById("mc_targetRuns").value || 0);
+    const maxBetLimit = Number(document.getElementById("mc_maxBet").value || 0);
+    const chosenTeam = document.getElementById("mc_teamSelect").value;
+    const opt1 = (document.getElementById("mc_opt1").value || "YES").trim();
+    const rate1 = Number(document.getElementById("mc_rate1").value || 1.90);
+    const opt2 = (document.getElementById("mc_opt2").value || "NO").trim();
+    const rate2 = Number(document.getElementById("mc_rate2").value || 1.90);
+
+    if (!mId || !title) return alert("Match aur Contest Question dalein!");
+
+    const st = selectedMatchLiveState;
+    if (st) {
+      if (st.isEnded) return alert("🚫 BLOCKED: Ye match pehle hi khatam ho chuka hai (" + st.status + ")!");
+      if (innChoice === "1" && st.inningNo === 2) return alert(`🚫 BLOCKED: 1st Inning (${st.playedTeam}) pehle hi khel chuki hai!`);
+      if (chosenTeam && st.playedTeam && chosenTeam === st.playedTeam && st.inningNo === 2) return alert(`🚫 BLOCKED: ${st.playedTeam} apni batting poori kar chuki hai!`);
+      if (targetOv > 0) {
+        if (targetOv > st.maxOv) return alert(`🚫 BLOCKED: Ye match sirf ${st.maxOv} overs ka hai!`);
+        const lockOvLimit = Math.max(0.1, targetOv - 2);
+        if (st.curOv >= lockOvLimit && (innChoice === "AUTO" || Number(innChoice) === st.inningNo)) {
+          return alert(`🚫 BLOCKED: Contest 2 over pehle (${lockOvLimit} Ov par) lock hota hai, abhi ${st.curOv} overs ho chuke hain!`);
+        }
+      }
+      if (targetRuns > 0 && targetOv > 0) {
+        const remOv = Math.max(0.1, targetOv - st.curOv);
+        const needRuns = targetRuns - st.curRuns;
+        if (needRuns <= 0) return alert(`🚫 BLOCKED: Team pehle hi ${st.curRuns} runs bana chuki hai!`);
+        if ((needRuns / remOv) > 24 && !confirm(`⚠️ WARNING: Bache ${remOv.toFixed(1)} overs mein ${needRuns} runs banana mushkil hai! Phir bhi banayein?`)) return;
+      }
+      if (st.target > 0 && st.inningNo === 2 && (st.target - st.curRuns) <= 12 && st.curWkts <= 6 && (rate1 > 1.40 || rate2 > 1.40)) {
+        if (!confirm(`⚠️ HIGH RISK ALERT: ${st.activeBatTeam} ko jeetne ke liye sirf ${st.target - st.curRuns} runs chahiye. Phir bhi ye rate (${rate1}x / ${rate2}x) dena chahte hain?`)) return;
+      }
+    }
+
+    const cId = "MC_" + Date.now();
+    const innLabel = innChoice === "1" ? "1st Inn" : innChoice === "2" ? "2nd Inn" : (st ? `${st.inningNo === 2 ? "2nd" : "1st"} Inn` : "Live");
+    await dbPut(`customContests/${mId}/${cId}`, {
+      cId, title, inning: innLabel, team: chosenTeam, targetOv, targetRuns, maxBet: maxBetLimit,
+      opt1, rate1, opt2, rate2, status: "OPEN", winner: ""
+    });
+    document.getElementById("mc_title").value = "";
+    document.getElementById("mc_maxBet").value = "";
+    alert(`✅ Contest "${title}" (${innLabel}) Add Ho Gaya!\n${targetOv > 0 ? `🔒 Auto-Lock: ${Math.max(0.1, targetOv - 2)} Ov par (2 Ov pehle)\n` : ""}${maxBetLimit > 0 ? `💰 Max Bet Limit: ₹${maxBetLimit}` : ""}`);
+    loadManualContests(mId);
+  }
+
+  async function loadManualContests(mId) {
+    const box = document.getElementById("activeManualContestsList");
+    const data = (await dbGet(`customContests/${mId}`)) || {};
+    const list = Object.values(data);
+    if (!list.length) { box.innerHTML = ""; return; }
+    box.innerHTML = list.map(c => `
+      <div style="background:#12021a; border:1px solid #6b1d91; border-radius:8px; padding:9px; margin-bottom:7px; font-size:12px;">
+        <div class="row-between"><strong style="color:#ffd700;">🎯 ${c.title} (${c.inning || "Live"})</strong><span class="badge ${c.status}">${c.status}</span></div>
+        <div style="color:#ccc; margin:4px 0;">1) ${c.opt1} (@ ${c.rate1}x) | 2) ${c.opt2} (@ ${c.rate2}x)${c.maxBet > 0 ? ` • <span style="color:#28e04d; font-weight:bold;">Max ₹${c.maxBet}</span>` : ""}${c.targetOv > 0 ? ` • Lock: ${Math.max(0.1, c.targetOv - 2)} Ov` : ""}</div>
+        ${c.status === "OPEN" ? `
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <button type="button" class="btn btn-green" style="flex:1;" onclick="settleManualContest('${mId}','${c.cId}','${c.opt1}')">🏆 ${c.opt1} Won</button>
+            <button type="button" class="btn btn-blue" style="flex:1;" onclick="settleManualContest('${mId}','${c.cId}','${c.opt2}')">🏆 ${c.opt2} Won</button>
+            <button type="button" class="btn btn-del" onclick="deleteManualContest('${mId}','${c.cId}')">🗑️</button>
+          </div>` : `<div style="color:#28e04d; font-weight:bold;">🏆 Winner: ${c.winner}</div>`}
+      </div>
+    `).join("");
+  }
+
+  async function settleManualContest(mId, cId, winOpt) {
+    if (!confirm(`Confirm: "${winOpt}" ko winner ghoshit karein aur sabko payout dein?`)) return;
+    await dbPatch(`customContests/${mId}/${cId}`, { status: "SETTLED", winner: winOpt });
+
+    const betsObj = (await dbGet(`cricketBets/${mId}`)) || {};
+    for (const b of Object.values(betsObj)) {
+      if (!b || b.customContestId !== cId || String(b.status).toUpperCase() !== "OPEN") continue;
+      const isWon = String(b.lockedLine || "").trim().toUpperCase() === String(winOpt).trim().toUpperCase();
+      const st = isWon ? "WON" : "LOST";
+      await dbPatch(`cricketBets/${mId}/${b.betId}`, { status: st, resultInfo: `🏆 ${winOpt} Won`, settledAt: new Date().toLocaleString("en-IN") });
+      if (isWon && b.mobile) {
+        const u = (await dbGet(`users/${b.mobile}`)) || {};
+        const nw = Number((Number(u.winningBal ?? u.winningBalance ?? 0) + Number(b.lockedReturn || 0)).toFixed(2));
+        const p = { winningBal: nw }; if ("winningBalance" in u) p.winningBalance = nw;
+        await dbPatch(`users/${b.mobile}`, p);
+      }
+    }
+    alert(`✅ Contest Settled! "${winOpt}" par bet lagane walon ke wallet mein paisa credit ho gaya!`);
+    loadManualContests(mId);
+    forceLoadAll();
+  }
+
+  async function deleteManualContest(mId, cId) {
+    await fetch(`${DB_URL}/customContests/${mId}/${cId}.json`, { method: "DELETE" });
+    loadManualContests(mId);
+  }
+
+  initAdminCricDropdown();
+</script>
+</body>
+</html>
