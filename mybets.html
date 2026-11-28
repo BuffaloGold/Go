@@ -111,7 +111,8 @@
   }
 
   function parseLiveSummary(html) {
-    const txt = String(html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+    const raw = String(html || "");
+    const txt = raw.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
     const head = txt.slice(0, 4500);
     const winM = head.match(/([A-Za-z][A-Za-z0-9\s]{1,36}?)\s+won by\s+\d+\s+(?:runs?|wkts?|wickets?)/i);
     const isTied = /\bmatch tied\b/i.test(head);
@@ -127,6 +128,22 @@
       }
     });
     Object.values(inns).forEach(v => list.push(v));
+
+    // Extract live player runs & bowler wickets for Player Special settlement
+    const playerRuns = {};
+    const bowlerWkts = {};
+    for (const bm of raw.matchAll(/"batName"\s*:\s*"([^"]{2,32})"[\s\S]{0,220}?"runs"\s*:\s*(\d+)/g)) {
+      const nm = bm[1].trim().toUpperCase();
+      playerRuns[nm] = Math.max(playerRuns[nm] || 0, Number(bm[2]));
+    }
+    for (const tm of txt.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*\*?\s+(\d{1,3})\s*\(\s*\d{1,3}\s*\)/g)) {
+      const nm = tm[1].trim().toUpperCase();
+      playerRuns[nm] = Math.max(playerRuns[nm] || 0, Number(tm[2]));
+    }
+    for (const bwm of raw.matchAll(/"bowlName"\s*:\s*"([^"]{2,32})"[\s\S]{0,220}?"wickets"\s*:\s*(\d+)/g)) {
+      const nm = bwm[1].trim().toUpperCase();
+      bowlerWkts[nm] = Math.max(bowlerWkts[nm] || 0, Number(bwm[2]));
+    }
 
     const overStats = {};
     const seenBalls = new Set();
@@ -156,7 +173,7 @@
     return {
       isEnded, isTied, winnerName, inns,
       activeInn: list[list.length - 1] || null,
-      overStats,
+      overStats, playerRuns, bowlerWkts,
       statusLine: winM ? winM[0] : (isTied ? "Match Tied" : "")
     };
   }
@@ -165,6 +182,52 @@
     const mkt = String(b.market || "");
     const side = String(b.side || "").toUpperCase();
     const line = String(b.lockedLine || "");
+
+    // 15-Second Ball-Delay Anti-Cheating Shield
+    const placedMs = Number(b.placedAtMs || 0);
+    if (placedMs > 0 && (Date.now() - placedMs) < 15000 && !info.isEnded) {
+      return null;
+    }
+
+    // Live Batsman Runs Special ("Batsman <Name> Runs (<TEAM>)")
+    const batM = mkt.match(/^Batsman\s+(.+?)\s+Runs\s*\(([A-Z0-9]+)\)/i);
+    if (batM) {
+      const pName = batM[1].trim().toUpperCase();
+      const inn = info.inns[batM[2].toUpperCase()] || info.activeInn;
+      if (!inn) return null;
+      const entryOv = Number(b.entryOv || 0);
+      const targetRuns = Number(line.replace(/\D/g, ""));
+      const curPlayerRuns = info.playerRuns[pName];
+
+      if (typeof curPlayerRuns === "number" && curPlayerRuns >= targetRuns) {
+        const isWon = side === "YES";
+        return { status: isWon ? "WON" : "LOST", resultInfo: `${batM[1]} Reached ${curPlayerRuns} Runs` };
+      }
+      if (inn.ov >= entryOv + 2 || info.isEnded || inn.wkts >= 10) {
+        const finalR = typeof curPlayerRuns === "number" ? curPlayerRuns : 0;
+        const isWon = side === "YES" ? (finalR >= targetRuns) : (finalR < targetRuns);
+        return { status: isWon ? "WON" : "LOST", resultInfo: `${batM[1]} Score: ${finalR} Runs` };
+      }
+      return null;
+    }
+
+    // Live Bowler Wicket Special ("Bowler <Name> Wicket (<TEAM>)")
+    const bowlM = mkt.match(/^Bowler\s+(.+?)\s+Wicket\s*\(([A-Z0-9]+)\)/i);
+    if (bowlM) {
+      const inn = info.inns[bowlM[2].toUpperCase()] || info.activeInn;
+      if (!inn) return null;
+      const entryOv = Number(b.entryOv || 0);
+      const targetOv = Math.floor(entryOv) + 1;
+      if (inn.ov < targetOv && !info.isEnded) return null;
+
+      const st = info.overStats[targetOv];
+      let ovWkts = 0;
+      if (st && st.ballsSeen > 0) ovWkts = st.wkts;
+      else ovWkts = Math.max(0, inn.wkts - Number(b.entryWkts || 0));
+
+      const isWon = side === "YES" ? (ovWkts >= 1) : (ovWkts === 0);
+      return { status: isWon ? "WON" : "LOST", resultInfo: `${bowlM[1]} Over ${targetOv} Wkts: ${ovWkts}` };
+    }
 
     const ovRunM = mkt.match(/^Over\s+(\d+)\s+Runs\s*\(([A-Z0-9]+)\)/i);
     if (ovRunM) {
@@ -185,23 +248,27 @@
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Exact Runs: ${ovRuns}` };
     }
 
+    // Over Fours (Supports 2+ Fours as well as legacy 1+ Four)
     const ov4M = mkt.match(/^Over\s+(\d+)\s+Fours\s*\(([A-Z0-9]+)\)/i);
     if (ov4M) {
       const targetOv = Number(ov4M[1]);
       const inn = info.inns[ov4M[2].toUpperCase()] || info.activeInn;
       if (!inn || (inn.ov < targetOv && !info.isEnded)) return null;
       const fours = (info.overStats[targetOv] && info.overStats[targetOv].fours) || 0;
-      const isWon = side === "YES" ? (fours >= 1) : (fours === 0);
+      const reqFours = /2\+/.test(line) ? 2 : 1;
+      const isWon = side === "YES" ? (fours >= reqFours) : (fours < reqFours);
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Fours: ${fours}` };
     }
 
+    // Over Sixes (Supports 2+ Sixes as well as legacy 1+ Six)
     const ov6M = mkt.match(/^Over\s+(\d+)\s+Sixes\s*\(([A-Z0-9]+)\)/i);
     if (ov6M) {
       const targetOv = Number(ov6M[1]);
       const inn = info.inns[ov6M[2].toUpperCase()] || info.activeInn;
       if (!inn || (inn.ov < targetOv && !info.isEnded)) return null;
       const sixes = (info.overStats[targetOv] && info.overStats[targetOv].sixes) || 0;
-      const isWon = side === "YES" ? (sixes >= 1) : (sixes === 0);
+      const reqSixes = /2\+/.test(line) ? 2 : 1;
+      const isWon = side === "YES" ? (sixes >= reqSixes) : (sixes < reqSixes);
       return { status: isWon ? "WON" : "LOST", resultInfo: `Over ${targetOv} Sixes: ${sixes}` };
     }
 
