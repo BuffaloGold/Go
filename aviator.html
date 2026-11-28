@@ -394,3 +394,389 @@
     else if (p.state === "ACTIVE") { btn.className = "action-btn btn-orange"; btn.innerHTML = `<span>CASH OUT</span><span class="action-sub">${(p.amount * currentMult).toFixed(2)} INR</span>`; }
   }
  
+  let roundHadUserBet = false;
+  let allCashoutBoostApplied = false;
+  let localCrashLockUntil = 0;
+
+  // NORMAL CYCLE: 20% (1-2x) | 35% (1-5x) | 35% (5-10x) | 10% (10-100x)
+  function generateCrashPoint() {
+    const r = Math.random() * 100;
+    if (r < 20) return Number((1.00 + Math.random() * 0.99).toFixed(2));
+    if (r < 55) return Number((1.00 + Math.random() * 4.00).toFixed(2));
+    if (r < 90) return Number((5.00 + Math.random() * 5.00).toFixed(2));
+    return Number((10.00 + Math.random() * 90.00).toFixed(2));
+  }
+
+  async function adjustCrashOnUserBet(betAmt) {
+    if (!roomState || !roomState.roundId) return;
+    roundHadUserBet = true;
+    await syncHourlyPool();
+    await recordHourlyBet(betAmt);
+
+    const playablePool = getAvailableUserPool();
+    let targetCrash;
+
+    if (playablePool >= betAmt * 1.5) {
+      targetCrash = generateCrashPoint();
+    } else {
+      if (Math.random() < 0.45) {
+        targetCrash = Number((1.02 + Math.random() * 0.78).toFixed(2));
+      } else {
+        targetCrash = Number((2.50 + Math.random() * 6.50).toFixed(2));
+      }
+    }
+
+    roomState.crashAt = targetCrash;
+    try {
+      await fetch(`${DB_URL}/aviatorRoom/crashAt.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(targetCrash)
+      });
+    } catch (e) {}
+  }
+
+  // Exact single crash lock so the same round NEVER restarts after crash
+  async function forceImmediateCrashAt(crashMult) {
+    const exactCrash = Number(Math.max(1.00, crashMult).toFixed(2));
+    const now = getSyncedNow();
+    localCrashLockUntil = now + CRASH_PAUSE_MS + 300;
+    roomState.crashAt = exactCrash;
+    roomState.flyStart = now - calcDurationToCrash(exactCrash) * 1000 - 15;
+    tickSynchronizedEngine();
+    try {
+      await fetch(`${DB_URL}/aviatorRoom.json`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ crashAt: exactCrash, flyStart: roomState.flyStart, updatedAt: now })
+      });
+    } catch (e) {}
+  }
+
+  async function boostCrashWhenAllCashedOut() {
+    if (allCashoutBoostApplied || !roomState || gameState !== "FLYING") return;
+    if (!roundHadUserBet) return;
+
+    const anyMyBetActive = panels.some(p => p.state === "ACTIVE" || p.state === "PLACED");
+    if (anyMyBetActive) return;
+
+    const anyOtherActive = liveBetsData.some(b => !b.isMe && !b.id.startsWith("bot_") && !b.mult);
+    if (anyOtherActive) return;
+
+    allCashoutBoostApplied = true;
+    if (Math.random() < 0.75 && Number(roomState.crashAt) < 20) {
+      const rocketTargets = [22.40, 34.80, 56.20, 98.50];
+      const pick = rocketTargets[Math.floor(Math.random() * rocketTargets.length)];
+      const boostedCrash = Number((Math.max(currentMult + 5, pick) + Math.random() * 4).toFixed(2));
+      roomState.crashAt = boostedCrash;
+      try {
+        await fetch(`${DB_URL}/aviatorRoom/crashAt.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(boostedCrash)
+        });
+      } catch (e) {}
+    }
+  }
+
+  const WAIT_MS = 5000, CRASH_PAUSE_MS = 2600;
+  let lastHandledRoundId = null, roundCrashHandled = false, roundTakeoffHandled = false, isCreatingRound = false;
+  const bootNow = getSyncedNow();
+  let roomState = { roundId: "R" + bootNow, waitStart: bootNow, flyStart: bootNow + WAIT_MS, crashAt: 4.85, history: historyList };
+
+  function calcMultAtElapsed(sec) { return Number(Math.pow(Math.E, 0.135 * sec).toFixed(2)); }
+  function calcDurationToCrash(targetMult) { return targetMult <= 1.00 ? 0.15 : Math.log(targetMult) / 0.135; }
+
+  async function publishNewRound(prevCrashedMult) {
+    if (isCreatingRound) return;
+    isCreatingRound = true;
+    localCrashLockUntil = 0;
+    const now = getSyncedNow(), nextCrash = generateCrashPoint();
+    let newHist = [...historyList];
+    if (prevCrashedMult && !isNaN(prevCrashedMult)) { newHist.unshift(Number(prevCrashedMult)); newHist = newHist.slice(0, 12); }
+    const newRoom = { roundId: "R" + now, waitStart: now, flyStart: now + WAIT_MS, crashAt: nextCrash, history: newHist, updatedAt: now };
+    roomState = newRoom; historyList = newHist; renderHistory();
+    try { await fetch(`${DB_URL}/aviatorRoom.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newRoom) }); }
+    catch (e) {} finally { isCreatingRound = false; }
+  }
+
+  async function syncRoomFromFirebase() {
+    if (getSyncedNow() < localCrashLockUntil) return;
+    try {
+      const reqStart = Date.now();
+      const res = await fetch(`${DB_URL}/aviatorRoom.json?t=${reqStart}`);
+      if (!res.ok) return;
+      if (getSyncedNow() < localCrashLockUntil) return;
+
+      const dateHdr = res.headers.get("Date");
+      if (dateHdr) {
+        const srvTime = new Date(dateHdr).getTime();
+        const rttHalf = (Date.now() - reqStart) / 2;
+        if (!isNaN(srvTime)) serverOffsetMs = (srvTime + rttHalf) - Date.now();
+      }
+
+      const data = await res.json();
+      const now = getSyncedNow();
+      if (!data || !data.roundId || !data.flyStart || !data.crashAt) { await publishNewRound(null); return; }
+
+      const roundEndMs = Number(data.flyStart) + calcDurationToCrash(Number(data.crashAt)) * 1000 + CRASH_PAUSE_MS;
+      if (now >= roundEndMs + 150) { await publishNewRound(Number(data.crashAt)); return; }
+
+      roomState = data;
+      if (Array.isArray(data.history) && data.history.length > 0) { historyList = data.history; renderHistory(); }
+    } catch (e) {}
+  }
+
+  async function placePanelBetNow(idx, isAuto = false) {
+    const val = parseInt(document.getElementById(`betInp${idx}`).value);
+    if (!val || val < 10) {
+      if (isAuto) { panels[idx].autoBet = false; document.getElementById(`autoBetToggle${idx}`).innerText = "OFF"; document.getElementById(`autoBetToggle${idx}`).classList.remove("on"); }
+      else alert("Minimum bet ₹10 hai!");
+      return false;
+    }
+    if (val > getTotalBal()) {
+      if (isAuto) { panels[idx].autoBet = false; document.getElementById(`autoBetToggle${idx}`).innerText = "OFF"; document.getElementById(`autoBetToggle${idx}`).classList.remove("on"); alert(`Panel ${idx + 1}: Balance kam hone par Auto-Bet band kar diya gaya!`); }
+      else alert("Wallet mein itna balance nahi hai!");
+      return false;
+    }
+    playAviatorSound("bet");
+    let dBal = Number(userData.depositBal ?? userData.depositBalance ?? 0) || 0;
+    let wBal = Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0;
+    if (dBal >= val) dBal -= val; else { const rem = val - dBal; dBal = 0; wBal -= rem; }
+    const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+    txns.unshift({ type: "Aviator Bet", amt: "-₹" + val, date: new Date().toLocaleString() });
+    userData.depositBal = dBal; userData.winningBal = wBal; userData.txns = txns.slice(0, 30);
+    localStorage.setItem("cachedUser", JSON.stringify(userData));
+    updateHeaderBal();
+
+    panels[idx].amount = val; panels[idx].state = "PLACED"; updatePanelBtn(idx);
+
+    const combinedBet = (panels[0].state === "PLACED" ? panels[0].amount : 0) + (panels[1].state === "PLACED" ? panels[1].amount : 0);
+    adjustCrashOnUserBet(combinedBet || val);
+
+    const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+    liveBetsData.unshift({ id: "me_" + idx, name: maskedMe + " (You)", bet: val, mult: null, win: 0, isMe: true });
+    renderLiveFeed();
+    fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ depositBal: dBal, winningBal: wBal, txns: userData.txns }) });
+    fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: val, mult: null, win: 0, ts: getSyncedNow() }) });
+    return true;
+  }
+
+  async function handleBetBtn(idx) {
+    initAudio();
+    const p = panels[idx];
+    if (p.state === "IDLE") {
+      if (gameState === "WAITING") await placePanelBetNow(idx, false);
+      else {
+        const val = parseInt(document.getElementById(`betInp${idx}`).value);
+        if (!val || val < 10) return alert("Minimum bet ₹10 hai!");
+        if (val > getTotalBal()) return alert("Wallet mein itna balance nahi hai!");
+        playAviatorSound("bet"); p.amount = val; p.state = "QUEUED"; updatePanelBtn(idx);
+      }
+    } else if (p.state === "QUEUED") { p.state = "IDLE"; updatePanelBtn(idx); }
+    else if (p.state === "ACTIVE" && gameState === "FLYING") {
+      const cashMult = currentMult;
+      const winAmt = Number((p.amount * cashMult).toFixed(2));
+      const availableNow = getAvailableUserPool();
+
+      // Limit ke bahar Cash Out dabate hi instant crash + clear LOST banner
+      if (winAmt > availableNow && winRateSetting < 75) {
+        const lostBetAmt = p.amount;
+        p.state = "IDLE";
+        updatePanelBtn(idx);
+        myBetsHistory.unshift({ bet: lostBetAmt, mult: "0.00x", win: 0 });
+        renderLiveFeed();
+        showResultBanner(false, `💥 FLEW AWAY @ ${cashMult.toFixed(2)}x • BET LOST (-₹${lostBetAmt})`);
+        await forceImmediateCrashAt(cashMult);
+        return;
+      }
+
+      // Pool ke andar hai toh instant win + clear WIN banner
+      p.state = "IDLE"; updatePanelBtn(idx); playAviatorSound("cashout");
+      recordHourlyWin(winAmt);
+      showResultBanner(true, `🎉 YOU WON @ ${cashMult.toFixed(2)}x • +₹${winAmt.toFixed(2)} INR`);
+
+      const newWin = Number(((Number(userData.winningBal ?? userData.winningBalance ?? 0) || 0) + winAmt).toFixed(2));
+      const txns = Array.isArray(userData.txns) ? [...userData.txns] : [];
+      txns.unshift({ type: `Aviator Win (${cashMult.toFixed(2)}x)`, amt: "+₹" + winAmt, date: new Date().toLocaleString() });
+      userData.winningBal = newWin; userData.txns = txns.slice(0, 30);
+      localStorage.setItem("cachedUser", JSON.stringify(userData));
+      updateHeaderBal();
+      const maskedMe = mobile.slice(0, 1) + "***" + mobile.slice(-1);
+      const myRow = liveBetsData.find(b => b.id === "me_" + idx && !b.mult);
+      if (myRow) { myRow.mult = cashMult.toFixed(2) + "x"; myRow.win = winAmt; }
+      myBetsHistory.unshift({ bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt });
+      renderLiveFeed();
+      fetch(`${DB_URL}/users/${mobile}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningBal: newWin, txns: userData.txns }) });
+      fetch(`${DB_URL}/aviatorLiveFeed/${mobile}_${idx}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: maskedMe, bet: p.amount, mult: cashMult.toFixed(2) + "x", win: winAmt, ts: getSyncedNow() }) });
+
+      boostCrashWhenAllCashedOut();
+    }
+  }
+
+  const canvas = document.getElementById("aviatorCanvas"), ctx = canvas.getContext("2d");
+  function renderHistory() {
+    document.getElementById("historyBar").innerHTML = historyList.slice(0, 12).map(m => {
+      const val = Number(m), cls = val < 2 ? "c-blue" : (val < 10 ? "c-purple" : "c-pink");
+      return `<span class="hist-pill ${cls}">${val.toFixed(2)}x</span>`;
+    }).join("");
+  }
+  renderHistory();
+
+  function drawCanvas(progress = 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 35) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+    for (let j = 0; j < canvas.height; j += 35) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
+    if (gameState === "FLYING") {
+      const px = Math.min(345, 35 + progress * 310), py = Math.max(42, 185 - Math.pow(progress, 0.85) * 140 + Math.sin(Date.now() / 160) * 5);
+      ctx.beginPath(); ctx.moveTo(25, 195); ctx.quadraticCurveTo(px * 0.55, 192, px, py); ctx.lineTo(px, 195); ctx.closePath();
+      ctx.fillStyle = "rgba(255, 46, 76, 0.25)"; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(25, 195); ctx.quadraticCurveTo(px * 0.55, 192, px, py); ctx.strokeStyle = "#ff2e4c"; ctx.lineWidth = 4; ctx.stroke();
+      drawPlaneIcon(px, py);
+    } else if (gameState === "WAITING") drawPlaneIcon(38, 182);
+  }
+  function drawPlaneIcon(x, y) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.18);
+    ctx.fillStyle = "#ff2e4c"; ctx.beginPath(); ctx.ellipse(0, 0, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-18, -2); ctx.lineTo(-24, -12); ctx.lineTo(-12, -2); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(8, -2, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffbe0b"; ctx.beginPath(); ctx.arc(-25, 0, 4 + Math.random() * 4, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function tickSynchronizedEngine() {
+    if (!roomState) return;
+    const now = getSyncedNow(), flyStart = Number(roomState.flyStart), targetCrash = Number(roomState.crashAt);
+    const crashTimeMs = flyStart + calcDurationToCrash(targetCrash) * 1000, nextRoundTimeMs = crashTimeMs + CRASH_PAUSE_MS;
+
+    if (lastHandledRoundId !== roomState.roundId) {
+      lastHandledRoundId = roomState.roundId;
+      roundCrashHandled = false;
+      roundTakeoffHandled = false;
+      roundHadUserBet = false;
+      allCashoutBoostApplied = false;
+      [0, 1].forEach(idx => {
+        if (panels[idx].state === "QUEUED") placePanelBetNow(idx, false);
+        else if (panels[idx].autoBet && panels[idx].state === "IDLE") placePanelBetNow(idx, true);
+      });
+    }
+
+    if (now < flyStart) {
+      gameState = "WAITING"; currentMult = 1.00;
+      document.getElementById("multDisplay").innerText = "1.00x";
+      document.getElementById("multDisplay").classList.remove("crashed");
+      document.getElementById("statusText").innerText = "PLACE YOUR BETS";
+      document.getElementById("waitBarWrap").style.display = "block";
+      document.getElementById("waitBar").style.width = Math.max(0, Math.min(100, ((flyStart - now) / WAIT_MS) * 100)) + "%";
+      drawCanvas(0);
+    } else if (now >= flyStart && now < crashTimeMs) {
+      gameState = "FLYING";
+      if (!roundTakeoffHandled) {
+        roundTakeoffHandled = true; playAviatorSound("takeoff");
+        [0, 1].forEach(idx => { if (panels[idx].state === "PLACED") { panels[idx].state = "ACTIVE"; updatePanelBtn(idx); } });
+      }
+      const elapsedSec = (now - flyStart) / 1000;
+      currentMult = Math.min(targetCrash, calcMultAtElapsed(elapsedSec));
+      document.getElementById("multDisplay").innerText = currentMult.toFixed(2) + "x";
+      document.getElementById("multDisplay").classList.remove("crashed");
+      document.getElementById("statusText").innerText = "";
+      document.getElementById("waitBarWrap").style.display = "none";
+      [0, 1].forEach(idx => {
+        if (panels[idx].state === "ACTIVE") {
+          updatePanelBtn(idx);
+          const autoTarget = parseFloat(document.getElementById(`autoCashVal${idx}`).value) || 2.00;
+          if (panels[idx].autoCash && currentMult >= autoTarget) handleBetBtn(idx);
+        }
+      });
+      drawCanvas(Math.min(1, elapsedSec / 7.5));
+    } else if (now >= crashTimeMs && now < nextRoundTimeMs) {
+      gameState = "CRASHED"; currentMult = targetCrash;
+      document.getElementById("multDisplay").innerText = targetCrash.toFixed(2) + "x";
+      document.getElementById("multDisplay").classList.add("crashed");
+      document.getElementById("statusText").innerText = "FLEW AWAY!";
+      document.getElementById("waitBarWrap").style.display = "none";
+      drawCanvas(1);
+      if (!roundCrashHandled) {
+        roundCrashHandled = true; playAviatorSound("crash");
+        let totalLostAmt = 0;
+        [0, 1].forEach(idx => {
+          if (panels[idx].state === "ACTIVE" || panels[idx].state === "PLACED") {
+            totalLostAmt += panels[idx].amount;
+            myBetsHistory.unshift({ bet: panels[idx].amount, mult: "0.00x", win: 0 });
+            panels[idx].state = "IDLE"; updatePanelBtn(idx);
+          }
+        });
+        if (totalLostAmt > 0) {
+          showResultBanner(false, `💥 FLEW AWAY @ ${targetCrash.toFixed(2)}x • BET LOST (-₹${totalLostAmt})`);
+        }
+        renderLiveFeed();
+      }
+    } else publishNewRound(targetCrash);
+  }
+
+  const BOT_NAMES = ["d***4", "a***9", "r***2", "s***7", "v***1", "k***8", "m***3", "p***5", "n***6", "t***0"];
+  let liveBetsData = [], myBetsHistory = [], activeFeedTab = "all";
+  function seedBots() {
+    liveBetsData = [];
+    for (let i = 0; i < 16; i++) {
+      const bAmt = [50, 100, 200, 500, 1000][Math.floor(Math.random() * 5)];
+      liveBetsData.push({ id: "bot_" + i, name: BOT_NAMES[i % BOT_NAMES.length], bet: bAmt, mult: null, win: 0, isMe: false, targetBotCash: Number((1.45 + Math.random() * 4.50).toFixed(2)) });
+    }
+    renderLiveFeed();
+  }
+  seedBots();
+
+  setInterval(async () => {
+    if (gameState === "WAITING" && Math.random() < 0.35) { seedBots(); document.getElementById("onlinePlayers").innerText = 215 + Math.floor(Math.random() * 65); }
+    if (gameState === "FLYING") {
+      liveBetsData.forEach(b => { if (!b.isMe && !b.mult && currentMult >= b.targetBotCash) { b.mult = currentMult.toFixed(2) + "x"; b.win = Number((b.bet * currentMult).toFixed(2)); } });
+    }
+    try {
+      const res = await fetch(`${DB_URL}/aviatorLiveFeed.json?t=${Date.now()}`);
+      const realFeed = await res.json();
+      if (realFeed && typeof realFeed === "object") {
+        const now = getSyncedNow();
+        Object.keys(realFeed).forEach(k => {
+          const item = realFeed[k];
+          if (item && (now - item.ts) < 20000 && !k.startsWith(mobile)) {
+            const ex = liveBetsData.find(x => x.id === k);
+            if (ex) { ex.mult = item.mult; ex.win = item.win; }
+            else liveBetsData.unshift({ id: k, name: item.name, bet: item.bet, mult: item.mult, win: item.win, isMe: false });
+          }
+        });
+      }
+    } catch (e) {}
+    if (roundHadUserBet && gameState === "FLYING") boostCrashWhenAllCashedOut();
+    renderLiveFeed();
+  }, 900);
+
+  function switchFeedTab(tab, el) { activeFeedTab = tab; document.querySelectorAll(".f-tab").forEach(t => t.classList.remove("active")); el.classList.add("active"); renderLiveFeed(); }
+  function renderLiveFeed() {
+    const listEl = document.getElementById("liveBetsList");
+    let rows = activeFeedTab === "all" ? liveBetsData.slice(0, 20) : (activeFeedTab === "my" ? myBetsHistory.slice(0, 15).map(m => ({ name: "You", bet: m.bet, mult: m.mult, win: m.win, isMe: true })) : [...liveBetsData].filter(b => b.win > 0).sort((a, b) => b.win - a.win).slice(0, 15));
+    const totalWin = liveBetsData.reduce((acc, b) => acc + (Number(b.win) || 0), 0);
+    document.getElementById("totalBetsCount").innerText = `${liveBetsData.length}/25 Bets`;
+    document.getElementById("totalWinSum").innerText = totalWin.toFixed(2);
+    listEl.innerHTML = rows.map(r => `<div class="feed-row ${r.win > 0 ? 'won' : ''} ${r.isMe ? 'me' : ''}"><div style="font-weight:bold; color:#ddd;">👤 ${r.name}</div><div>₹${Number(r.bet).toFixed(2)}</div><div>${r.mult ? `<span class="mult-badge">${r.mult}</span>` : '-'}</div><div style="text-align:right; font-weight:bold; color:${r.win > 0 ? '#28e04d' : '#777'};">${r.win > 0 ? '₹' + Number(r.win).toFixed(2) : '-'}</div></div>`).join("") || "<div style='text-align:center; color:#777; padding:12px; font-size:12px;'>Abhi koi record nahi hai</div>";
+  }
+
+  function hasRunningBet() { return panels.some(p => p.state === "PLACED" || p.state === "ACTIVE" || p.state === "QUEUED"); }
+  function safeExitTo(url) {
+    const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Agar aap back jayenge toh aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein bahar nikalna chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
+    if (confirm(msg)) window.location.href = url;
+  }
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    const msg = hasRunningBet() ? "⚠️ Aapki bet abhi chal rahi hai! Back jaane par aapki bet cancel/loss ho jayegi.\n\nKya aap sach mein back jaana chahte hain?" : "Kya aap Aviator game se bahar nikalna chahte hain?";
+    if (confirm(msg)) window.location.href = "game.html"; else history.pushState(null, "", location.href);
+  });
+  window.addEventListener("beforeunload", function (e) { if (hasRunningBet()) { e.preventDefault(); e.returnValue = ""; } });
+
+  syncRoomFromFirebase();
+  setInterval(syncRoomFromFirebase, 450);
+  setInterval(syncHourlyPool, 2500);
+  setInterval(tickSynchronizedEngine, 40);
+</script>
+</body>
+</html>
