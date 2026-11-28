@@ -200,9 +200,8 @@
 
   let userData = {};
   try { userData = JSON.parse(localStorage.getItem("cachedUser") || "{}"); } catch (e) {}
-  // Admin Panel se set ki gayi User Recovery / Win Rate % (20%, 35%, 50%, 75%)
-  // Safe House Profit % = 100 - winRateSetting
-  let winRateSetting = 35;
+  // Admin ke Aviator Rate (20, 35, 50, 75) ko hi direct Safe House Profit % maanenge!
+  let safeProfitPctSetting = 35;
 
   let serverOffsetMs = 0;
   function getSyncedNow() {
@@ -220,8 +219,7 @@
     toastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
   }
 
-  // Real Cash-In vs Cash-Out Tracking (Prevents turnover inflation!)
-  // Sirf user ki asal jeb se nikle hue paise (netLoss) par Admin % apply hoga
+  // Real Cash Outflow / Inflow Tracker (Prevents turnover inflation)
   const LOSS_KEY = "bg_av_netloss_" + mobile;
   let userRealNetLoss = Number(localStorage.getItem(LOSS_KEY) || 0);
 
@@ -235,11 +233,17 @@
     localStorage.setItem(LOSS_KEY, String(userRealNetLoss));
   }
 
-  // Admin Rate Setting ke hisaab se Max Allowed Payout
-  // Example: Admin ne 35% rakha -> 65% aapka Safe Profit, max 35% recovery allowed
-  function getMaxAllowedPayout() {
-    const allowedPct = Math.min(95, Math.max(10, Number(winRateSetting || 35))) / 100;
-    return Number((userRealNetLoss * allowedPct).toFixed(2));
+  // Admin Safe Profit % chhod kar baaki hissa user recovery limit hai
+  function getMaxAllowedPayout(betAmt) {
+    const profitRatio = Math.min(90, Math.max(5, Number(safeProfitPctSetting || 35))) / 100;
+    const playableRatio = 1 - profitRatio; // e.g., 35% profit -> 65% user pool; 20% profit -> 80% user pool
+    const lossBasedCap = Number((userRealNetLoss * playableRatio).toFixed(2));
+    // Agar user ka net loss abhi kam hai (shuruat ki bets), toh chhota win (up to 1.85x) allow karein
+    // taaki har bet par crash na ho aur game bilkul asli lage!
+    if (userRealNetLoss <= betAmt * 2) {
+      return Math.max(lossBasedCap, Number((betAmt * 1.85).toFixed(2)));
+    }
+    return lossBasedCap;
   }
 
   function getTotalBal() {
@@ -263,7 +267,7 @@
         localStorage.setItem("cachedUser", JSON.stringify(userData));
         updateHeaderBal();
       }
-      if (typeof r === "number" && r > 0) winRateSetting = r;
+      if (typeof r === "number" && r > 0) safeProfitPctSetting = r;
     } catch (e) {}
   }
   syncUserFromDB();
@@ -389,19 +393,17 @@
     if (!roomState || !roomState.roundId) return;
     roundHadUserBet = true;
 
-    const maxRecover = getMaxAllowedPayout();
+    const maxRecover = getMaxAllowedPayout(betAmt);
     let targetCrash;
 
-    if (maxRecover >= betAmt * 1.4) {
-      // Allowed recovery pool available -> natural उड़ान
+    if (maxRecover >= betAmt * 1.45) {
       targetCrash = generateCrashPoint();
     } else {
-      // Kabhi natural low crash (1.04x-1.75x) aur kabhi upar udne dein
-      // taaki user Cash Out dabaye toh 0.15s me crash ho!
-      if (Math.random() < 0.42) {
-        targetCrash = Number((1.04 + Math.random() * 0.72).toFixed(2));
+      // Kabhi natural early crash (1.06x-1.75x) aur kabhi upar udne dein
+      if (Math.random() < 0.35) {
+        targetCrash = Number((1.06 + Math.random() * 0.68).toFixed(2));
       } else {
-        targetCrash = Number((3.20 + Math.random() * 11.80).toFixed(2));
+        targetCrash = Number((2.80 + Math.random() * 11.20).toFixed(2));
       }
     }
 
@@ -415,7 +417,6 @@
     } catch (e) {}
   }
 
-  // Exact single crash lock so the same round NEVER restarts after crash
   async function forceImmediateCrashAt(crashMult) {
     const exactCrash = Number(Math.max(1.00, crashMult).toFixed(2));
     const now = getSyncedNow();
@@ -542,7 +543,7 @@
     return true;
   }
 
-  // 0.10s (100ms) Cashout vs 0.15s (150ms) Crash
+  // 0.10s (100ms) Cashout vs 0.15s (150ms) Crash (Manual + Auto Cashout dono ke liye)
   async function handleBetBtn(idx) {
     initAudio();
     const p = panels[idx];
@@ -561,11 +562,11 @@
 
       const tapMult = currentMult;
       const winAmt = Number((p.amount * tapMult).toFixed(2));
-      const maxAllowedNow = getMaxAllowedPayout();
-      const isOverSafeProfit = (winAmt > maxAllowedNow) && (winRateSetting < 75);
+      const maxAllowedNow = getMaxAllowedPayout(p.amount);
+      const isOverSafeProfit = winAmt > maxAllowedNow;
 
       if (isOverSafeProfit) {
-        // 0.15s (150ms) par plane crash -> aisa lagega ki cashout ho raha tha aur plane crash ho gaya!
+        // 0.15s (150ms) baad crash -> aisa lagega ki cash out ho raha tha aur plane crash ho gaya!
         setTimeout(async () => {
           if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
           const crashMult = currentMult;
@@ -578,7 +579,7 @@
           await forceImmediateCrashAt(crashMult);
         }, 150);
       } else {
-        // 0.10s (100ms) par smooth cashout win
+        // 0.10s (100ms) me smooth cashout win
         setTimeout(() => {
           if (p.state !== "CASHOUT_PENDING" || gameState !== "FLYING") return;
           const cashMult = currentMult;
