@@ -267,7 +267,7 @@
       });
     } catch (e) {}
   }
-
+ 
   function getSharedMaxAllowedPayout(betAmt) {
     // Agar pool bilkul naya hai (<= 1.5x bet), toh chhota win (up to 1.85x) allow karein taaki game real lage
     if (globalPool.playablePool <= 0 && globalPool.totalSafeProfit <= betAmt) {
@@ -276,7 +276,6 @@
     return Number(globalPool.playablePool.toFixed(2));
   }
  
-  }
 
   // Sabhi live users ke shared pool se kitna max payout allowed hai:
   // Example: User A (₹300) + User B (₹700) = ₹1,000 netCashIn
